@@ -8,16 +8,16 @@
 }
 
 :root {
-  /* SecureChat Premium Theme Colors - Enhanced for better visual hierarchy */
-  --background: oklch(0.98 0.01 240);  /* Subtle cool tint */
-  --foreground: oklch(0.12 0.02 240);  /* Deep blue-gray */
-  --card: oklch(0.99 0.005 240);  /* Pure white with subtle tint */
-  --card-foreground: oklch(0.12 0.02 240);
-  --popover: oklch(0.99 0.005 240);
-  --popover-foreground: oklch(0.12 0.02 240);
+  /* SecureChat Facebook-inspired Theme Colors */
+  --background: oklch(0.97 0.005 220);  /* Very light blue-gray background */
+  --foreground: oklch(0.15 0.02 240);  /* Dark blue-gray text */
+  --card: oklch(1.0 0 0);  /* Pure white cards */
+  --card-foreground: oklch(0.15 0.02 240);
+  --popover: oklch(1.0 0 0);
+  --popover-foreground: oklch(0.15 0.02 240);
   
-  /* Primary Blue - Professional trust and security */
-  --primary: oklch(0.42 0.18 245);  /* Rich professional blue */
+  /* Primary Blue - Facebook-style blue */
+  --primary: oklch(0.45 0.15 250);  /* Facebook blue */
   --primary-foreground: oklch(0.98 0.01 240);
   
   /* Secondary - Elegant grays */
@@ -25,11 +25,11 @@
   --secondary-foreground: oklch(0.25 0.02 240);
   
   /* Muted - Sophisticated subtle tones */
-  --muted: oklch(0.93 0.015 240);  /* Cool muted background */
+  --muted: oklch(0.96 0.005 240);  /* Very light background */
   --muted-foreground: oklch(0.5 0.02 240);  /* Balanced gray text */
   
-  /* Accent Green - Success and verification */
-  --accent: oklch(0.5 0.15 155);  /* Professional emerald green */
+  /* Accent Green - Facebook-style accent green */
+  --accent: oklch(0.48 0.12 145);  /* Facebook green for buttons */
   --accent-foreground: oklch(0.98 0.01 240);
   
   /* Destructive - Clear warning red */
@@ -37,9 +37,9 @@
   --destructive-foreground: oklch(0.98 0.01 240);
   
   /* UI Element colors - Enhanced contrast */
-  --border: oklch(0.88 0.02 240);  /* Subtle but visible borders */
-  --input: oklch(0.88 0.02 240);   /* Input field borders */
-  --ring: oklch(0.42 0.18 245);    /* Focus ring matches primary */
+  --border: oklch(0.90 0.01 240);  /* Subtle but visible borders */
+  --input: oklch(0.90 0.01 240);   /* Input field borders */
+  --ring: oklch(0.45 0.15 250);    /* Focus ring matches primary */
   
   /* Success color for positive feedback */
   --success: oklch(0.5 0.15 155);
@@ -49,8 +49,9 @@
   --warning: oklch(0.65 0.12 75);
   --warning-foreground: oklch(0.12 0.02 240);
   
-  /* Border radius - Slightly more refined */
-  --radius: 0.625rem;  /* 10px - more refined than 8px */
+  /* Border radius - Facebook-style rounded corners */
+  --radius: 0.5rem;  /* 8px - Facebook standard */
+}
 }
 
 @theme {
@@ -158,13 +159,56 @@
   }
 }
 
-/* Enhanced typography */
+/* Enhanced typography for Facebook-style interface */
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(180deg, var(--background) 0%, oklch(0.95 0.01 220) 100%);
+  min-height: 100vh;
+}
+
+/* Facebook-style input enhancements */
+.facebook-input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 17px;
+  line-height: 20px;
+  transition: border-color 0.2s ease;
+}
+
+.facebook-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(66, 103, 178, 0.2);
+}
+
+/* Facebook-style button enhancements */
+.facebook-button {
+  font-weight: 600;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+}
+
+.facebook-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.facebook-button:active {
+  transform: translateY(0);
+}
+
+/* Card shadows similar to Facebook */
+.facebook-card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /* Glass morphism effect for special elements */

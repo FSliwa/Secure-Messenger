@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { Spinner, SignIn, Shield } from '@phosphor-icons/react'
+import { Spinner, SignIn, Shield, Eye, EyeSlash } from '@phosphor-icons/react'
 import { signIn } from '@/lib/supabase'
 
 interface LoginProps {
@@ -22,6 +22,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
     password: ''
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const validateField = (name: string, value: string) => {
     switch (name) {
@@ -86,108 +87,131 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
   }
 
   return (
-    <Card className="w-full max-w-md animate-fade-in-up">
-      <CardHeader className="space-y-2 pb-4">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <h2 className="text-xl font-semibold text-center">Welcome back</h2>
-        </div>
-        <p className="text-sm text-muted-foreground text-center">
-          Sign in to your secure account
-        </p>
-      </CardHeader>
-      
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="email" className="text-sm font-medium">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className={errors.email ? 'border-destructive focus:ring-destructive' : ''}
-              placeholder="Enter your email"
-              aria-invalid={!!errors.email}
-            />
-            {errors.email && (
-              <p className="mt-1 text-xs text-destructive" role="alert">
-                {errors.email}
-              </p>
-            )}
+    <div className="w-full max-w-md animate-fade-in-up">
+      {/* Main Login Card */}
+      <Card className="bg-card border border-border shadow-lg">
+        <CardContent className="p-6">
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-1">Log in to SecureChat</h1>
           </div>
 
-          <div>
-            <Label htmlFor="password" className="text-sm font-medium">
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              className={errors.password ? 'border-destructive focus:ring-destructive' : ''}
-              placeholder="Enter your password"
-              aria-invalid={!!errors.password}
-            />
-            {errors.password && (
-              <p className="mt-1 text-xs text-destructive" role="alert">
-                {errors.password}
-              </p>
-            )}
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
+            <div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Email or phone number"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className={`h-12 ${errors.email ? 'border-destructive focus:ring-destructive' : ''}`}
+                aria-invalid={!!errors.email}
+              />
+              {errors.email && (
+                <p className="mt-1 text-xs text-destructive">
+                  {errors.email}
+                </p>
+              )}
+            </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Spinner className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                <SignIn className="mr-2 h-4 w-4" />
-                Sign In
-              </>
-            )}
-          </Button>
+            {/* Password */}
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                className={`h-12 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
+                aria-invalid={!!errors.password}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeSlash className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+              {errors.password && (
+                <p className="mt-1 text-xs text-destructive">
+                  {errors.password}
+                </p>
+              )}
+            </div>
 
-          <div className="text-center">
-            <button
-              type="button"
-              className="text-sm text-primary hover:underline"
-              onClick={() => toast.info('Password reset coming soon!')}
+            {/* Login Button */}
+            <Button
+              type="submit"
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
+              disabled={isLoading}
             >
-              Forgot your password?
-            </button>
-          </div>
-        </form>
+              {isLoading ? (
+                <>
+                  <Spinner className="mr-2 h-5 w-5 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Log In'
+              )}
+            </Button>
 
-        <div className="mt-6 pt-4 border-t">
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <button
+            {/* Forgot Password */}
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline"
+                onClick={() => toast.info('Password reset feature coming soon!')}
+              >
+                Forgotten password?
+              </button>
+            </div>
+          </form>
+
+          {/* Separator */}
+          <div className="my-6">
+            <Separator />
+          </div>
+
+          {/* Create Account Button */}
+          <div className="text-center">
+            <Button
               type="button"
-              className="text-primary hover:underline font-medium"
+              variant="outline"
+              className="px-8 py-3 h-12 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold border-accent"
               onClick={onSwitchToSignUp}
             >
-              Sign up
-            </button>
-          </p>
-        </div>
+              Create new account
+            </Button>
+          </div>
 
-        {/* Demo Notice */}
-        <div className="mt-4 p-3 bg-muted rounded-md">
-          <p className="text-xs text-muted-foreground text-center">
-            <strong>Demo Mode:</strong> Use any email/password to test the login functionality
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+          {/* Demo Notice */}
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">Demo Mode Active</p>
+                <p>Use any email and password combination to test the login functionality. Your data is secure and encrypted.</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Footer Links */}
+      <div className="mt-6 text-center">
+        <p className="text-sm text-muted-foreground mb-2">
+          <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
+        </p>
+      </div>
+    </div>
   )
 }
