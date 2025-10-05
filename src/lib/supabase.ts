@@ -6,6 +6,17 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key'
 
+// Debug logging (only in development)
+if (import.meta.env.DEV) {
+  console.log('🔧 Supabase Configuration:');
+  console.log('URL:', supabaseUrl);
+  console.log('API Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'Not found');
+  console.log('Environment vars loaded:', {
+    VITE_SUPABASE_URL: !!import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+  });
+}
+
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -419,29 +430,85 @@ export const testSupabaseConnection = async () => {
       }
     }
 
-    // Test the connection with a simple query
-    const { data, error } = await supabase.auth.getSession()
-    
-    if (error && error.message.includes('Invalid API key')) {
+    // Check if environment variables are properly loaded
+    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('undefined') || supabaseAnonKey.includes('undefined')) {
       return {
         connected: false,
-        error: 'Invalid API credentials',
-        message: 'Please check your Supabase URL and API key in the environment variables.',
+        error: 'Missing environment variables',
+        message: 'VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY not found. Please check your .env file and restart the dev server.',
+        needsSetup: true
+      }
+    }
+
+    // Test basic Supabase connection first
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        // More specific error handling
+        if (error.message.includes('Invalid API key') || error.message.includes('invalid key')) {
+          return {
+            connected: false,
+            error: 'Invalid API key',
+            message: 'The Supabase API key appears to be invalid. Please verify your VITE_SUPABASE_ANON_KEY in the .env file.',
+            needsSetup: true
+          }
+        }
+        
+        if (error.message.includes('Invalid URL') || error.message.includes('url')) {
+          return {
+            connected: false,
+            error: 'Invalid Supabase URL',
+            message: 'The Supabase URL appears to be invalid. Please verify your VITE_SUPABASE_URL in the .env file.',
+            needsSetup: true
+          }
+        }
+        
+        return {
+          connected: false,
+          error: `Auth error: ${error.message}`,
+          message: 'There was an authentication error. Please check your Supabase credentials.',
+          needsSetup: true
+        }
+      }
+    } catch (fetchError: any) {
+      return {
+        connected: false,
+        error: 'Network or credentials error',
+        message: `Unable to connect to Supabase: ${fetchError.message}. Please check your URL and API key.`,
         needsSetup: true
       }
     }
 
     // Try a simple database query to ensure tables exist
-    const { error: dbError } = await supabase
-      .from('users')
-      .select('count')
-      .limit(1)
+    try {
+      const { error: dbError } = await supabase
+        .from('users')
+        .select('count')
+        .limit(1)
 
-    if (dbError) {
+      if (dbError) {
+        if (dbError.message.includes('relation "public.users" does not exist')) {
+          return {
+            connected: false,
+            error: 'Database tables not found',
+            message: 'The database tables have not been created yet. Please run the SQL setup script from SUPABASE_SETUP.md.',
+            needsSetup: true
+          }
+        }
+        
+        return {
+          connected: false,
+          error: `Database error: ${dbError.message}`,
+          message: 'There was a database error. Please check your table setup and permissions.',
+          needsSetup: true
+        }
+      }
+    } catch (dbError: any) {
       return {
         connected: false,
-        error: 'Database tables not found',
-        message: 'Please run the SQL setup script from SUPABASE_SETUP.md to create the required tables.',
+        error: 'Database connection failed',
+        message: `Unable to query database: ${dbError.message}. Please check your setup.`,
         needsSetup: true
       }
     }
@@ -455,8 +522,8 @@ export const testSupabaseConnection = async () => {
   } catch (error: any) {
     return {
       connected: false,
-      error: error.message,
-      message: 'Unable to connect to Supabase. Please check your configuration.',
+      error: `Connection test failed: ${error.message}`,
+      message: 'Unable to test Supabase connection. Please check your configuration.',
       needsSetup: true
     }
   }
