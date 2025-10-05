@@ -52,7 +52,6 @@
   /* Border radius - Facebook-style rounded corners */
   --radius: 0.5rem;  /* 8px - Facebook standard */
 }
-}
 
 @theme {
   --color-background: var(--background);
