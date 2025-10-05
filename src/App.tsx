@@ -7,7 +7,7 @@ import { LoginCard } from "@/components/LoginCard";
 import { SecurityCallout } from "@/components/SecurityCallout";
 import { Footer } from "@/components/Footer";
 import { Dashboard } from "@/components/Dashboard";
-import { useKV } from '@github/spark/hooks';
+import { supabase, signOut, getCurrentUser } from "@/lib/supabase";
 
 type AppState = 'landing' | 'login' | 'dashboard';
 
@@ -21,28 +21,72 @@ interface User {
 function App() {
   const [appState, setAppState] = useState<AppState>('landing');
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useKV<User | null>('current-user', null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in from local storage
-    const checkAuthState = () => {
-      if (currentUser) {
-        setAppState('dashboard');
+    // Check if user is already logged in
+    const checkAuthState = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          const userObject: User = {
+            id: user.id,
+            username: user.profile?.username || user.email?.split('@')[0] || 'user',
+            email: user.email || '',
+            displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
+          };
+          setCurrentUser(userObject);
+          setAppState('dashboard');
+        }
+      } catch (error) {
+        console.error('Error checking auth state:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     
     checkAuthState();
-  }, [currentUser]);
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setCurrentUser(null);
+        setAppState('landing');
+      } else if (event === 'SIGNED_IN' && session) {
+        try {
+          const user = await getCurrentUser();
+          if (user) {
+            const userObject: User = {
+              id: user.id,
+              username: user.profile?.username || user.email?.split('@')[0] || 'user',
+              email: user.email || '',
+              displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
+            };
+            setCurrentUser(userObject);
+            setAppState('dashboard');
+          }
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     setAppState('dashboard');
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setAppState('landing');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setCurrentUser(null);
+      setAppState('landing');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleSwitchToLogin = () => {

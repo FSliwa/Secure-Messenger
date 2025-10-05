@@ -5,11 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Spinner, CheckCircle, Key, Calendar } from "@phosphor-icons/react";
-import { generateKeyPair, storeKeys, isCryptoSupported, EncryptionProgress } from "@/lib/crypto";
-import { useKV } from '@github/spark/hooks';
+import { Spinner } from "@phosphor-icons/react";
+import { generateKeyPair, storeKeys, EncryptionProgress } from "@/lib/crypto";
+import { signUp } from "@/lib/supabase";
 
 interface User {
   id: string;
@@ -47,7 +46,6 @@ interface FormErrors {
 }
 
 export function SignUpCard({ onSuccess }: SignUpProps) {
-  const [registeredUsers, setRegisteredUsers] = useKV<User[]>('registered-users', [])
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -128,27 +126,14 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
     setIsSubmitting(true);
     
     try {
-      // Generate unique user ID
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const displayName = `${formData.firstName} ${formData.lastName}`;
       
-      // Create user object
-      const newUser: User = {
-        id: userId,
-        username: formData.firstName.toLowerCase() + Math.random().toString(36).substr(2, 4),
-        email: formData.email,
-        displayName: `${formData.firstName} ${formData.lastName}`
-      };
-
-      // Check if user already exists
-      const existingUser = registeredUsers?.find(u => u.email === formData.email);
-      if (existingUser) {
-        toast.error('An account with this email already exists');
-        setIsSubmitting(false);
-        return;
+      // Sign up with Supabase
+      const { user } = await signUp(formData.email, formData.password, displayName);
+      
+      if (!user) {
+        throw new Error('Failed to create user account');
       }
-
-      // Save user to local storage
-      setRegisteredUsers((currentUsers) => [...(currentUsers || []), newUser]);
 
       // Generate encryption keys
       setKeyGenerationStep('generating');
@@ -181,8 +166,16 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
       });
       setErrors({});
       
+      // Create user object for callback
+      const userObject: User = {
+        id: user.id,
+        username: user.email?.split('@')[0] || 'user',
+        email: user.email || '',
+        displayName: displayName
+      };
+      
       // Call success handler with user data
-      onSuccess?.(newUser);
+      onSuccess?.(userObject);
 
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -204,22 +197,7 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
       <Card className="facebook-card">
         <CardContent className="p-6">
           <div className="text-center mb-6">
-            <div className="flex items-center justify-center mb-3">
-              <div className="relative">
-                <CheckCircle 
-                  className={`w-8 h-8 transition-all duration-300 ${
-                    keyGenerationStep === 'complete' 
-                      ? 'text-success scale-110' 
-                      : keyGenerationStep === 'generating'
-                      ? 'text-primary animate-pulse'
-                      : 'text-muted-foreground'
-                  }`} 
-                />
-                {keyGenerationStep === 'generating' && (
-                  <Spinner className="w-4 h-4 text-primary animate-spin absolute -bottom-1 -right-1" />
-                )}
-              </div>
-            </div>
+
             <h2 className="text-2xl font-bold text-foreground mb-2">Create a new account</h2>
             <p className="text-sm text-muted-foreground">It's quick and easy.</p>
           </div>

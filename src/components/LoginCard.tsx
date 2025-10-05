@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { Spinner, SignIn, Shield, Eye, EyeSlash } from '@phosphor-icons/react'
-import { useKV } from '@github/spark/hooks'
+import { Spinner, Eye, EyeSlash } from '@phosphor-icons/react'
+import { signIn, getCurrentUser } from '@/lib/supabase'
 
 interface User {
   id: string;
@@ -20,7 +20,6 @@ interface LoginProps {
 }
 
 export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
-  const [registeredUsers] = useKV<User[]>('registered-users', [])
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -73,23 +72,38 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
     setIsLoading(true)
 
     try {
-      // Check if user exists in local storage
-      const user = registeredUsers?.find(u => u.email === formData.email)
+      // Sign in with Supabase
+      const { user } = await signIn(formData.email, formData.password)
       
       if (!user) {
-        toast.error('Account not found. Please sign up first.')
+        toast.error('Login failed. Please check your credentials.')
         setIsLoading(false)
         return
       }
 
-      // In a real app, you'd verify the password hash
-      // For this demo, we'll just simulate successful login
+      // Get full user profile
+      const currentUser = await getCurrentUser()
+      
+      if (!currentUser) {
+        toast.error('Failed to load user profile.')
+        setIsLoading(false)
+        return
+      }
+
+      // Create user object for callback
+      const userObject: User = {
+        id: currentUser.id,
+        username: currentUser.profile?.username || currentUser.email?.split('@')[0] || 'user',
+        email: currentUser.email || '',
+        displayName: currentUser.profile?.display_name || currentUser.email?.split('@')[0] || 'User'
+      }
+
       toast.success('Welcome back!')
-      onSuccess?.(user)
+      onSuccess?.(userObject)
       
     } catch (error: any) {
       console.error('Login error:', error)
-      toast.error('Login failed. Please try again.')
+      toast.error(error.message || 'Login failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -101,9 +115,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       <Card className="bg-card border border-border shadow-lg">
         <CardContent className="p-6">
           <div className="text-center mb-6">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Shield className="h-8 w-8 text-primary" />
-            </div>
+
             <h1 className="text-2xl font-bold text-foreground mb-1">Log in to SecureChat</h1>
           </div>
 
@@ -198,19 +210,6 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
             >
               Create new account
             </Button>
-          </div>
-
-          {/* Demo Notice */}
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <p className="font-medium text-foreground mb-1">Demo Mode Active</p>
-                <p>Use any email and password combination to test the login functionality. Your data is secure and encrypted.</p>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>

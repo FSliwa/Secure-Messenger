@@ -1,599 +1,235 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase configuration
-// Replace these with your actual Supabase project credentials
-// See SUPABASE_SETUP.md for detailed setup instructions
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key'
+// These would typically come from environment variables
+// For demo purposes, you'll need to replace these with your actual Supabase URL and anon key
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://your-project-ref.supabase.co'
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'your-anon-key'
 
-// Debug logging (only in development)
-if (import.meta.env.DEV) {
-  console.log('🔧 Supabase Configuration:');
-  console.log('URL:', supabaseUrl);
-  console.log('API Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'Not found');
-  console.log('Environment vars loaded:', {
-    VITE_SUPABASE_URL: !!import.meta.env.VITE_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY: !!import.meta.env.VITE_SUPABASE_ANON_KEY
-  });
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-})
-
-// Database types matching your schema
-export interface User {
+// Database types for TypeScript
+export interface Profile {
   id: string
   username: string
-  display_name?: string
+  display_name: string
   avatar_url?: string
-  public_key: string
-  status: 'online' | 'offline' | 'away'
-  last_seen: string
   created_at: string
   updated_at: string
-}
-
-export interface Conversation {
-  id: string
-  name?: string
-  is_group: boolean
-  access_code?: string
-  created_by?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface ConversationParticipant {
-  id: string
-  conversation_id: string
-  user_id: string
-  joined_at: string
-  left_at?: string
-  is_active: boolean
 }
 
 export interface Message {
   id: string
-  conversation_id: string
   sender_id: string
-  encrypted_content: string
-  encryption_metadata?: any
-  sent_at: string
-  edited_at?: string
-  is_deleted: boolean
-}
-
-export interface MessageStatus {
-  id: string
-  message_id: string
-  user_id: string
-  status: 'sent' | 'delivered' | 'read'
-  timestamp: string
-}
-
-export interface LoginSession {
-  id: string
-  user_id: string
-  login_time: string
-  logout_time?: string
-  ip_address?: string
-  user_agent?: string
-  location_country?: string
-  location_city?: string
-  device_type?: string
-  browser?: string
-  os?: string
-  is_active: boolean
-  last_activity_at: string
-}
-
-export interface SecurityAlert {
-  id: string
-  user_id: string
-  alert_type: string
-  severity: string
-  description: string
-  metadata?: any
-  ip_address?: string
-  user_agent?: string
-  location?: any
-  is_resolved: boolean
-  resolved_at?: string
-  created_at: string
-}
-
-export interface TwoFactorAuth {
-  id: string
-  user_id: string
-  secret: string
-  backup_codes: string[]
-  is_enabled: boolean
-  enabled_at?: string
+  receiver_id: string
+  content: string
+  encrypted: boolean
+  message_type: 'text' | 'image' | 'file' | 'voice'
   created_at: string
   updated_at: string
 }
 
-// Helper function to translate Supabase errors to user-friendly messages
-const translateSupabaseError = (error: any): string => {
-  console.log('Translating error:', error);
-  
-  if (!error) return 'Unknown error occurred';
-  
-  const message = error.message || error.toString();
-  
-  // Auth-related errors
-  if (message.includes('Invalid API key') || message.includes('invalid key')) {
-    return 'Service temporarily unavailable. Please try again later.';
-  }
-  
-  if (message.includes('User already registered') || message.includes('already been registered')) {
-    return 'An account with this email already exists. Please try signing in instead.';
-  }
-  
-  if (message.includes('Invalid email')) {
-    return 'Please enter a valid email address.';
-  }
-  
-  if (message.includes('Password should be at least') || message.includes('weak password')) {
-    return 'Password must be at least 6 characters long.';
-  }
-  
-  if (message.includes('Email rate limit exceeded')) {
-    return 'Too many signup attempts. Please wait a few minutes before trying again.';
-  }
-  
-  if (message.includes('Invalid credentials')) {
-    return 'Invalid email or password format.';
-  }
-  
-  if (message.includes('Failed to fetch') || message.includes('fetch')) {
-    return 'Connection failed. Please check your internet connection and try again.';
-  }
-  
-  if (message.includes('Network')) {
-    return 'Network error. Please check your connection and try again.';
-  }
-  
-  // Return the original message if no specific translation found
-  return message || 'An unexpected error occurred. Please try again.';
-};
+export interface ChatRoom {
+  id: string
+  name?: string
+  is_group: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+}
 
-// Auth helper functions
-export const signUp = async (email: string, password: string, username: string, displayName?: string) => {
-  try {
-    console.log('Signing up with:', { email, username, displayName });
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          display_name: displayName || username,
-        }
-      }
-    })
-    
-    console.log('Supabase auth.signUp response:', { data, error });
-    
-    if (error) {
-      console.error('Supabase signup error:', error);
-      const friendlyError = translateSupabaseError(error);
-      return { data: null, error: friendlyError };
-    }
-    
-    return { data, error: null }
-  } catch (error: any) {
-    console.error('SignUp function error:', error);
-    const friendlyError = translateSupabaseError(error);
-    return { data: null, error: friendlyError }
+export interface ChatRoomParticipant {
+  id: string
+  room_id: string
+  user_id: string
+  joined_at: string
+  role: 'admin' | 'member'
+}
+
+// Authentication helper functions
+export const signUp = async (email: string, password: string, displayName: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        display_name: displayName,
+      },
+    },
+  })
+
+  if (error) throw error
+
+  // Create profile record
+  if (data.user) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          id: data.user.id,
+          username: email.split('@')[0] + Math.random().toString(36).substr(2, 4),
+          display_name: displayName,
+        },
+      ])
+
+    if (profileError) throw profileError
   }
+
+  return data
 }
 
 export const signIn = async (email: string, password: string) => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) throw error
+  return data
 }
 
 export const signOut = async () => {
-  try {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-    return { error: null }
-  } catch (error: any) {
-    return { error: error.message }
-  }
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
 }
 
 export const getCurrentUser = async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    return user
-  } catch (error) {
-    return null
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) return null
+
+  // Get profile data
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (error) throw error
+
+  return {
+    ...user,
+    profile,
   }
 }
 
-// User profile functions
-export const getUserProfile = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single()
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-// Conversation functions
-export const createConversation = async (name?: string, isGroup: boolean = false) => {
-  try {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert({
-        name,
-        is_group: isGroup,
-        created_by: user.id
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Add creator as participant
-    await supabase
-      .from('conversation_participants')
-      .insert({
-        conversation_id: data.id,
-        user_id: user.id
-      })
-
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-export const addParticipantToConversation = async (conversationId: string, userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('conversation_participants')
-      .insert({
-        conversation_id: conversationId,
-        user_id: userId
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-export const getUserConversations = async () => {
-  try {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('conversation_participants')
-      .select(`
-        conversation_id,
-        conversations (
-          id,
-          name,
-          is_group,
-          created_by,
-          created_at,
-          updated_at
-        )
-      `)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-// Message functions
-export const sendMessage = async (conversationId: string, encryptedContent: string, encryptionMetadata?: any) => {
-  try {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
-        encrypted_content: encryptedContent,
-        encryption_metadata: encryptionMetadata
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-export const getConversationMessages = async (conversationId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        sender:users!messages_sender_id_fkey (
-          id,
-          username,
-          display_name,
-          avatar_url
-        )
-      `)
-      .eq('conversation_id', conversationId)
-      .eq('is_deleted', false)
-      .order('sent_at', { ascending: true })
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-export const markMessageAsRead = async (messageId: string) => {
-  try {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('message_status')
-      .upsert({
-        message_id: messageId,
-        user_id: user.id,
-        status: 'read'
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
-}
-
-// Real-time subscription for messages
-export const subscribeToConversationMessages = (conversationId: string, callback: (message: Message) => void) => {
+// Real-time subscription helper
+export const subscribeToMessages = (roomId: string, callback: (message: Message) => void) => {
   return supabase
-    .channel(`conversation-${conversationId}`)
-    .on('postgres_changes', 
-      { 
-        event: 'INSERT', 
-        schema: 'public', 
+    .channel(`messages:${roomId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
         table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
-      }, 
-      (payload) => callback(payload.new as Message)
+        filter: `room_id=eq.${roomId}`,
+      },
+      (payload) => {
+        callback(payload.new as Message)
+      }
     )
     .subscribe()
 }
 
-// Aliases for convenience
-export const getMessages = getConversationMessages
-export const subscribeToMessages = subscribeToConversationMessages
+// Send message function
+export const sendMessage = async (
+  roomId: string,
+  senderId: string,
+  content: string,
+  messageType: 'text' | 'image' | 'file' | 'voice' = 'text'
+) => {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert([
+      {
+        room_id: roomId,
+        sender_id: senderId,
+        content,
+        message_type: messageType,
+        encrypted: true, // All messages are encrypted by default
+      },
+    ])
+    .select()
+    .single()
 
-// Security functions
-export const createSecurityAlert = async (alertType: string, severity: string, description: string, metadata?: any) => {
-  try {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('security_alerts')
-      .insert({
-        user_id: user.id,
-        alert_type: alertType,
-        severity,
-        description,
-        metadata
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
+  if (error) throw error
+  return data
 }
 
-export const getUserSecurityAlerts = async () => {
-  try {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Not authenticated')
+// Get chat rooms for user
+export const getUserChatRooms = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('chat_room_participants')
+    .select(`
+      *,
+      chat_rooms (
+        id,
+        name,
+        is_group,
+        created_at
+      )
+    `)
+    .eq('user_id', userId)
 
-    const { data, error } = await supabase
-      .from('security_alerts')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_resolved', false)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
-  }
+  if (error) throw error
+  return data
 }
 
-// Connection test function with detailed error reporting
+// Create new chat room
+export const createChatRoom = async (name: string, isGroup: boolean, createdBy: string) => {
+  const { data, error } = await supabase
+    .from('chat_rooms')
+    .insert([
+      {
+        name,
+        is_group: isGroup,
+        created_by: createdBy,
+      },
+    ])
+    .select()
+    .single()
+
+  if (error) throw error
+
+  // Add creator as participant
+  const { error: participantError } = await supabase
+    .from('chat_room_participants')
+    .insert([
+      {
+        room_id: data.id,
+        user_id: createdBy,
+        role: 'admin',
+      },
+    ])
+
+  if (participantError) throw participantError
+
+  return data
+}
+
+// Test Supabase connection (for existing components)
 export const testSupabaseConnection = async () => {
   try {
-    // Check if we're using demo credentials
-    if (supabaseUrl === 'https://demo.supabase.co' || supabaseAnonKey === 'demo-key') {
+    const { data, error } = await supabase.from('profiles').select('count').limit(1)
+    
+    if (error) {
       return {
         connected: false,
-        error: 'Using demo credentials',
-        message: 'To enable full functionality, please set up your Supabase project. See SUPABASE_SETUP.md for instructions.',
-        needsSetup: true
+        error: error.message,
+        message: 'Failed to connect to Supabase database'
       }
     }
 
-    // Check if environment variables are properly loaded
-    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('undefined') || supabaseAnonKey.includes('undefined')) {
-      return {
-        connected: false,
-        error: 'Missing environment variables',
-        message: 'VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY not found. Please check your .env file and restart the dev server.',
-        needsSetup: true
-      }
-    }
-
-    console.log('Testing Supabase connection...', { supabaseUrl, hasKey: !!supabaseAnonKey });
-
-    // Test basic Supabase connection first
-    try {
-      const { data, error } = await supabase.auth.getSession()
-      
-      console.log('Auth session test:', { data, error });
-      
-      if (error) {
-        console.error('Auth session error:', error);
-        // More specific error handling
-        if (error.message.includes('Invalid API key') || error.message.includes('invalid key')) {
-          return {
-            connected: false,
-            error: 'Invalid API key',
-            message: 'The Supabase API key appears to be invalid. Please verify your VITE_SUPABASE_ANON_KEY in the .env file.',
-            needsSetup: true
-          }
-        }
-        
-        if (error.message.includes('Invalid URL') || error.message.includes('url')) {
-          return {
-            connected: false,
-            error: 'Invalid Supabase URL',
-            message: 'The Supabase URL appears to be invalid. Please verify your VITE_SUPABASE_URL in the .env file.',
-            needsSetup: true
-          }
-        }
-        
-        return {
-          connected: false,
-          error: `Auth error: ${error.message}`,
-          message: 'There was an authentication error. Please check your Supabase credentials.',
-          needsSetup: true
-        }
-      }
-    } catch (fetchError: any) {
-      console.error('Connection fetch error:', fetchError);
-      return {
-        connected: false,
-        error: 'Network or credentials error',
-        message: `Unable to connect to Supabase: ${fetchError.message}. Please check your URL and API key.`,
-        needsSetup: true
-      }
-    }
-
-    // Try a simple database query to ensure tables exist
-    try {
-      console.log('Testing database connection...');
-      const { error: dbError } = await supabase
-        .from('users')
-        .select('count')
-        .limit(1)
-
-      console.log('Database query test:', { dbError });
-
-      if (dbError) {
-        console.error('Database error:', dbError);
-        if (dbError.message.includes('relation "public.users" does not exist')) {
-          return {
-            connected: false,
-            error: 'Database tables not found',
-            message: 'The database tables have not been created yet. Please run the SQL setup script from SUPABASE_SETUP.md.',
-            needsSetup: true
-          }
-        }
-        
-        return {
-          connected: false,
-          error: `Database error: ${dbError.message}`,
-          message: 'There was a database error. Please check your table setup and permissions.',
-          needsSetup: true
-        }
-      }
-    } catch (dbError: any) {
-      console.error('Database connection failed:', dbError);
-      return {
-        connected: false,
-        error: 'Database connection failed',
-        message: `Unable to query database: ${dbError.message}. Please check your setup.`,
-        needsSetup: true
-      }
-    }
-
-    console.log('✅ Supabase connection test passed');
     return {
       connected: true,
       error: null,
-      message: 'Supabase connection successful! All systems ready.',
-      needsSetup: false
+      message: 'Successfully connected to Supabase'
     }
-  } catch (error: any) {
-    console.error('Connection test failed:', error);
+  } catch (err) {
     return {
       connected: false,
-      error: `Connection test failed: ${error.message}`,
-      message: 'Unable to test Supabase connection. Please check your configuration.',
-      needsSetup: true
+      error: err instanceof Error ? err.message : 'Unknown error',
+      message: 'Connection test failed'
     }
   }
 }
