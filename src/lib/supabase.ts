@@ -58,21 +58,8 @@ export const signUp = async (email: string, password: string, displayName: strin
 
   if (error) throw error
 
-  // Create profile record
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert([
-        {
-          id: data.user.id,
-          username: email.split('@')[0] + Math.random().toString(36).substr(2, 4),
-          display_name: displayName,
-        },
-      ])
-
-    if (profileError) throw profileError
-  }
-
+  // Profile creation is now handled by the database trigger
+  // or will be created on first login if trigger doesn't exist
   return data
 }
 
@@ -96,18 +83,26 @@ export const getCurrentUser = async () => {
   
   if (!user) return null
 
-  // Get profile data
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  // Try to get profile data, handle missing table gracefully
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
-  if (error) throw error
+    if (error) {
+      // If table doesn't exist, return user without profile
+      if (error.message.includes('does not exist')) {
+        return { ...user, profile: null }
+      }
+      throw error
+    }
 
-  return {
-    ...user,
-    profile,
+    return { ...user, profile }
+  } catch (error) {
+    console.error('Error getting user profile:', error)
+    return { ...user, profile: null }
   }
 }
 

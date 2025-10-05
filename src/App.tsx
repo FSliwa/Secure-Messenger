@@ -8,7 +8,8 @@ import { SecurityCallout } from "@/components/SecurityCallout";
 import { Footer } from "@/components/Footer";
 import { Dashboard } from "@/components/Dashboard";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
-import { supabase, signOut, getCurrentUser } from "@/lib/supabase";
+import { supabase, signOut } from "@/lib/supabase";
+import { safeGetCurrentUser } from "@/lib/database-setup";
 
 type AppState = 'landing' | 'login' | 'dashboard';
 
@@ -25,26 +26,10 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Verify Supabase connection on app start
-    const verifyConnection = async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('count').limit(1);
-        if (error) {
-          console.log('Supabase connection error:', error.message);
-        } else {
-          console.log('✅ Supabase connected successfully');
-        }
-      } catch (err) {
-        console.log('Supabase connection test failed:', err);
-      }
-    };
-    
-    verifyConnection();
-    
     // Check if user is already logged in
     const checkAuthState = async () => {
       try {
-        const user = await getCurrentUser();
+        const user = await safeGetCurrentUser();
         if (user) {
           const userObject: User = {
             id: user.id,
@@ -71,7 +56,7 @@ function App() {
         setAppState('landing');
       } else if (event === 'SIGNED_IN' && session) {
         try {
-          const user = await getCurrentUser();
+          const user = await safeGetCurrentUser();
           if (user) {
             const userObject: User = {
               id: user.id,
