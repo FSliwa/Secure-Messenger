@@ -7,33 +7,41 @@ import { LoginCard } from "@/components/LoginCard";
 import { SecurityCallout } from "@/components/SecurityCallout";
 import { Footer } from "@/components/Footer";
 import { Dashboard } from "@/components/Dashboard";
-import { ConnectionBanner } from "@/components/ConnectionBanner";
-import { getCurrentUser } from "@/lib/supabase";
+import { useKV } from '@github/spark/hooks';
 
 type AppState = 'landing' | 'login' | 'dashboard';
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  displayName?: string;
+}
 
 function App() {
   const [appState, setAppState] = useState<AppState>('landing');
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useKV<User | null>('current-user', null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkAuthState = async () => {
-      const user = await getCurrentUser();
-      if (user) {
+    // Check if user is already logged in from local storage
+    const checkAuthState = () => {
+      if (currentUser) {
         setAppState('dashboard');
       }
       setIsLoading(false);
     };
     
     checkAuthState();
-  }, []);
+  }, [currentUser]);
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
     setAppState('dashboard');
   };
 
   const handleLogout = () => {
+    setCurrentUser(null);
     setAppState('landing');
   };
 
@@ -73,7 +81,7 @@ function App() {
   if (appState === 'dashboard') {
     return (
       <>
-        <Dashboard onLogout={handleLogout} />
+        <Dashboard onLogout={handleLogout} currentUser={currentUser || null} />
         <Toaster position="top-center" />
       </>
     );
@@ -84,11 +92,6 @@ function App() {
       <Header />
       
       <main>
-        {/* Connection Status Banner */}
-        <div className="container mx-auto max-w-screen-xl px-6 pt-4">
-          <ConnectionBanner />
-        </div>
-        
         {/* Hero and Registration/Login Section */}
         <section className="py-8 sm:py-12 lg:py-16">
           <div className="container mx-auto max-w-screen-xl px-6">
@@ -109,7 +112,7 @@ function App() {
                     onSwitchToSignUp={handleSwitchToSignUp}
                   />
                 ) : (
-                  <SignUpCard />
+                  <SignUpCard onSuccess={handleLoginSuccess} />
                 )}
 
                 {/* Switch between login and signup */}

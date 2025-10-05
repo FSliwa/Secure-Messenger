@@ -4,43 +4,43 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChatInterface } from './ChatInterface'
-import { SupabaseStatus } from './SupabaseStatus'
 import { 
   SignOut, 
   ChatCircle, 
-  Database, 
   Key, 
   Shield,
   User,
   Gear
 } from '@phosphor-icons/react'
-import { signOut, getCurrentUser } from '@/lib/supabase'
 import { getStoredKeys, getKeyFingerprint, isCryptoSupported } from '@/lib/crypto'
 import { toast } from 'sonner'
 
-interface DashboardProps {
-  onLogout?: () => void
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  displayName?: string;
 }
 
-export function Dashboard({ onLogout }: DashboardProps) {
-  const [currentUser, setCurrentUser] = useState<any>(null)
+interface DashboardProps {
+  onLogout?: () => void;
+  currentUser: User | null;
+}
+
+export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const [keyInfo, setKeyInfo] = useState<{ publicKey: string; privateKey: string } | null>(null)
 
   useEffect(() => {
-    const loadUserData = async () => {
-      const user = await getCurrentUser()
-      setCurrentUser(user)
-      
+    const loadCryptoKeys = () => {
       const keys = getStoredKeys()
       setKeyInfo(keys)
     }
     
-    loadUserData()
+    loadCryptoKeys()
   }, [])
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      await signOut()
       toast.success('Logged out successfully')
       onLogout?.()
     } catch (error) {
@@ -48,7 +48,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
     }
   }
 
-  const userName = currentUser?.user_metadata?.first_name || currentUser?.email?.split('@')[0] || 'User'
+  const userName = currentUser?.displayName || currentUser?.username || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || 'demo@example.com'
 
   return (
@@ -95,10 +95,6 @@ export function Dashboard({ onLogout }: DashboardProps) {
             <TabsTrigger value="security" className="gap-2">
               <Key className="h-4 w-4" />
               Security
-            </TabsTrigger>
-            <TabsTrigger value="database" className="gap-2">
-              <Database className="h-4 w-4" />
-              Database
             </TabsTrigger>
             <TabsTrigger value="profile" className="gap-2">
               <User className="h-4 w-4" />
@@ -206,53 +202,6 @@ export function Dashboard({ onLogout }: DashboardProps) {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="database" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Database Connection</h2>
-              <p className="text-muted-foreground mb-6">
-                Test and configure your Supabase database connection
-              </p>
-            </div>
-
-            <div className="max-w-2xl">
-              <SupabaseStatus />
-            </div>
-
-            <Card>
-              <CardHeader>
-                <h3 className="font-semibold">Database Schema</h3>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  For full functionality, create these tables in your Supabase project:
-                </p>
-                
-                <div className="space-y-3 text-xs">
-                  <div className="bg-muted p-3 rounded font-mono">
-                    <strong>profiles</strong> - User profile information<br />
-                    <span className="text-muted-foreground">
-                      id, email, first_name, last_name, username, avatar_url, public_key
-                    </span>
-                  </div>
-                  
-                  <div className="bg-muted p-3 rounded font-mono">
-                    <strong>contacts</strong> - User contact relationships<br />
-                    <span className="text-muted-foreground">
-                      id, user_id, contact_user_id, contact_name, verified
-                    </span>
-                  </div>
-                  
-                  <div className="bg-muted p-3 rounded font-mono">
-                    <strong>messages</strong> - Encrypted messages<br />
-                    <span className="text-muted-foreground">
-                      id, sender_id, recipient_id, encrypted_content, message_type
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">

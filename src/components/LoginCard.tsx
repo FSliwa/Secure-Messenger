@@ -5,14 +5,22 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { Spinner, SignIn, Shield, Eye, EyeSlash } from '@phosphor-icons/react'
-import { signIn } from '@/lib/supabase'
+import { useKV } from '@github/spark/hooks'
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  displayName?: string;
+}
 
 interface LoginProps {
-  onSuccess?: () => void
+  onSuccess?: (user: User) => void
   onSwitchToSignUp?: () => void
 }
 
 export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
+  const [registeredUsers] = useKV<User[]>('registered-users', [])
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -65,22 +73,23 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
     setIsLoading(true)
 
     try {
-      const { data, error } = await signIn(formData.email, formData.password)
+      // Check if user exists in local storage
+      const user = registeredUsers?.find(u => u.email === formData.email)
       
-      if (error) {
-        // Demo mode - simulate login success
-        toast.success('Login successful! (Demo mode)', { 
-          description: 'In demo mode, any credentials will work' 
-        })
-        onSuccess?.()
-      } else {
-        toast.success('Welcome back!')
-        onSuccess?.()
+      if (!user) {
+        toast.error('Account not found. Please sign up first.')
+        setIsLoading(false)
+        return
       }
+
+      // In a real app, you'd verify the password hash
+      // For this demo, we'll just simulate successful login
+      toast.success('Welcome back!')
+      onSuccess?.(user)
       
     } catch (error: any) {
       console.error('Login error:', error)
-      toast.error('Login failed. Please check your credentials.')
+      toast.error('Login failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
