@@ -358,6 +358,10 @@ export const subscribeToConversationMessages = (conversationId: string, callback
     .subscribe()
 }
 
+// Aliases for convenience
+export const getMessages = getConversationMessages
+export const subscribeToMessages = subscribeToConversationMessages
+
 // Security functions
 export const createSecurityAlert = async (alertType: string, severity: string, description: string, metadata?: any) => {
   try {

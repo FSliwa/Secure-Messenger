@@ -76,23 +76,25 @@ export function ChatInterface() {
     if (selectedContact) {
       loadMessages()
       
-      // Subscribe to real-time messages
-      const subscription = subscribeToMessages((message) => {
-        if (message.sender_id === selectedContact.id || message.recipient_id === selectedContact.id) {
-          decryptAndAddMessage(message)
-        }
+      // Subscribe to real-time messages for the conversation
+      // For demo purposes, we'll use the contact ID as conversation ID
+      const conversationId = `conversation-${[currentUser?.id, selectedContact.id].sort().join('-')}`
+      const subscription = subscribeToMessages(conversationId, (message) => {
+        decryptAndAddMessage(message)
       })
 
       return () => {
         subscription.unsubscribe()
       }
     }
-  }, [selectedContact])
+  }, [selectedContact, currentUser])
 
   const loadMessages = async () => {
     if (!selectedContact) return
 
-    const { data, error } = await getMessages(selectedContact.id)
+    // For demo purposes, create a conversation ID from user IDs
+    const conversationId = `conversation-${[currentUser?.id, selectedContact.id].sort().join('-')}`
+    const { data, error } = await getMessages(conversationId)
     if (error) {
       toast.error('Failed to load messages')
       return
@@ -142,18 +144,21 @@ export function ChatInterface() {
       // Encrypt message with recipient's public key
       const encryptedContent = await encryptMessage(newMessage, selectedContact.publicKey)
       
+      // Create conversation ID for this chat
+      const conversationId = `conversation-${[currentUser?.id, selectedContact.id].sort().join('-')}`
+      
       // Send to database
-      const { data, error } = await sendMessage(selectedContact.id, encryptedContent)
+      const { data, error } = await sendMessage(conversationId, encryptedContent)
       
       if (error) {
         // Demo mode - add message locally
         const demoMessage: ChatMessage = {
           id: `demo-${Date.now()}`,
-          sender_id: currentUser.id || 'current-user',
-          recipient_id: selectedContact.id,
+          conversation_id: conversationId,
+          sender_id: currentUser?.id || 'current-user',
           encrypted_content: encryptedContent,
-          message_type: 'text',
-          created_at: new Date().toISOString(),
+          sent_at: new Date().toISOString(),
+          is_deleted: false,
           decryptedContent: newMessage,
           isDecrypting: false
         }
@@ -299,7 +304,7 @@ export function ChatInterface() {
                             <div className="flex items-center gap-1 mt-1 justify-end">
                               <Clock className="h-3 w-3 opacity-50" />
                               <span className="text-xs opacity-75">
-                                {formatTime(message.created_at)}
+                                {formatTime(message.sent_at)}
                               </span>
                               {isFromCurrentUser && (
                                 <CheckCircle className="h-3 w-3 opacity-50" />
