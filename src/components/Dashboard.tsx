@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChatInterface } from './ChatInterface'
-import { SupabaseTest } from './SupabaseTest'
+import { SupabaseStatus } from './SupabaseStatus'
 import { 
   SignOut, 
   ChatCircle, 
@@ -217,7 +217,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
             </div>
 
             <div className="max-w-2xl">
-              <SupabaseTest />
+              <SupabaseStatus />
             </div>
 
             <Card>

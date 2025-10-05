@@ -1,12 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-// These would normally be environment variables
-// For demonstration, using public demo credentials
-const supabaseUrl = 'https://demo.supabase.co'
-const supabaseAnonKey = 'demo-key'
+// Supabase configuration
+// Replace these with your actual Supabase project credentials
+// See SUPABASE_SETUP.md for detailed setup instructions
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key'
 
 // Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+})
 
 // Database types
 export interface User {
@@ -225,31 +232,55 @@ export const getContacts = async () => {
 // Connection test function
 export const testSupabaseConnection = async () => {
   try {
-    // Simple test query to check connection
-    const { data, error } = await supabase
+    // Check if we're using demo credentials
+    if (supabaseUrl === 'https://demo.supabase.co' || supabaseAnonKey === 'demo-key') {
+      return {
+        connected: false,
+        error: 'Using demo credentials',
+        message: 'To enable full functionality, please set up your Supabase project. See SUPABASE_SETUP.md for instructions.',
+        needsSetup: true
+      }
+    }
+
+    // Test the connection with a simple query
+    const { data, error } = await supabase.auth.getSession()
+    
+    if (error && error.message.includes('Invalid API key')) {
+      return {
+        connected: false,
+        error: 'Invalid API credentials',
+        message: 'Please check your Supabase URL and API key in the environment variables.',
+        needsSetup: true
+      }
+    }
+
+    // Try a simple database query to ensure tables exist
+    const { error: dbError } = await supabase
       .from('profiles')
       .select('count')
       .limit(1)
 
-    if (error) {
-      // Connection failed - likely demo credentials
+    if (dbError) {
       return {
         connected: false,
-        error: 'Demo Supabase credentials - connection test failed as expected',
-        message: 'To enable full functionality, replace with your Supabase project credentials in src/lib/supabase.ts'
+        error: 'Database tables not found',
+        message: 'Please run the SQL setup script from SUPABASE_SETUP.md to create the required tables.',
+        needsSetup: true
       }
     }
 
     return {
       connected: true,
       error: null,
-      message: 'Supabase connection successful!'
+      message: 'Supabase connection successful! All systems ready.',
+      needsSetup: false
     }
   } catch (error: any) {
     return {
       connected: false,
       error: error.message,
-      message: 'Replace demo credentials with your Supabase project details'
+      message: 'Unable to connect to Supabase. Please check your configuration.',
+      needsSetup: true
     }
   }
 }

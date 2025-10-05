@@ -7,6 +7,7 @@ import { LoginCard } from "@/components/LoginCard";
 import { SecurityCallout } from "@/components/SecurityCallout";
 import { Footer } from "@/components/Footer";
 import { Dashboard } from "@/components/Dashboard";
+import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { getCurrentUser } from "@/lib/supabase";
 
 type AppState = 'landing' | 'login' | 'dashboard';
@@ -83,6 +84,11 @@ function App() {
       <Header />
       
       <main>
+        {/* Connection Status Banner */}
+        <div className="container mx-auto max-w-screen-xl px-6 pt-4">
+          <ConnectionBanner />
+        </div>
+        
         {/* Hero and Registration/Login Section */}
         <section className="py-12 sm:py-20 lg:py-24">
           <div className="container mx-auto max-w-screen-xl px-6">

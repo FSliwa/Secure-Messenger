@@ -33,33 +33,48 @@ A modern, secure messaging application built with React, TypeScript, and Supabas
    ```
 
 3. **Set up Supabase**
+   
+   Follow the detailed setup guide in `SUPABASE_SETUP.md` or:
+   
    - Create a new project at [supabase.com](https://supabase.com)
-   - Copy your project URL and anon key
-   - Update `src/lib/supabase.ts` with your credentials:
+   - Copy your project URL and anon key from Settings → API
+   - Copy `.env.example` to `.env` and add your credentials:
 
-   ```typescript
-   const supabaseUrl = 'YOUR_SUPABASE_URL'
-   const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY'
+   ```env
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your_anon_key_here
    ```
 
 4. **Set up the database**
-   - Run the SQL commands from `database-schema.sql` in your Supabase SQL editor
-   - This creates all necessary tables and security policies
+   - Copy the SQL from `SUPABASE_SETUP.md` 
+   - Run it in your Supabase project's SQL Editor
+   - This creates all necessary tables, policies, and triggers
 
 5. **Start the development server**
    ```bash
    npm run dev
    ```
 
+6. **Check connection status**
+   - Open the app and go to Dashboard → Database tab
+   - The app will test your Supabase connection automatically
+   - Follow any setup instructions if needed
+
 ## 🛠️ Configuration
 
 ### Environment Variables
 
-Create a `.env.local` file:
+Create a `.env` file from the example:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` with your Supabase credentials:
 
 ```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
 ### Database Schema
@@ -70,7 +85,7 @@ The application requires these tables:
 - `messages` - Encrypted messages
 - `conversations` - Group chat support (optional)
 
-See `database-schema.sql` for the complete schema.
+See `SUPABASE_SETUP.md` for the complete schema and setup instructions.
 
 ## 🔐 How Encryption Works
 
