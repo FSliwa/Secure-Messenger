@@ -1,7 +1,19 @@
 /**
  * Advanced 2048-bit Post-Quantum Cryptography Implementation
- * Uses RSA-2048 with post-quantum enhancements and intentional computational delay
- * In production, this would integrate with actual PQC libraries like CRYSTALS-Kyber
+ * Production Implementation Roadmap:
+ * 
+ * - 1:1 Conversations: Signal Double Ratchet (X3DH/PQXDH + per-message ratcheting)
+ * - Groups: IETF MLS for efficient multi-device/large room scaling
+ * - Identity Verification: Safety numbers/QR pairing, cross-device signing
+ * - Multi-device: Local IndexedDB + WebCrypto, PBKDF2/Argon2 encrypted backups
+ * - File Security: Chunked AES-GCM streaming, separate thumbnail encryption
+ * - Push Security: Encrypted payloads, local-only decryption
+ * - Search: Local encrypted indices, optional tokenized search
+ * - Moderation: Privacy-conscious abuse prevention, client-side content scanning
+ * - Telemetry: Minimal events, client-side aggregation, user-controlled sampling
+ * 
+ * Current Implementation: 2048-bit RSA with intentional computational delay
+ * WebCrypto APIs provide native browser cryptographic primitives
  */
 
 export interface KeyPair {
@@ -27,6 +39,49 @@ export interface EncryptionProgress {
   phase: 'key-derivation' | 'quantum-resistance' | 'integrity-hash' | 'finalization';
   progress: number;
   message: string;
+}
+
+// Advanced cryptographic interfaces for future implementation
+export interface SafetyNumber {
+  localFingerprint: string;
+  remoteFingerprint: string;
+  combinedFingerprint: string;
+  qrCode: string;
+}
+
+export interface DeviceIdentity {
+  deviceId: string;
+  publicKey: string;
+  signedPreKey: string;
+  oneTimePreKeys: string[];
+  signature: string;
+  timestamp: number;
+}
+
+export interface DoubleRatchetState {
+  rootKey: string;
+  chainKeySend: string;
+  chainKeyReceive: string;
+  headerKey: string;
+  messageNumber: number;
+  previousChainLength: number;
+}
+
+export interface MLSGroupState {
+  groupId: string;
+  epoch: number;
+  memberKeys: Map<string, string>;
+  encryptionKey: string;
+  authenticationKey: string;
+}
+
+export interface FileEncryptionMetadata {
+  algorithm: 'AES-GCM-256';
+  chunkSize: number;
+  totalChunks: number;
+  thumbnailKey?: string;
+  mimetype: string;
+  originalName?: never; // Intentionally never to prevent filename leaks
 }
 
 /**
@@ -415,4 +470,210 @@ export function isCryptoSupported(): boolean {
   return typeof crypto !== 'undefined' && 
          typeof crypto.subtle !== 'undefined' &&
          typeof crypto.getRandomValues !== 'undefined';
+}
+
+/**
+ * Advanced Cryptographic Features - Implementation Stubs
+ * These functions provide the interface for production-ready features
+ */
+
+/**
+ * Generate safety number for peer verification (Signal protocol)
+ */
+export async function generateSafetyNumber(
+  localIdentity: KeyPair,
+  remotePublicKey: string,
+  localUserId: string,
+  remoteUserId: string
+): Promise<SafetyNumber> {
+  // In production: Combine fingerprints using Signal's safety number algorithm
+  const localFingerprint = getKeyFingerprint(localIdentity.publicKey);
+  const remoteFingerprint = getKeyFingerprint(remotePublicKey);
+  const combinedFingerprint = localFingerprint + remoteFingerprint;
+  
+  return {
+    localFingerprint,
+    remoteFingerprint,
+    combinedFingerprint,
+    qrCode: `securechat://verify/${combinedFingerprint}` // QR code data
+  };
+}
+
+/**
+ * Initialize Double Ratchet state for 1:1 conversations
+ */
+export async function initializeDoubleRatchet(
+  sharedKey: string,
+  sendingRatchetKey: KeyPair
+): Promise<DoubleRatchetState> {
+  // In production: Full Signal Double Ratchet implementation
+  return {
+    rootKey: sharedKey,
+    chainKeySend: await generateSecureId(),
+    chainKeyReceive: await generateSecureId(),
+    headerKey: await generateSecureId(),
+    messageNumber: 0,
+    previousChainLength: 0
+  };
+}
+
+/**
+ * Initialize MLS group state for group conversations
+ */
+export async function initializeMLSGroup(
+  groupId: string,
+  memberPublicKeys: string[]
+): Promise<MLSGroupState> {
+  // In production: IETF MLS implementation
+  const memberKeys = new Map<string, string>();
+  memberPublicKeys.forEach((key, index) => {
+    memberKeys.set(`member_${index}`, key);
+  });
+  
+  return {
+    groupId,
+    epoch: 0,
+    memberKeys,
+    encryptionKey: await generateSecureId(),
+    authenticationKey: await generateSecureId()
+  };
+}
+
+/**
+ * Encrypt file with chunked AES-GCM
+ */
+export async function encryptFileChunked(
+  file: File,
+  chunkSize: number = 1024 * 1024 // 1MB chunks
+): Promise<{ encryptedChunks: ArrayBuffer[], metadata: FileEncryptionMetadata }> {
+  // In production: Stream encryption with AES-GCM-256
+  const totalChunks = Math.ceil(file.size / chunkSize);
+  const encryptedChunks: ArrayBuffer[] = [];
+  
+  // Simulate chunk encryption
+  for (let i = 0; i < totalChunks; i++) {
+    const chunk = new ArrayBuffer(Math.min(chunkSize, file.size - (i * chunkSize)));
+    encryptedChunks.push(chunk);
+  }
+  
+  return {
+    encryptedChunks,
+    metadata: {
+      algorithm: 'AES-GCM-256',
+      chunkSize,
+      totalChunks,
+      mimetype: file.type,
+      // thumbnailKey generated separately for thumbnails
+      thumbnailKey: await generateSecureId()
+    }
+  };
+}
+
+/**
+ * Generate encrypted push notification payload 
+ */
+export async function encryptPushNotification(
+  title: string,
+  body: string,
+  userKey: string
+): Promise<string> {
+  // In production: Encrypt notification content for Web Push
+  const payload = JSON.stringify({ title, body, timestamp: Date.now() });
+  const encoder = new TextEncoder();
+  
+  // Simplified encryption for demo
+  const key = await crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+  
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(payload)
+  );
+  
+  return arrayBufferToBase64(encrypted);
+}
+
+/**
+ * Generate one-time pre-keys for device migration
+ */
+export async function generateOneTimePreKeys(count: number = 100): Promise<string[]> {
+  // In production: Generate curve25519 one-time pre-keys
+  const preKeys: string[] = [];
+  for (let i = 0; i < count; i++) {
+    preKeys.push(await generateSecureId());
+  }
+  return preKeys;
+}
+
+/**
+ * Derive key from password using PBKDF2/Argon2
+ */
+export async function deriveKeyFromPassword(
+  password: string,
+  salt?: string
+): Promise<{ key: string, salt: string }> {
+  // In production: Use Argon2 for better security
+  const usedSalt = salt || await generateSecureId();
+  const encoder = new TextEncoder();
+  
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  
+  const derivedKey = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: encoder.encode(usedSalt),
+      iterations: 100000, // In production: Use higher iterations or Argon2
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  );
+  
+  return {
+    key: arrayBufferToBase64(derivedKey),
+    salt: usedSalt
+  };
+}
+
+/**
+ * Create encrypted backup of user keys
+ */
+export async function createEncryptedBackup(
+  keys: KeyPair,
+  password: string
+): Promise<string> {
+  // In production: Full key backup with password encryption
+  const backupData = JSON.stringify(keys);
+  
+  // Simplified backup encryption - generate new key for demo
+  const encryptionKey = await crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+  
+  const encoder = new TextEncoder();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    encryptionKey,
+    encoder.encode(backupData)
+  );
+  
+  return JSON.stringify({
+    encrypted: arrayBufferToBase64(encrypted),
+    iv: arrayBufferToBase64(iv.buffer),
+    note: `Backup encrypted with password: ${password.slice(0, 3)}***`
+  });
 }

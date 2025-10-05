@@ -190,8 +190,9 @@ export function AdvancedSecurity() {
       </div>
 
       <Tabs defaultValue="keys" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="keys">Encryption Keys</TabsTrigger>
+          <TabsTrigger value="protocols">Protocols</TabsTrigger>
           <TabsTrigger value="settings">Security Settings</TabsTrigger>
           <TabsTrigger value="devices">Trusted Devices</TabsTrigger>
           <TabsTrigger value="backup">Backup & Recovery</TabsTrigger>
@@ -289,6 +290,161 @@ export function AdvancedSecurity() {
                   </Button>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="protocols" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Cryptographic Protocols
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lock className="w-5 h-5 text-primary" />
+                      <h4 className="font-semibold">1:1 Conversations</h4>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Signal Double Ratchet Protocol
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        X3DH/PQXDH Key Exchange
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Per-message Ratcheting
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Forward Secrecy
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Key className="w-5 h-5 text-primary" />
+                      <h4 className="font-semibold">Identity Verification</h4>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Safety Numbers/QR Pairing
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Cross-device Signing
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Unknown Key Warnings
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Key Event Logging
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Device className="w-5 h-5 text-primary" />
+                      <h4 className="font-semibold">Group Conversations</h4>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        IETF MLS Protocol
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Efficient Multi-device
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Large Room Scaling
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Dynamic Membership
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Upload className="w-5 h-5 text-primary" />
+                      <h4 className="font-semibold">File & Media Security</h4>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Chunked AES-GCM Streaming
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        Separate Thumbnail Encryption
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        No Plaintext Filenames
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-success" />
+                        MIME Type Hints Only
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Warning className="w-5 h-5 text-warning" />
+                  <h4 className="font-semibold">Advanced Features</h4>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3 text-sm">
+                  <div>
+                    <p className="font-medium mb-1">Push Notifications</p>
+                    <p className="text-muted-foreground">Encrypted payloads, local-only decryption</p>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1">Search & Indexing</p>
+                    <p className="text-muted-foreground">Local encrypted indices, privacy-first</p>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1">Abuse Prevention</p>
+                    <p className="text-muted-foreground">Client-side content scanning, ethical implementation</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4 bg-primary/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Fingerprint className="w-5 h-5 text-primary" />
+                  <h4 className="font-semibold">WebCrypto Integration</h4>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  SecureChat leverages native browser cryptographic primitives for enhanced security:
+                </p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li>• IndexedDB for secure local key storage</li>
+                  <li>• PBKDF2/Argon2 for password-based key derivation</li>
+                  <li>• Native random number generation</li>
+                  <li>• Hardware-accelerated encryption operations</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

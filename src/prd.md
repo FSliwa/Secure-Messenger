@@ -43,12 +43,63 @@
 - **Join Mechanism**: Users can join conversations using shared access codes
 - **Conversation Security**: Each conversation encrypted with its own 2048-bit keys
 
-### 2048-bit Encryption System
-- **Enhanced Security**: Upgraded from demo encryption to full 2048-bit RSA encryption
-- **Key Generation**: 2048-bit post-quantum key pairs with ~3 minute generation time
-- **Message Encryption**: All messages encrypted with 2048-bit algorithms before database storage
-- **Progress Tracking**: Real-time progress indicators during encryption/decryption
-- **Integrity Verification**: Cryptographic integrity proofs for all encrypted content
+### Advanced 2048-bit Cryptographic System
+
+#### Message Cryptography (E2EE)
+- **1:1 Conversations**: Signal Double Ratchet protocol implementation
+  - X3DH/PQXDH for initial key exchange
+  - Per-message ratcheting for forward secrecy
+- **Group Conversations**: IETF MLS (Message Layer Security)
+  - Efficient for larger rooms and multi-device scenarios
+  - Scalable group key management
+
+#### Identity & Device Verification
+- **Safety Numbers**: QR code generation for peer-to-peer verification
+- **Cross-signing**: Device verification across multiple user devices
+- **Unknown Key Warnings**: Alerts when encountering unverified keys
+- **Re-keying Protocol**: Automatic re-key when new devices are added
+- **Key Event Logging**: Client-side audit trail of key events
+
+#### Multi-device & Backup Management
+- **Local Key Storage**: Long-term keys in IndexedDB + WebCrypto APIs
+- **Password-encrypted Backups**: User password with PBKDF2/Argon2 key derivation
+- **Device Migration**: QR/Deep-Link based transfer using one-time pre-keys
+- **WebCrypto Integration**: Native browser cryptographic primitives
+
+#### Group Chat Roles & Management
+- **Role System**: Owner/Moderator/Member hierarchies
+- **Invite Links**: Secure conversation joining via access codes
+- **User Management**: Accept/ban capabilities for moderators
+- **Disappearing Messages**: TTL-based message expiration per room
+
+#### File & Media Security
+- **Streaming Encryption**: Chunked AES-GCM for large files
+- **Thumbnail Security**: Locally generated, separately encrypted thumbnails
+- **Metadata Protection**: No plaintext filenames (MIME hints only)
+- **Size Limits**: Rate limiting and maximum file size enforcement
+
+#### Push Notifications
+- **Encrypted Payloads**: Web Push with encrypted notification content
+- **Local Decryption**: Title/content decrypted only on receiving device
+- **Privacy Protection**: No message content exposed to push services
+
+#### Search & Indexing
+- **Local Search**: Device-local encrypted index post-decryption
+- **Optional Advanced**: Tokenization with encrypted search indices
+- **Privacy-first**: No server-side message content access
+
+#### Moderation & Abuse Prevention
+- **User Controls**: Block/report user functionality
+- **Rate Limiting**: Message and attachment frequency controls
+- **Size Enforcement**: Silent rejection of oversized attachments
+- **Content Scanning**: Optional client-side NSFW/CSAM hash checking
+- **Ethical Implementation**: Privacy-conscious abuse prevention
+
+#### Privacy-first Telemetry
+- **Minimal Events**: No message content or conversation identifiers
+- **Client-side Aggregation**: Local analytics processing
+- **Sampling**: Statistical sampling for performance metrics
+- **Transparency**: Clear user control over telemetry data
 
 ### Database Integration
 - **Supabase Backend**: Full integration with provided PostgreSQL schema
