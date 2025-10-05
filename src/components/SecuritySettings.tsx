@@ -11,7 +11,6 @@ import {
   Gear
 } from '@phosphor-icons/react'
 import { TwoFactorSetup } from './TwoFactorSetup'
-import { BiometricSettings } from './BiometricSettings'
 import { TrustedDevices } from './TrustedDevices'
 import { PrivacySettings } from './PrivacySettings'
 
@@ -41,7 +40,7 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Gear className="h-4 w-4" />
             Overview
@@ -49,10 +48,6 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
           <TabsTrigger value="2fa" className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" />
             2FA
-          </TabsTrigger>
-          <TabsTrigger value="biometric" className="flex items-center gap-2">
-            <Fingerprint className="h-4 w-4" />
-            Biometric
           </TabsTrigger>
           <TabsTrigger value="devices" className="flex items-center gap-2">
             <Desktop className="h-4 w-4" />
@@ -98,15 +93,8 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
                   onClick={() => setActiveTab('2fa')}
                 />
                 <SecurityFeatureCard
-                  title="Biometric Login"
-                  description="Fingerprint/Face ID"
-                  status="setup"
-                  icon={<Fingerprint className="h-5 w-5" />}
-                  onClick={() => setActiveTab('biometric')}
-                />
-                <SecurityFeatureCard
                   title="Trusted Devices"
-                  description="3 devices trusted"
+                  description="Manage trusted devices"
                   status="active"
                   icon={<Desktop className="h-5 w-5" />}
                   onClick={() => setActiveTab('devices')}
@@ -131,14 +119,6 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
                   >
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     Setup 2FA
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveTab('biometric')}
-                  >
-                    <Fingerprint className="mr-2 h-4 w-4" />
-                    Enable Biometrics
                   </Button>
                   <Button
                     variant="outline"
@@ -194,7 +174,6 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
                   <h4 className="font-medium text-primary mb-2">Security Tips</h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
                     <li>• Enable 2FA for maximum account security</li>
-                    <li>• Use biometric authentication when available</li>
                     <li>• Regularly review and clean up trusted devices</li>
                     <li>• Keep your recovery codes in a safe place</li>
                     <li>• Enable privacy protection features</li>
@@ -208,16 +187,6 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
         <TabsContent value="2fa" className="space-y-6">
           <div className="flex justify-center">
             <TwoFactorSetup userId={userId} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="biometric" className="space-y-6">
-          <div className="flex justify-center">
-            <BiometricSettings 
-              userId={userId} 
-              userName={currentUser.username}
-              displayName={currentUser.displayName || currentUser.username}
-            />
           </div>
         </TabsContent>
 

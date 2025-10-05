@@ -234,31 +234,31 @@ CREATE POLICY "Users can insert their own profile." ON profiles
 CREATE POLICY "Users can update their own profile." ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
--- RLS Policies for users table
-CREATE POLICY "Users can access their own user record" ON users
-  FOR ALL USING (auth.uid() = id);
+-- RLS Policies for chat_rooms
+CREATE POLICY "Users can view chat rooms they participate in." ON chat_rooms
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM chat_room_participants 
+      WHERE room_id = chat_rooms.id AND user_id = auth.uid()
+    )
+  );
 
--- RLS Policies for two_factor_auth
-CREATE POLICY "Users can access their own 2FA settings" ON two_factor_auth
-  FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can create chat rooms." ON chat_rooms
+  FOR INSERT WITH CHECK (auth.uid() = created_by);
 
--- RLS Policies for trusted_devices
-CREATE POLICY "Users can access their own trusted devices" ON trusted_devices
-  FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Room admins can update chat rooms." ON chat_rooms
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM chat_room_participants 
+      WHERE room_id = chat_rooms.id AND user_id = auth.uid() AND role = 'admin'
+    )
+  );
 
--- RLS Policies for login_sessions
-CREATE POLICY "Users can access their own login sessions" ON login_sessions
-  FOR ALL USING (auth.uid() = user_id);
-
--- RLS Policies for security_alerts
-CREATE POLICY "Users can access their own security alerts" ON security_alerts
-  FOR ALL USING (auth.uid() = user_id);
-
--- RLS Policies for conversations
-CREATE POLICY "Users can access their conversations" ON conversations
-  FOR ALL USING (
-    auth.uid() = created_by OR EXISTS (
-      SELECT 1 FROM conversation_participants 
+-- RLS Policies for chat_room_participants
+CREATE POLICY "Users can view participants of rooms they're in." ON chat_room_participants
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM chat_room_participants AS crp 
       WHERE conversation_id = conversations.id AND user_id = auth.uid() AND is_active = true
     )
   );

@@ -34,78 +34,10 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
     setIsLoading(true);
     
     try {
-      // Attempt biometric authentication
-      const authResult = await BiometricAuthService.authenticateBiometric();
+      // For now, show a demo message since full biometric integration requires
+      // more complex server-side implementation
+      toast.info('Biometric authentication is in development. Please use regular login for now.');
       
-      if (!authResult.success || !authResult.credentialId) {
-        toast.error('Biometric authentication failed');
-        return;
-      }
-
-      // Get the user associated with this credential
-      const { data: credentialData, error: credError } = await supabase
-        .from('biometric_credentials')
-        .select('user_id')
-        .eq('credential_id', authResult.credentialId)
-        .eq('is_active', true)
-        .single();
-
-      if (credError || !credentialData) {
-        toast.error('Invalid biometric credential');
-        return;
-      }
-
-      // Get user data
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', credentialData.user_id)
-        .single();
-
-      if (userError || !userData) {
-        toast.error('User not found');
-        return;
-      }
-
-      // Get auth user data  
-      const { data: authData, error: authError } = await supabase.auth.admin.getUserById(userData.id);
-
-      if (authError || !authData.user) {
-        toast.error('Authentication failed');
-        return;
-      }
-
-      // Create a session for the user
-      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-        access_token: '', // This would need to be generated properly
-        refresh_token: ''
-      });
-
-      if (sessionError) {
-        // For demo purposes, we'll simulate successful login
-        const user = {
-          id: userData.id,
-          username: userData.username,
-          email: authData.user.email || '',
-          displayName: userData.display_name || userData.username
-        };
-        
-        onSuccess(user);
-        toast.success('Biometric login successful!');
-        return;
-      }
-
-      // Success - call onSuccess with user data
-      const user = {
-        id: userData.id,
-        username: userData.username,
-        email: authData.user.email || '',
-        displayName: userData.display_name || userData.username
-      };
-      
-      onSuccess(user);
-      toast.success('Biometric login successful!');
-
     } catch (error: any) {
       console.error('Biometric login error:', error);
       
@@ -146,7 +78,7 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
       ) : (
         <>
           {getBiometricIcon()}
-          Sign in with {biometricType}
+          Sign in with {biometricType || 'Biometric'}
         </>
       )}
     </Button>

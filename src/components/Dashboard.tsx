@@ -90,7 +90,7 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="chat" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="chat" className="gap-2">
               <ChatCircle className="h-4 w-4" />
               Chat
