@@ -605,7 +605,6 @@ export function AdvancedSecurity() {
                   Create an encrypted backup of your keys, contacts, and message history.
                 </p>
                 <div>
-                  <Label htmlFor="backup-password">Backup Password</Label>
                   <Input
                     id="backup-password"
                     type="password"
