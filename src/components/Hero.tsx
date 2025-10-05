@@ -4,29 +4,29 @@ export function Hero() {
       <div className="animate-fade-in-up">
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
           <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-            SecureChat
+            SecureChat Pro
           </span>
         </h1>
         <p className="mt-6 text-lg text-muted-foreground sm:text-xl lg:text-xl max-w-2xl leading-relaxed">
-          Connect with friends and the world around you with 
-          <span className="font-semibold text-foreground"> military-grade end-to-end encryption</span>.
-          Your conversations stay private with 
-          <span className="text-accent font-medium"> zero-knowledge architecture</span>.
+          Enterprise-grade secure messaging with 
+          <span className="font-semibold text-foreground"> post-quantum cryptography</span>.
+          Your communications are protected by encryption so advanced, 
+          <span className="text-accent font-medium"> it takes 3 minutes to secure each message</span>.
         </p>
         
         {/* Feature highlights */}
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 lg:grid-cols-1 lg:gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-accent rounded-full animate-pulse-gentle" />
-            <span>End-to-end encrypted</span>
+            <span>Post-quantum encryption</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse-gentle [animation-delay:0.5s]" />
-            <span>Zero-knowledge security</span>
+            <span>3-minute security process</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-success rounded-full animate-pulse-gentle [animation-delay:1s]" />
-            <span>Open source & audited</span>
+            <span>Commercial-grade platform</span>
           </div>
         </div>
       </div>

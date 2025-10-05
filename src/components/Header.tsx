@@ -22,6 +22,7 @@ export function Header() {
             </svg>
           </div>
           <span className="text-xl font-bold text-foreground">SecureChat</span>
+          <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full font-medium">PRO</span>
         </div>
         
         <Button 

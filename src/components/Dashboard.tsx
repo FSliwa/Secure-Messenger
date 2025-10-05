@@ -12,7 +12,9 @@ import {
   User,
   Gear
 } from '@phosphor-icons/react'
-import { getStoredKeys, getKeyFingerprint, isCryptoSupported } from '@/lib/crypto'
+import { getStoredKeys, getKeyFingerprint, isCryptoSupported, KeyPair } from '@/lib/crypto'
+import { FileSharing } from './FileSharing'
+import { AdvancedSecurity } from './AdvancedSecurity'
 import { toast } from 'sonner'
 
 interface User {
@@ -28,11 +30,11 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onLogout, currentUser }: DashboardProps) {
-  const [keyInfo, setKeyInfo] = useState<{ publicKey: string; privateKey: string } | null>(null)
+  const [keyInfo, setKeyInfo] = useState<KeyPair | null>(null)
 
   useEffect(() => {
-    const loadCryptoKeys = () => {
-      const keys = getStoredKeys()
+    const loadCryptoKeys = async () => {
+      const keys = await getStoredKeys()
       setKeyInfo(keys)
     }
     
@@ -87,10 +89,14 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="chat" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="chat" className="gap-2">
               <ChatCircle className="h-4 w-4" />
               Chat
+            </TabsTrigger>
+            <TabsTrigger value="files" className="gap-2">
+              <Shield className="h-4 w-4" />
+              Files
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-2">
               <Key className="h-4 w-4" />
@@ -110,98 +116,18 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
               </p>
             </div>
             
-            <ChatInterface />
+            <ChatInterface currentUser={currentUser || { id: '', username: '', email: '' }} />
+          </TabsContent>
+
+          <TabsContent value="files" className="space-y-6">
+            <FileSharing 
+              keyPair={keyInfo} 
+              currentUserId={currentUser?.id || ''} 
+            />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Security Center</h2>
-              <p className="text-muted-foreground mb-6">
-                Manage your encryption keys and security settings
-              </p>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Encryption Status */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-accent" />
-                    <h3 className="font-semibold">Encryption Status</h3>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-accent rounded-full" />
-                    <span className="text-sm">
-                      {isCryptoSupported() ? 'Web Crypto API Supported' : 'Basic encryption only'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-accent rounded-full" />
-                    <span className="text-sm">
-                      {keyInfo ? 'Encryption keys generated' : 'No keys found'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-accent rounded-full" />
-                    <span className="text-sm">End-to-end encryption active</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Key Information */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Key className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">Your Keys</h3>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {keyInfo ? (
-                    <>
-                      <div>
-                        <Label className="text-xs font-medium text-muted-foreground">
-                          Public Key Fingerprint
-                        </Label>
-                        <p className="font-mono text-sm mt-1">
-                          {getKeyFingerprint(keyInfo.publicKey)}
-                        </p>
-                      </div>
-                      
-                      <div>
-                        <Label className="text-xs font-medium text-muted-foreground">
-                          Key Type
-                        </Label>
-                        <p className="text-sm mt-1">
-                          {isCryptoSupported() ? 'RSA-OAEP 2048-bit' : 'Demo encryption'}
-                        </p>
-                      </div>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => toast.info('Key export feature coming soon!')}
-                      >
-                        Export Public Key
-                      </Button>
-                    </>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">
-                        No encryption keys found
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Sign up to generate new keys
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <AdvancedSecurity />
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">

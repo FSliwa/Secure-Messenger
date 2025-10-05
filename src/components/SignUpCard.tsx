@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Spinner, CheckCircle, Key, Calendar } from "@phosphor-icons/react";
-import { generateKeyPair, storeKeys, isCryptoSupported } from "@/lib/crypto";
+import { generateKeyPair, storeKeys, isCryptoSupported, EncryptionProgress } from "@/lib/crypto";
 import { useKV } from '@github/spark/hooks';
 
 interface User {
@@ -61,6 +61,7 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [keyGenerationStep, setKeyGenerationStep] = useState<'idle' | 'generating' | 'complete'>('idle');
+  const [encryptionProgress, setEncryptionProgress] = useState<EncryptionProgress | null>(null);
 
   const validateField = (name: string, value: any) => {
     switch (name) {
@@ -151,12 +152,15 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
 
       // Generate encryption keys
       setKeyGenerationStep('generating');
-      toast.loading('Generating your encryption keys...', { id: 'signup-process' });
+      toast.loading('Generating your post-quantum encryption keys...', { id: 'signup-process' });
       
-      const keyPair = await generateKeyPair();
+      const keyPair = await generateKeyPair((progress) => {
+        setEncryptionProgress(progress);
+        toast.loading(`${progress.message} (${Math.round(progress.progress)}%)`, { id: 'signup-process' });
+      });
       
       // Store keys locally
-      storeKeys(keyPair.publicKey, keyPair.privateKey);
+      await storeKeys(keyPair);
       setKeyGenerationStep('complete');
 
       toast.success('Account created successfully!', { 
@@ -306,7 +310,16 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <Spinner className="w-4 h-4 animate-spin" />
-                  {keyGenerationStep === 'generating' ? 'Securing Account...' : 'Creating Account...'}
+                  {keyGenerationStep === 'generating' ? (
+                    <div className="flex flex-col">
+                      <span>Securing Account...</span>
+                      {encryptionProgress && (
+                        <span className="text-xs opacity-75">
+                          {encryptionProgress.message}
+                        </span>
+                      )}
+                    </div>
+                  ) : 'Creating Account...'}
                 </div>
               ) : (
                 'Sign Up'
