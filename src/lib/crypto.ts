@@ -399,6 +399,21 @@ function generateSecureId(): string {
 }
 
 /**
+ * Generates a secure random code with specified length
+ */
+export function generateSecureCode(length: number): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let result = ''
+  const randomArray = crypto.getRandomValues(new Uint8Array(length))
+  
+  for (let i = 0; i < length; i++) {
+    result += chars[randomArray[i] % chars.length]
+  }
+  
+  return result
+}
+
+/**
  * Generates integrity hash for message verification
  */
 async function generateIntegrityHash(data: string): Promise<string> {

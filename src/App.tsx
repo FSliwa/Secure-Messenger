@@ -8,10 +8,12 @@ import { SecurityCallout } from "@/components/SecurityCallout";
 import { Footer } from "@/components/Footer";
 import { Dashboard } from "@/components/Dashboard";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
+import { DatabaseInit } from "@/components/DatabaseInit";
 import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
+import { checkDatabaseReadiness } from "@/lib/database-init";
 
-type AppState = 'landing' | 'login' | 'dashboard';
+type AppState = 'database-init' | 'landing' | 'login' | 'dashboard';
 
 interface User {
   id: string;
@@ -21,33 +23,63 @@ interface User {
 }
 
 function App() {
-  const [appState, setAppState] = useState<AppState>('landing');
+  const [appState, setAppState] = useState<AppState>('database-init');
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkAuthState = async () => {
-      try {
-        const user = await safeGetCurrentUser();
-        if (user) {
-          const userObject: User = {
-            id: user.id,
-            username: user.profile?.username || user.email?.split('@')[0] || 'user',
-            email: user.email || '',
-            displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
-          };
-          setCurrentUser(userObject);
-          setAppState('dashboard');
-        }
-      } catch (error) {
-        console.error('Error checking auth state:', error);
-      } finally {
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      // First check if database is ready
+      const dbStatus = await checkDatabaseReadiness();
+      
+      if (!dbStatus.ready) {
+        setAppState('database-init');
         setIsLoading(false);
+        return;
       }
-    };
-    
-    checkAuthState();
+
+      // Database is ready, proceed with auth check
+      await checkAuthState();
+    } catch (error) {
+      console.error('App initialization error:', error);
+      setAppState('database-init');
+      setIsLoading(false);
+    }
+  };
+
+  const handleDatabaseReady = async () => {
+    await checkAuthState();
+  };
+
+  const checkAuthState = async () => {
+    try {
+      const user = await safeGetCurrentUser();
+      if (user) {
+        const userObject: User = {
+          id: user.id,
+          username: user.profile?.username || user.email?.split('@')[0] || 'user',
+          email: user.email || '',
+          displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
+        };
+        setCurrentUser(userObject);
+        setAppState('dashboard');
+      } else {
+        setAppState('landing');
+      }
+    } catch (error) {
+      console.error('Error checking auth state:', error);
+      setAppState('landing');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (appState === 'database-init') return;
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -74,7 +106,7 @@ function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [appState]);
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
@@ -99,6 +131,17 @@ function App() {
     setAppState('landing');
   };
 
+  // Database initialization screen
+  if (appState === 'database-init') {
+    return (
+      <>
+        <DatabaseInit onComplete={handleDatabaseReady} />
+        <Toaster position="top-center" />
+      </>
+    );
+  }
+
+  // Loading screen
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -124,6 +167,7 @@ function App() {
     );
   }
 
+  // Dashboard screen
   if (appState === 'dashboard') {
     return (
       <>
@@ -133,6 +177,7 @@ function App() {
     );
   }
 
+  // Landing/Login screens
   return (
     <div className="min-h-screen bg-background">
       <Header />

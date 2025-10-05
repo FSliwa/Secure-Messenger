@@ -15,7 +15,7 @@ import {
 } from '@phosphor-icons/react'
 import { getStoredKeys, getKeyFingerprint, isCryptoSupported, KeyPair } from '@/lib/crypto'
 import { FileSharing } from './FileSharing'
-import { AdvancedSecurity } from './AdvancedSecurity'
+import { SecuritySettings } from './SecuritySettings'
 import { toast } from 'sonner'
 
 interface User {
@@ -128,7 +128,10 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
-            <AdvancedSecurity />
+            <SecuritySettings 
+              userId={currentUser?.id || ''} 
+              currentUser={currentUser || { id: '', username: '', email: '' }}
+            />
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
