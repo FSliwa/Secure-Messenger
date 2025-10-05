@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Spinner } from "@phosphor-icons/react";
 import { generateKeyPair, storeKeys, EncryptionProgress } from "@/lib/crypto";
-import { signUp } from "@/lib/supabase";
+import { signUp, checkUsernameAvailability } from "@/lib/supabase";
 
 interface User {
   id: string;
@@ -25,6 +25,7 @@ interface SignUpProps {
 interface FormData {
   firstName: string;
   lastName: string;
+  username: string;
   email: string;
   password: string;
   birthday: {
@@ -39,6 +40,7 @@ interface FormData {
 interface FormErrors {
   firstName?: string;
   lastName?: string;
+  username?: string;
   email?: string;
   password?: string;
   birthday?: string;
@@ -50,6 +52,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
+    username: '',
     email: '',
     password: '',
     birthday: { day: '', month: '', year: '' },
@@ -59,8 +62,19 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameCheckTimeout, setUsernameCheckTimeout] = useState<NodeJS.Timeout | null>(null);
   const [keyGenerationStep, setKeyGenerationStep] = useState<'idle' | 'generating' | 'complete'>('idle');
   const [encryptionProgress, setEncryptionProgress] = useState<EncryptionProgress | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (usernameCheckTimeout) {
+        clearTimeout(usernameCheckTimeout);
+      }
+    };
+  }, [usernameCheckTimeout]);
 
   const validateField = (name: string, value: any) => {
     switch (name) {
@@ -71,6 +85,11 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       case 'lastName':
         if (!value.trim()) return 'Last name is required';
         if (value.length < 2) return 'Last name must be at least 2 characters';
+        break;
+      case 'username':
+        if (!value.trim()) return 'Username is required';
+        if (value.length < 3) return 'Username must be at least 3 characters';
+        if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores';
         break;
       case 'email':
         if (!value.trim()) return 'Email is required';
@@ -87,12 +106,54 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
     return '';
   };
 
+  const validateUsernameAvailability = async (username: string) => {
+    if (!username.trim() || username.length < 3 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+      return // Don't check availability if basic validation fails
+    }
+
+    setIsCheckingUsername(true)
+    try {
+      const { available } = await checkUsernameAvailability(username)
+      if (!available) {
+        setErrors(prev => ({ ...prev, username: 'Username is already taken' }))
+      } else {
+        // Clear username error if it was about availability
+        setErrors(prev => {
+          const newErrors = { ...prev }
+          if (newErrors.username === 'Username is already taken') {
+            delete newErrors.username
+          }
+          return newErrors
+        })
+      }
+    } catch (error) {
+      console.error('Failed to check username availability:', error)
+    } finally {
+      setIsCheckingUsername(false)
+    }
+  }
+
   const handleInputChange = (name: string, value: any) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     
     // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+
+    // Check username availability with debounce effect
+    if (name === 'username' && value.trim().length >= 3) {
+      // Clear previous timeout
+      if (usernameCheckTimeout) {
+        clearTimeout(usernameCheckTimeout);
+      }
+      
+      // Set new timeout
+      const timeoutId = setTimeout(() => {
+        validateUsernameAvailability(value);
+      }, 500); // 500ms debounce
+      
+      setUsernameCheckTimeout(timeoutId);
     }
   };
 
@@ -101,6 +162,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
     
     newErrors.firstName = validateField('firstName', formData.firstName);
     newErrors.lastName = validateField('lastName', formData.lastName);
+    newErrors.username = validateField('username', formData.username);
     newErrors.email = validateField('email', formData.email);
     newErrors.password = validateField('password', formData.password);
     newErrors.acceptTerms = validateField('acceptTerms', formData.acceptTerms);
@@ -124,6 +186,19 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       return;
     }
 
+    // Final check for username availability
+    try {
+      const { available } = await checkUsernameAvailability(formData.username);
+      if (!available) {
+        setErrors(prev => ({ ...prev, username: 'Username is already taken' }));
+        toast.error('Username is already taken');
+        return;
+      }
+    } catch (error) {
+      toast.error('Failed to verify username availability');
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -143,7 +218,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       setKeyGenerationStep('complete');
       
       // Sign up with Supabase and public key
-      const { user } = await signUp(formData.email, formData.password, displayName, keyPair.publicKey);
+      const { user } = await signUp(formData.email, formData.password, displayName, keyPair.publicKey, formData.username);
       
       if (!user) {
         throw new Error('Failed to create user account');
@@ -159,6 +234,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       setFormData({
         firstName: '',
         lastName: '',
+        username: '',
         email: '',
         password: '',
         birthday: { day: '', month: '', year: '' },
@@ -221,6 +297,30 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   <p className="text-xs text-destructive mt-1">{errors.lastName}</p>
                 )}
               </div>
+            </div>
+
+            {/* Username */}
+            <div>
+              <div className="relative">
+                <Input
+                  placeholder="Username"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange('username', e.target.value)}
+                  className={`facebook-input ${inputClassName(!!errors.username)}`}
+                  disabled={isSubmitting}
+                />
+                {isCheckingUsername && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Spinner className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              {errors.username && (
+                <p className="text-xs text-destructive mt-1">{errors.username}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Others will find you by this username to start conversations
+              </p>
             </div>
 
             {/* Email */}

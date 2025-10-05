@@ -139,8 +139,37 @@ function getDeviceType() {
   return 'desktop'
 }
 
+// Check if username is available
+export const checkUsernameAvailability = async (username: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('username')
+    .eq('username', username)
+    .single()
+
+  if (error && error.code === 'PGRST116') {
+    // No rows returned means username is available
+    return { available: true }
+  }
+  
+  if (error) {
+    throw error
+  }
+
+  // Username already exists
+  return { available: false }
+}
+
 // Authentication helper functions
-export const signUp = async (email: string, password: string, displayName: string, publicKey: string) => {
+export const signUp = async (email: string, password: string, displayName: string, publicKey: string, username?: string) => {
+  // First check if username is available (if provided)
+  if (username) {
+    const { available } = await checkUsernameAvailability(username)
+    if (!available) {
+      throw new Error('Username is already taken')
+    }
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -148,6 +177,8 @@ export const signUp = async (email: string, password: string, displayName: strin
       emailRedirectTo: `${window.location.origin}/verify-email`,
       data: {
         display_name: displayName,
+        username: username,
+        public_key: publicKey,
       },
     },
   })
@@ -156,6 +187,33 @@ export const signUp = async (email: string, password: string, displayName: strin
 
   // Don't create profile until email is verified
   return data
+}
+
+export const createUserProfileAfterVerification = async (user: any) => {
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user'
+  const publicKey = user.user_metadata?.public_key || ''
+  
+  try {
+    const { error } = await supabase
+      .from('users')
+      .insert({
+        id: user.id,
+        username: username,
+        display_name: user.user_metadata?.display_name || username,
+        avatar_url: user.user_metadata?.avatar_url || null,
+        public_key: publicKey,
+        status: 'online',
+        last_seen: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Failed to create user profile after verification:', error)
+    throw error
+  }
 }
 
 export const signIn = async (email: string, password: string, publicKey?: string) => {
@@ -184,7 +242,21 @@ export const signIn = async (email: string, password: string, publicKey?: string
     // Track successful login
     try {
       await trackLoginAttempt(data.user.id, true)
-      await createOrUpdateUserProfile(data.user, publicKey || '')
+      
+      // Check if user profile exists, if not create it (for newly verified users)
+      const { data: existingProfile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single()
+
+      if (!existingProfile) {
+        // Create profile for newly verified user
+        await createUserProfileAfterVerification(data.user)
+      } else {
+        // Update existing profile
+        await createOrUpdateUserProfile(data.user, publicKey || existingProfile.public_key || '')
+      }
     } catch (trackError) {
       console.error('Failed to track login or create profile:', trackError)
     }
@@ -243,23 +315,47 @@ export const getCurrentUser = async () => {
 
 // Create or update user profile after successful login
 async function createOrUpdateUserProfile(user: any, publicKey: string) {
-  const username = user.email?.split('@')[0] || 'user'
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user'
   
   try {
-    const { error } = await supabase
+    // Check if profile already exists
+    const { data: existingProfile } = await supabase
       .from('users')
-      .upsert({
-        id: user.id,
-        username: username,
-        display_name: user.user_metadata?.display_name || username,
-        avatar_url: user.user_metadata?.avatar_url || null,
-        public_key: publicKey,
-        status: 'online',
-        last_seen: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
-    if (error) throw error
+    if (existingProfile) {
+      // Update existing profile
+      const { error } = await supabase
+        .from('users')
+        .update({
+          public_key: publicKey,
+          status: 'online',
+          last_seen: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+    } else {
+      // Create new profile
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          id: user.id,
+          username: username,
+          display_name: user.user_metadata?.display_name || username,
+          avatar_url: user.user_metadata?.avatar_url || null,
+          public_key: publicKey,
+          status: 'online',
+          last_seen: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (error) throw error
+    }
   } catch (error) {
     console.error('Failed to create/update user profile:', error)
     throw error

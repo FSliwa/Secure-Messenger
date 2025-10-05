@@ -204,6 +204,44 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     }
   }
 
+  const handleStartConversationWithUser = async (targetUser: UserSearchResult) => {
+    try {
+      // Generate access code for the new conversation
+      const accessCode = generateAccessCode()
+      
+      // Create conversation
+      const conversation = await createConversation(
+        `Chat with ${targetUser.display_name || targetUser.username}`,
+        false, // not a group
+        currentUser.id,
+        accessCode
+      )
+
+      // Add to local state
+      setConversations((prev) => [...(prev || []), conversation])
+      
+      // Set as active conversation
+      setActiveConversation(conversation)
+      
+      toast.success(`Started conversation! Share access code "${accessCode}" with ${targetUser.display_name || targetUser.username} to connect`, {
+        duration: 8000,
+        action: {
+          label: 'Copy Code',
+          onClick: () => navigator.clipboard.writeText(accessCode)
+        }
+      })
+
+      // Close search dialog
+      setShowUserSearch(false)
+      setSearchQuery('')
+      setSearchResults([])
+      
+    } catch (error) {
+      console.error('Failed to start conversation:', error)
+      toast.error('Failed to start conversation')
+    }
+  }
+
   const handleJoinConversation = async () => {
     if (!joinAccessCode.trim()) {
       toast.error('Please enter an access code')
@@ -477,7 +515,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       </div>
                     ) : searchResults.length > 0 ? (
                       searchResults.map((user) => (
-                        <Card key={user.id} className="p-3 cursor-pointer hover:bg-muted/50">
+                        <Card key={user.id} className="p-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                               <User className="w-5 h-5 text-primary" />
@@ -486,9 +524,19 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                               <p className="font-medium">{user.display_name || user.username}</p>
                               <p className="text-xs text-muted-foreground">@{user.username}</p>
                             </div>
-                            <Badge variant={user.status === 'online' ? 'default' : 'secondary'}>
-                              {user.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={user.status === 'online' ? 'default' : 'secondary'}>
+                                {user.status}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                onClick={() => handleStartConversationWithUser(user)}
+                                className="text-xs"
+                              >
+                                <ChatCircle className="w-3 h-3 mr-1" />
+                                Chat
+                              </Button>
+                            </div>
                           </div>
                         </Card>
                       ))

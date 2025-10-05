@@ -12,21 +12,27 @@
 ## Thought Process for Feature Selection
 - **Core Problem Analysis**: Current messaging apps compromise on security - we solve this with email-verified accounts, 2048-bit encryption, and password-protected conversations
 - **User Context**: Verified users who need secure, traceable communications with access control
-- **Critical Path**: Register → Verify Email → Login → Search Users → Create/Join Conversations → Send Encrypted Messages
+- **Critical Path**: Register with Username → Verify Email → Login → Search Users by Username → Create/Join Conversations → Send Encrypted Messages
 - **Key Moments**: Email verification requirement, conversation password creation, 2048-bit key generation, access code sharing
 
 ## Essential Features
 
 ### Authentication & Verification Flow
-- **Registration Process**: Email/password with email verification requirement
+- **Registration Process**: Email/password with unique username creation and email verification requirement
+- **Username System**: Users create unique usernames during registration for discoverability
+- **Real-time Username Validation**: Instant availability checking with visual feedback
 - **Email Verification**: Must verify email before login is allowed
+- **Profile Creation**: User profiles created after email verification with chosen username
 - **Login Flow**: Redirects to login panel after registration with verification message
 - **Session Management**: Tracks login sessions with device fingerprinting and geolocation
 - **Security Alerts**: Monitors and alerts on suspicious login attempts
 
 ### User Management & Discovery
 - **User Profile System**: Username, display name, avatar, online status
+- **Unique Username Requirement**: During registration, users create a unique username for identification
+- **Username Validation**: Real-time availability checking with debounce, alphanumeric + underscore validation
 - **User Search**: Search by username or display name for conversation partners  
+- **Start Conversations**: Direct conversation initiation from search results
 - **Account Status**: Online/offline/away status tracking
 - **Profile Management**: Update display information and preferences
 

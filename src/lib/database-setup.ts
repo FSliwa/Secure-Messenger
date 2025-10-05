@@ -216,16 +216,16 @@ export const safeGetCurrentUser = async () => {
     
     if (!user) return null
 
-    // Try to get profile data, handle missing table gracefully
+    // Try to get profile data from users table, handle missing table gracefully
     const { data: profile, error } = await supabase
-      .from('profiles')
+      .from('users')
       .select('*')
       .eq('id', user.id)
       .single()
 
     if (error) {
-      // If table doesn't exist, return user without profile
-      if (error.message.includes('does not exist')) {
+      // If table doesn't exist or user not found, return user without profile
+      if (error.message.includes('does not exist') || error.code === 'PGRST116') {
         return { ...user, profile: null }
       }
       throw error
