@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS security_alerts (
   location JSONB,
   is_resolved BOOLEAN DEFAULT FALSE,
   resolved_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW') NOT NULL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
 -- Conversations table
