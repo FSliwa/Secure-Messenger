@@ -7,8 +7,11 @@ A modern, secure messaging application built with React, TypeScript, and Supabas
 - **End-to-End Encryption**: All messages encrypted with RSA-OAEP 2048-bit keys
 - **Zero-Knowledge Architecture**: Server cannot read your messages
 - **Client-Side Key Generation**: Keys generated and stored locally
+- **Biometric Verification**: Touch ID/Face ID/Windows Hello for sensitive actions
 - **Real-Time Messaging**: Instant encrypted message delivery
 - **Web Crypto API**: Browser-native cryptographic operations
+- **Two-Factor Authentication**: TOTP-based 2FA with backup codes
+- **Device Trust Management**: Track and manage trusted devices
 
 ## 🚀 Tech Stack
 
@@ -113,6 +116,10 @@ See `SUPABASE_SETUP.md` for the complete schema and setup instructions.
 - ✅ Key fingerprint verification
 - ✅ Crypto API feature detection
 - ✅ Security status dashboard
+- ✅ Biometric verification for sensitive actions
+- ✅ Two-factor authentication (2FA/TOTP)
+- ✅ Trusted device management
+- ✅ Account lockout protection
 
 ### UI/UX
 - ✅ Responsive design
@@ -142,9 +149,24 @@ The application works in demo mode with mock credentials:
 ## 📱 Usage
 
 1. **Sign Up**: Create an account with email verification
-2. **Add Contacts**: Find users by email address
-3. **Start Chatting**: Send encrypted messages in real-time
-4. **Verify Keys**: Check contact key fingerprints for security
+2. **Set Up Security**: Enable 2FA and biometric authentication in Security Settings
+3. **Add Contacts**: Find users by email address
+4. **Start Chatting**: Send encrypted messages in real-time
+5. **Verify Keys**: Check contact key fingerprints for security
+
+### Biometric Verification
+
+SecureChat uses biometric authentication (Touch ID, Face ID, Windows Hello) for sensitive actions:
+
+- **Joining Conversations**: Verify identity before joining secure conversations
+- **Creating Conversations**: Authenticate when creating new encrypted channels
+- **First Messages**: Secure cryptographic key exchange with biometric verification
+
+**Setup**: Go to Security Settings → Biometric tab to register your biometric credentials.
+
+**Requirements**: 
+- Supported browser (Chrome 67+, Firefox 60+, Safari 14+, Edge 18+)
+- Compatible device with biometric hardware
 
 ## 🔧 Development
 

@@ -45,6 +45,9 @@ import {
   subscribeToMessages
 } from '@/lib/supabase'
 import { VoiceMessage } from './VoiceMessage'
+import { BiometricVerificationDialog } from './BiometricVerificationDialog'
+import { useBiometricVerification } from '@/hooks/useBiometricVerification'
+import { BiometricAuthService } from '@/lib/biometric-auth'
 
 interface Message {
   id: string
@@ -114,12 +117,20 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const [conversationPassword, setConversationPassword] = useState('')
   const [joinAccessCode, setJoinAccessCode] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Biometric verification hook
+  const { 
+    verificationState, 
+    executeWithBiometricVerification, 
+    closeVerification 
+  } = useBiometricVerification(currentUser.id)
 
   useEffect(() => {
     const loadKeys = async () => {
       const keys = await getStoredKeys()
       setKeyPair(keys)
     }
+    
     loadKeys()
   }, [])
 
@@ -173,6 +184,15 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       return
     }
 
+    await executeWithBiometricVerification(
+      'create this conversation',
+      async () => {
+        await performCreateConversation()
+      }
+    )
+  }
+
+  const performCreateConversation = async () => {
     try {
       const accessCode = generateAccessCode()
       const conversation = await createConversation(
@@ -205,6 +225,15 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }
 
   const handleStartConversationWithUser = async (targetUser: UserSearchResult) => {
+    await executeWithBiometricVerification(
+      `start a secure conversation with ${targetUser.display_name || targetUser.username}`,
+      async () => {
+        await performStartConversationWithUser(targetUser)
+      }
+    )
+  }
+
+  const performStartConversationWithUser = async (targetUser: UserSearchResult) => {
     try {
       // Generate access code for the new conversation
       const accessCode = generateAccessCode()
@@ -248,8 +277,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       return
     }
 
+    await executeWithBiometricVerification(
+      'join this conversation',
+      async () => {
+        await performJoinConversation(joinAccessCode)
+      }
+    )
+  }
+
+  const performJoinConversation = async (accessCode: string) => {
     try {
-      const result = await joinConversation(joinAccessCode, currentUser.id)
+      const result = await joinConversation(accessCode, currentUser.id)
       
       // Add to local state
       setConversations((prev) => [...(prev || []), result.conversation])
@@ -271,7 +309,27 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeConversation || !keyPair) return
 
+    // Check if this is the first message in the conversation (sensitive key exchange)
+    const conversationMessages = (messages || []).filter(m => m.conversation_id === activeConversation.id)
+    const isFirstMessage = conversationMessages.length === 0
+    
+    if (isFirstMessage) {
+      await executeWithBiometricVerification(
+        'send the first message in this secure conversation',
+        async () => {
+          await performSendMessage()
+        }
+      )
+    } else {
+      await performSendMessage()
+    }
+  }
+
+  const performSendMessage = async () => {
+    if (!newMessage.trim() || !activeConversation || !keyPair) return
+
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const messageToSend = newMessage
     
     // Create initial message
     const initialMessage: Message = {
@@ -279,7 +337,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       conversation_id: activeConversation.id,
       sender_id: currentUser.id,
       senderName: currentUser.displayName || currentUser.username,
-      encrypted_content: newMessage,
+      encrypted_content: messageToSend,
       timestamp: Date.now(),
       status: 'encrypting',
       isEncrypted: false,
@@ -294,7 +352,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     try {
       // Encrypt the message with progress tracking
       const encryptedContent = await encryptMessage(
-        newMessage,
+        messageToSend,
         'recipient-public-key', // Would get from conversation participants
         keyPair,
         (progress) => {
@@ -779,6 +837,18 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Biometric Verification Dialog */}
+      <BiometricVerificationDialog
+        open={verificationState.isOpen}
+        onOpenChange={closeVerification}
+        onSuccess={verificationState.onSuccess || (() => {})}
+        onCancel={verificationState.onCancel || (() => {})}
+        title="Secure Conversation Access"
+        description="This conversation requires biometric verification for enhanced security."
+        action={verificationState.action}
+        userId={currentUser.id}
+      />
     </div>
   )
 }

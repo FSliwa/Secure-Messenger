@@ -156,19 +156,50 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
                     <Eye className="mr-2 h-4 w-4" />
                     Privacy Settings
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Test biometric verification
+                      import('@/hooks/useBiometricVerification').then(({ useBiometricVerification }) => {
+                        // This is just a demo - in practice this would be handled in a component
+                      })
+                    }}
+                  >
+                    <Fingerprint className="mr-2 h-4 w-4 text-accent" />
+                    Test Biometric
+                  </Button>
                 </div>
               </div>
 
-              {/* Security Tips */}
-              <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
-                <h4 className="font-medium text-primary mb-2">Security Tips</h4>
-                <ul className="text-sm space-y-1 text-muted-foreground">
-                  <li>• Enable 2FA for maximum account security</li>
-                  <li>• Use biometric authentication when available</li>
-                  <li>• Regularly review and clean up trusted devices</li>
-                  <li>• Keep your recovery codes in a safe place</li>
-                  <li>• Enable privacy protection features</li>
-                </ul>
+              {/* Security Features */}
+              <div className="space-y-4">
+                <div className="p-4 bg-accent/5 border border-accent/10 rounded-lg">
+                  <h4 className="font-medium text-accent mb-2 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" />
+                    Conversation Security
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Biometric verification is now required for sensitive conversation actions:
+                  </p>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• Joining new conversations</li>
+                    <li>• Creating secure conversations</li>
+                    <li>• Starting conversations with new users</li>
+                    <li>• Sending first messages (key exchange)</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
+                  <h4 className="font-medium text-primary mb-2">Security Tips</h4>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• Enable 2FA for maximum account security</li>
+                    <li>• Use biometric authentication when available</li>
+                    <li>• Regularly review and clean up trusted devices</li>
+                    <li>• Keep your recovery codes in a safe place</li>
+                    <li>• Enable privacy protection features</li>
+                  </ul>
+                </div>
               </div>
             </CardContent>
           </Card>
