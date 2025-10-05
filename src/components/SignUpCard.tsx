@@ -19,6 +19,7 @@ interface User {
 
 interface SignUpProps {
   onSuccess?: (user: User) => void;
+  onSwitchToLogin?: () => void;
 }
 
 interface FormData {
@@ -45,7 +46,7 @@ interface FormErrors {
   acceptTerms?: string;
 }
 
-export function SignUpCard({ onSuccess }: SignUpProps) {
+export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -128,14 +129,7 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
     try {
       const displayName = `${formData.firstName} ${formData.lastName}`;
       
-      // Sign up with Supabase
-      const { user } = await signUp(formData.email, formData.password, displayName);
-      
-      if (!user) {
-        throw new Error('Failed to create user account');
-      }
-
-      // Generate encryption keys
+      // Generate encryption keys first
       setKeyGenerationStep('generating');
       toast.loading('Generating your post-quantum encryption keys...', { id: 'signup-process' });
       
@@ -147,11 +141,18 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
       // Store keys locally
       await storeKeys(keyPair);
       setKeyGenerationStep('complete');
+      
+      // Sign up with Supabase and public key
+      const { user } = await signUp(formData.email, formData.password, displayName, keyPair.publicKey);
+      
+      if (!user) {
+        throw new Error('Failed to create user account');
+      }
 
-      toast.success('Account created successfully!', { 
+      toast.success('Account created successfully! Please check your email to verify your account.', { 
         id: 'signup-process',
-        description: 'Your account has been created with secure encryption keys.',
-        duration: 5000 
+        description: 'You must verify your email before you can sign in.',
+        duration: 8000 
       });
 
       // Reset form
@@ -166,16 +167,8 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
       });
       setErrors({});
       
-      // Create user object for callback
-      const userObject: User = {
-        id: user.id,
-        username: user.email?.split('@')[0] || 'user',
-        email: user.email || '',
-        displayName: displayName
-      };
-      
-      // Call success handler with user data
-      onSuccess?.(userObject);
+      // Switch to login view instead of calling onSuccess
+      onSwitchToLogin?.();
 
     } catch (error: any) {
       console.error('Signup error:', error);

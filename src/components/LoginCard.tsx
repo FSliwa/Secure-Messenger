@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { Spinner, Eye, EyeSlash } from '@phosphor-icons/react'
 import { signIn, getCurrentUser } from '@/lib/supabase'
+import { getStoredKeys } from '@/lib/crypto'
 
 interface User {
   id: string;
@@ -72,8 +73,11 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
     setIsLoading(true)
 
     try {
+      // Get stored encryption keys
+      const storedKeys = await getStoredKeys()
+      
       // Sign in with Supabase
-      const { user } = await signIn(formData.email, formData.password)
+      const { user } = await signIn(formData.email, formData.password, storedKeys?.publicKey)
       
       if (!user) {
         toast.error('Login failed. Please check your credentials.')
@@ -103,7 +107,15 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       
     } catch (error: any) {
       console.error('Login error:', error)
-      toast.error(error.message || 'Login failed. Please try again.')
+      
+      if (error.message.includes('verify your email')) {
+        toast.error('Please verify your email address before signing in.', {
+          description: 'Check your inbox for the verification link.',
+          duration: 8000
+        })
+      } else {
+        toast.error(error.message || 'Login failed. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
