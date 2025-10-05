@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Spinner, CheckCircle } from "@phosphor-icons/react";
+import { Spinner, CheckCircle, Key } from "@phosphor-icons/react";
+import { signUp } from "@/lib/supabase";
+import { generateKeyPair, storeKeys, isCryptoSupported } from "@/lib/crypto";
 
 interface FormData {
   firstName: string;
@@ -37,6 +39,7 @@ export function SignUpCard() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [keyGenerationStep, setKeyGenerationStep] = useState<'idle' | 'generating' | 'complete'>('idle');
 
   const validateField = (name: keyof FormData, value: string | boolean): string | undefined => {
     switch (name) {
@@ -102,10 +105,42 @@ export function SignUpCard() {
 
     setIsSubmitting(true);
     
-    // Simulate key generation process
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('Account created successfully! Your encryption keys have been generated.');
+      // Step 1: Generate encryption keys
+      setKeyGenerationStep('generating');
+      toast.loading('Generating your encryption keys...', { id: 'signup-process' });
+      
+      const keyPair = await generateKeyPair();
+      
+      // Step 2: Create user account with Supabase
+      toast.loading('Creating your account...', { id: 'signup-process' });
+      
+      const { data, error } = await signUp(
+        formData.email,
+        formData.password,
+        formData.firstName,
+        formData.lastName
+      );
+
+      if (error) {
+        throw new Error(error);
+      }
+
+      // Step 3: Store keys locally
+      storeKeys(keyPair.publicKey, keyPair.privateKey);
+      setKeyGenerationStep('complete');
+      
+      toast.success('Account created successfully! Check your email to verify your account.', { 
+        id: 'signup-process',
+        duration: 5000 
+      });
+
+      // Show crypto support info
+      if (!isCryptoSupported()) {
+        toast.warning('Advanced encryption features limited on this browser', {
+          duration: 4000
+        });
+      }
       
       // Reset form
       setFormData({
@@ -117,8 +152,16 @@ export function SignUpCard() {
         acceptTerms: false,
       });
       setErrors({});
-    } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      
+      // Reset key generation step after delay
+      setTimeout(() => setKeyGenerationStep('idle'), 3000);
+      
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      toast.error(error.message || 'Failed to create account. Please try again.', { 
+        id: 'signup-process' 
+      });
+      setKeyGenerationStep('idle');
     } finally {
       setIsSubmitting(false);
     }
@@ -283,8 +326,22 @@ export function SignUpCard() {
           >
             {isSubmitting ? (
               <>
-                <Spinner className="mr-2 h-4 w-4 animate-spin" />
-                Generating keys...
+                {keyGenerationStep === 'generating' ? (
+                  <>
+                    <Key className="mr-2 h-4 w-4 animate-pulse" />
+                    Generating keys...
+                  </>
+                ) : keyGenerationStep === 'complete' ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Keys generated!
+                  </>
+                ) : (
+                  <>
+                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                )}
               </>
             ) : (
               'Sign Up'
@@ -292,22 +349,25 @@ export function SignUpCard() {
           </Button>
           
           {isSubmitting && (
-            <p id="submit-status" className="text-xs text-center text-muted-foreground" aria-live="polite">
-              Creating your account and generating encryption keys. This may take 1-2 minutes.
-            </p>
+            <div className="text-xs text-center text-muted-foreground space-y-1" aria-live="polite">
+              {keyGenerationStep === 'generating' && (
+                <p id="submit-status">
+                  🔐 Generating your unique encryption keys...
+                </p>
+              )}
+              {keyGenerationStep === 'complete' && (
+                <p className="text-accent font-medium">
+                  ✅ Encryption keys created successfully!
+                </p>
+              )}
+              {keyGenerationStep === 'idle' && isSubmitting && (
+                <p id="submit-status">
+                  📧 Setting up your secure account...
+                </p>
+              )}
+            </div>
           )}
         </form>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <button
-            type="button"
-            className="text-primary hover:underline font-medium"
-            onClick={() => console.log('Navigate to login')}
-          >
-            Log in
-          </button>
-        </p>
       </CardContent>
     </Card>
   );

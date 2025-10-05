@@ -1,142 +1,207 @@
-# SecureChat Landing Page
+# SecureChat - End-to-End Encrypted Messaging Platform
 
-A modern, responsive landing page and registration form for SecureChat - an end-to-end encrypted messaging application. Built with React, TypeScript, and Tailwind CSS.
+A modern, secure messaging application built with React, TypeScript, and Supabase. Features military-grade end-to-end encryption with a zero-knowledge architecture.
 
-## Features
+## 🔒 Security Features
 
-- 🔐 Security-focused messaging and design
-- 📱 Fully responsive (mobile-first approach)
-- ♿ Accessible (WCAG AA compliant)
-- ⚡ Real-time form validation
-- 🎨 Clean, Facebook-inspired design
-- 🌙 Optimized for performance
-- 🎯 SEO-ready with proper meta tags
+- **End-to-End Encryption**: All messages encrypted with RSA-OAEP 2048-bit keys
+- **Zero-Knowledge Architecture**: Server cannot read your messages
+- **Client-Side Key Generation**: Keys generated and stored locally
+- **Real-Time Messaging**: Instant encrypted message delivery
+- **Web Crypto API**: Browser-native cryptographic operations
 
-## Quick Start
+## 🚀 Tech Stack
 
-### Development
-```bash
-npm install
-npm run dev
+- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **UI Components**: Radix UI, Shadcn/ui
+- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
+- **Encryption**: Web Crypto API (RSA-OAEP)
+- **Icons**: Phosphor Icons
+- **Animations**: Custom CSS animations
+
+## 📦 Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd securechat
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up Supabase**
+   - Create a new project at [supabase.com](https://supabase.com)
+   - Copy your project URL and anon key
+   - Update `src/lib/supabase.ts` with your credentials:
+
+   ```typescript
+   const supabaseUrl = 'YOUR_SUPABASE_URL'
+   const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY'
+   ```
+
+4. **Set up the database**
+   - Run the SQL commands from `database-schema.sql` in your Supabase SQL editor
+   - This creates all necessary tables and security policies
+
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+## 🛠️ Configuration
+
+### Environment Variables
+
+Create a `.env.local` file:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### Build for Production
-```bash
-npm run build
-npm run preview
-```
+### Database Schema
 
-## Project Structure
+The application requires these tables:
+- `profiles` - User information and public keys
+- `contacts` - User contact relationships  
+- `messages` - Encrypted messages
+- `conversations` - Group chat support (optional)
+
+See `database-schema.sql` for the complete schema.
+
+## 🔐 How Encryption Works
+
+1. **Key Generation**: 2048-bit RSA key pairs generated client-side
+2. **Message Encryption**: Messages encrypted with recipient's public key
+3. **Secure Storage**: Private keys stored locally in browser storage
+4. **Zero Knowledge**: Server only stores encrypted content
+
+## 🎯 Features
+
+### Authentication
+- ✅ User registration with email verification
+- ✅ Secure login/logout
+- ✅ Demo mode for testing
+
+### Messaging
+- ✅ Real-time encrypted messaging
+- ✅ Contact management
+- ✅ Message history
+- ✅ Typing indicators
+- ✅ Read receipts
+
+### Security
+- ✅ End-to-end encryption
+- ✅ Key fingerprint verification
+- ✅ Crypto API feature detection
+- ✅ Security status dashboard
+
+### UI/UX
+- ✅ Responsive design
+- ✅ Dark/light theme ready
+- ✅ Smooth animations
+- ✅ Accessibility support
+- ✅ Professional design
+
+## 🧪 Testing
+
+### Connection Test
+
+The app includes a built-in connection test that verifies:
+- Supabase database connectivity
+- Web Crypto API support
+- Authentication functionality
+
+Access the test via the Dashboard → Database tab.
+
+### Demo Mode
+
+The application works in demo mode with mock credentials:
+- Any email/password combination works for login
+- Messages are encrypted but not persisted
+- All features are functional for testing
+
+## 📱 Usage
+
+1. **Sign Up**: Create an account with email verification
+2. **Add Contacts**: Find users by email address
+3. **Start Chatting**: Send encrypted messages in real-time
+4. **Verify Keys**: Check contact key fingerprints for security
+
+## 🔧 Development
+
+### Project Structure
 
 ```
 src/
-├── components/
-│   ├── ui/              # shadcn/ui components
-│   ├── Header.tsx       # Sticky navigation header
-│   ├── Hero.tsx         # Main hero section with branding
-│   ├── SignUpCard.tsx   # Registration form with validation
-│   ├── SecurityCallout.tsx  # Security messaging component
-│   └── Footer.tsx       # Site footer with links
-├── App.tsx              # Main application component
-└── index.css            # Custom CSS with theme variables
+├── components/          # React components
+│   ├── ui/             # Shadcn UI components
+│   ├── ChatInterface.tsx
+│   ├── Dashboard.tsx
+│   └── ...
+├── lib/                # Utilities and services
+│   ├── supabase.ts     # Database client
+│   ├── crypto.ts       # Encryption utilities
+│   └── utils.ts        # Helper functions
+├── App.tsx             # Main application
+└── main.tsx           # Entry point
 ```
 
-## Customization Guide
+### Available Scripts
 
-### Changing Colors
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
 
-All colors are defined using CSS custom properties in `src/index.css`. The theme uses OKLCH color space for better color consistency:
+## 🛡️ Security Considerations
 
-```css
-:root {
-  /* Primary brand color (blue) */
-  --primary: oklch(0.45 0.15 250);
-  
-  /* Accent color for positive actions (green) */
-  --accent: oklch(0.55 0.12 145);
-  
-  /* Background and text colors */
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.15 0 0);
-  
-  /* Additional semantic colors */
-  --success: oklch(0.55 0.12 145);
-  --destructive: oklch(0.55 0.18 25);
-}
-```
+### Production Deployment
 
-### Changing Content
+1. **Use HTTPS only** for all connections
+2. **Implement key backup** mechanisms
+3. **Add key recovery** options
+4. **Regular security audits** of dependencies
+5. **Monitor for vulnerabilities**
 
-**Header Brand Name**: Edit `src/components/Header.tsx` line 13  
-**Hero Title**: Edit `src/components/Hero.tsx` line 5  
-**Hero Tagline**: Edit `src/components/Hero.tsx` line 8-10  
-**Security Message**: Edit `src/components/SecurityCallout.tsx` lines 10-14  
-**Form Title**: Edit `src/components/SignUpCard.tsx` line 110  
+### Known Limitations
 
-### Typography
+- Private keys stored in localStorage (consider more secure alternatives)
+- No forward secrecy (keys don't rotate)
+- Basic RSA encryption (consider modern alternatives like Signal Protocol)
 
-The app uses Inter font family. To change:
+## 🤝 Contributing
 
-1. Update Google Fonts link in `index.html`
-2. Update font-family in `src/index.css`:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-```css
-body {
-  font-family: 'YourFont', system-ui, -apple-system, sans-serif;
-}
-```
+## 📄 License
 
-### Layout Breakpoints
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-- Mobile: `< 768px` (1 column layout)
-- Desktop: `≥ 768px` (2 column layout)
-- Container max-width: `1280px`
+## 🆘 Support
 
-## Form Validation Rules
+For support and questions:
+- Check the [Issues](https://github.com/your-repo/issues) page
+- Review the [Documentation](https://your-docs-url)
+- Contact the development team
 
-- **First/Last Name**: Required
-- **Email**: Required, valid email format
-- **Password**: Required, minimum 8 characters
-- **Confirm Password**: Required, must match password
-- **Terms**: Must be accepted
+## 🏗️ Roadmap
 
-## Accessibility Features
+- [ ] Group messaging support
+- [ ] File sharing with encryption
+- [ ] Voice/video calls
+- [ ] Mobile app (React Native)
+- [ ] Advanced key management
+- [ ] Message threading
+- [ ] Push notifications
 
-- Semantic HTML landmarks (`header`, `main`, `footer`)
-- Proper form labels and ARIA attributes
-- Keyboard navigation support
-- Screen reader announcements for form errors
-- High contrast color ratios (WCAG AA)
-- Reduced motion support
+---
 
-## Performance Optimizations
-
-- Lazy loading for images
-- Minimal font weights loaded
-- CSS custom properties for theme switching
-- Tree-shaken component imports
-- Optimized animations with `prefers-reduced-motion`
-
-## Browser Support
-
-- Chrome 88+
-- Firefox 86+
-- Safari 14+
-- Edge 88+
-
-## Security Considerations
-
-- No sensitive data logged to console
-- Form data validation on both client and server side (client-side implemented)
-- CSP-friendly (no inline styles or scripts)
-- XSS protection through React's built-in escaping
-
-## Deployment
-
-The app is optimized for static hosting on platforms like:
-- Vercel
-- Netlify
-- GitHub Pages
-- AWS S3 + CloudFront
-
-Build artifacts are generated in the `dist/` folder after running `npm run build`.
+**⚠️ Security Notice**: This is a demonstration application. For production use, conduct a thorough security audit and consider additional security measures.
