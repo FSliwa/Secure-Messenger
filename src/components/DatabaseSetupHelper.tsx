@@ -1,78 +1,11 @@
-import { supabase } from './supabase'
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { Copy, Database, ArrowSquareOut } from '@phosphor-icons/react'
 
-// Database initialization functions
-export const initializeDatabaseTables = async () => {
-  try {
-    console.log('Initializing database tables...')
-    
-    // Create tables using a simpler approach - just check if they exist by attempting to query them
-    // The actual table creation should be done via Supabase SQL Editor or migrations
-    const requiredTables = [
-      'users',
-      'two_factor_auth', 
-      'trusted_devices',
-      'biometric_credentials',
-      'login_sessions',
-      'security_alerts',
-      'conversations',
-      'conversation_participants',
-      'messages',
-      'message_status'
-    ]
-
-    // For now, we'll assume tables are created via Supabase dashboard/SQL Editor
-    // and just verify they exist
-    const tableStatus: Record<string, boolean> = {}
-    
-    for (const tableName of requiredTables) {
-      try {
-        const { error } = await supabase.from(tableName).select('*').limit(1)
-        tableStatus[tableName] = !error
-        if (!error) {
-          console.log(`✓ Table ${tableName} exists and is accessible`)
-        } else {
-          console.log(`✗ Table ${tableName} is not accessible:`, error.message)
-        }
-      } catch (error) {
-        console.error(`✗ Error checking table ${tableName}:`, error)
-        tableStatus[tableName] = false
-      }
-    }
-
-    const allTablesReady = Object.values(tableStatus).every(exists => exists)
-    
-    if (allTablesReady) {
-      console.log('✓ All database tables are ready')
-      return { success: true, tables: tableStatus }
-    } else {
-      const missingTables = Object.entries(tableStatus)
-        .filter(([_, exists]) => !exists)
-        .map(([table]) => table)
-      
-      console.log('⚠ Missing tables:', missingTables)
-      
-      // Store the SQL schema for manual execution
-      const sqlSchema = getDatabaseSQL()
-      console.log('Execute this SQL in Supabase SQL Editor:')
-      console.log(sqlSchema)
-      
-      return { 
-        success: false, 
-        tables: tableStatus,
-        missing: missingTables,
-        sqlSchema 
-      }
-    }
-
-  } catch (error) {
-    console.error('Database initialization failed:', error)
-    return { success: false, error }
-  }
-}
-
-// Get the complete database SQL schema
-function getDatabaseSQL(): string {
-  return `-- SecureChat Database Schema
+const DATABASE_SCHEMA_SQL = `-- SecureChat Database Schema
 -- Execute this SQL in Supabase SQL Editor to create all required tables
 
 -- Enable UUID extension (if not already enabled)
@@ -273,61 +206,66 @@ CREATE POLICY "Users can access message status" ON message_status FOR ALL USING 
     WHERE m.id = message_status.message_id AND cp.user_id = auth.uid() AND cp.is_active = true
   )
 );`
-}
 
-// Check database readiness
-export const checkDatabaseReadiness = async () => {
-  const requiredTables = [
-    'users',
-    'two_factor_auth', 
-    'trusted_devices',
-    'login_sessions',
-    'security_alerts',
-    'conversations',
-    'conversation_participants',
-    'messages',
-    'message_status'
-  ]
+export function DatabaseSetupHelper() {
+  const [isOpen, setIsOpen] = useState(false)
 
-  const status: Record<string, boolean> = {}
-  
-  for (const table of requiredTables) {
+  const copyToClipboard = async () => {
     try {
-      const { error } = await supabase.from(table).select('*').limit(1)
-      status[table] = !error
-    } catch {
-      status[table] = false
+      await navigator.clipboard.writeText(DATABASE_SCHEMA_SQL)
+      toast.success('SQL schema copied to clipboard!')
+    } catch (error) {
+      toast.error('Failed to copy to clipboard')
     }
   }
 
-  const allReady = Object.values(status).every(ready => ready)
-  
-  return {
-    ready: allReady,
-    tables: status,
-    missing: Object.entries(status)
-      .filter(([_, ready]) => !ready)
-      .map(([table]) => table)
+  const openSupabaseSQL = () => {
+    // Open Supabase SQL Editor in new tab
+    window.open('https://supabase.com/dashboard/project/_/sql', '_blank')
   }
-}
 
-// Initialize database if needed
-export const ensureDatabaseReady = async () => {
-  const { ready, missing } = await checkDatabaseReadiness()
-  
-  if (!ready) {
-    console.log('Database not ready, missing tables:', missing)
-    const result = await initializeDatabaseTables()
-    
-    if (result.success) {
-      console.log('Database initialized successfully')
-      return await checkDatabaseReadiness()
-    } else {
-      console.error('Database initialization failed:', result.error)
-      return { ready: false, error: result.error }
-    }
-  }
-  
-  console.log('Database is ready')
-  return { ready: true }
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Database className="mr-2 h-4 w-4" />
+          View SQL Schema
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Database Setup - SQL Schema</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="p-4 bg-muted/50 border border-border rounded-lg">
+            <h4 className="text-sm font-medium mb-2">Setup Instructions:</h4>
+            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Copy the SQL schema below</li>
+              <li>Go to your Supabase project dashboard</li>
+              <li>Open the SQL Editor</li>
+              <li>Paste and execute the SQL</li>
+              <li>Return here and click "Recheck" on the database init screen</li>
+            </ol>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button onClick={copyToClipboard} className="flex-1">
+              <Copy className="mr-2 h-4 w-4" />
+              Copy SQL Schema
+            </Button>
+            <Button onClick={openSupabaseSQL} variant="outline" className="flex-1">
+              <ArrowSquareOut className="mr-2 h-4 w-4" />
+              Open Supabase SQL Editor
+            </Button>
+          </div>
+
+          <div className="relative">
+            <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-96 border border-border">
+              <code>{DATABASE_SCHEMA_SQL}</code>
+            </pre>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }

@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { Database, Check, X, ArrowClockwise } from '@phosphor-icons/react'
 import { ensureDatabaseReady, checkDatabaseReadiness } from '@/lib/database-init'
+import { DatabaseSetupHelper } from '@/components/DatabaseSetupHelper'
 
 interface DatabaseInitProps {
   onComplete: () => void
@@ -137,10 +138,10 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
               {Object.keys(tableStatus).length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Table Status:</h4>
-                  <div className="space-y-1">
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
                     {Object.entries(tableStatus).map(([table, exists]) => (
                       <div key={table} className="flex items-center justify-between text-xs">
-                        <span>{table}</span>
+                        <span className="font-mono">{table}</span>
                         {exists ? (
                           <Check className="h-3 w-3 text-success" />
                         ) : (
@@ -151,6 +152,18 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
                   </div>
                 </div>
               )}
+
+              <div className="p-3 bg-muted/50 border border-border rounded-lg">
+                <p className="text-xs text-muted-foreground mb-2">
+                  <strong>Manual Setup Required:</strong>
+                </p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  The database tables need to be created manually in Supabase.
+                </p>
+                <div className="flex justify-center mb-2">
+                  <DatabaseSetupHelper />
+                </div>
+              </div>
 
               <div className="flex gap-2">
                 <Button
@@ -167,7 +180,7 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
                   className="flex-1"
                 >
                   <Database className="mr-2 h-4 w-4" />
-                  Initialize
+                  Try Auto-Init
                 </Button>
               </div>
             </div>
