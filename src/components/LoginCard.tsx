@@ -115,7 +115,6 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       <Card className="bg-card border border-border shadow-lg">
         <CardContent className="p-6">
           <div className="text-center mb-6">
-
             <h1 className="text-2xl font-bold text-foreground mb-1">Log in to SecureChat</h1>
           </div>
 

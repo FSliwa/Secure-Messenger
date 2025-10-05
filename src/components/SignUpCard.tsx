@@ -197,7 +197,6 @@ export function SignUpCard({ onSuccess }: SignUpProps) {
       <Card className="facebook-card">
         <CardContent className="p-6">
           <div className="text-center mb-6">
-
             <h2 className="text-2xl font-bold text-foreground mb-2">Create a new account</h2>
             <p className="text-sm text-muted-foreground">It's quick and easy.</p>
           </div>
