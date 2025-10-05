@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Spinner, CheckCircle, Key } from "@phosphor-icons/react";
-import { signUp } from "@/lib/supabase";
+import { signUp, testSupabaseConnection } from "@/lib/supabase";
 import { generateKeyPair, storeKeys, isCryptoSupported } from "@/lib/crypto";
 
 interface FormData {
@@ -106,6 +106,12 @@ export function SignUpCard() {
     setIsSubmitting(true);
     
     try {
+      // First check if Supabase connection is working
+      const connectionTest = await testSupabaseConnection();
+      if (!connectionTest.connected) {
+        throw new Error('Service is currently unavailable. Please try again later or contact support.');
+      }
+
       // Step 1: Generate encryption keys
       setKeyGenerationStep('generating');
       toast.loading('Generating your encryption keys...', { id: 'signup-process' });
@@ -115,12 +121,23 @@ export function SignUpCard() {
       // Step 2: Create user account with Supabase
       toast.loading('Creating your account...', { id: 'signup-process' });
       
+      // Create username from first name (sanitized)
+      const username = formData.firstName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!username) {
+        throw new Error('Please enter a valid first name using only letters and numbers.');
+      }
+      const displayName = `${formData.firstName} ${formData.lastName}`.trim();
+      
+      console.log('Attempting signup with:', { email: formData.email, username, displayName });
+      
       const { data, error } = await signUp(
         formData.email,
         formData.password,
-        formData.firstName,
-        formData.lastName
+        username,
+        displayName
       );
+      
+      console.log('Signup response:', { data, error });
 
       if (error) {
         throw new Error(error);
@@ -158,7 +175,11 @@ export function SignUpCard() {
       
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast.error(error.message || 'Failed to create account. Please try again.', { 
+      
+      // The error message should already be user-friendly from the supabase module
+      const errorMessage = error.message || 'Failed to create account. Please try again.';
+      
+      toast.error(errorMessage, { 
         id: 'signup-process' 
       });
       setKeyGenerationStep('idle');

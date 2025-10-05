@@ -119,9 +119,56 @@ export interface TwoFactorAuth {
   updated_at: string
 }
 
+// Helper function to translate Supabase errors to user-friendly messages
+const translateSupabaseError = (error: any): string => {
+  console.log('Translating error:', error);
+  
+  if (!error) return 'Unknown error occurred';
+  
+  const message = error.message || error.toString();
+  
+  // Auth-related errors
+  if (message.includes('Invalid API key') || message.includes('invalid key')) {
+    return 'Service temporarily unavailable. Please try again later.';
+  }
+  
+  if (message.includes('User already registered') || message.includes('already been registered')) {
+    return 'An account with this email already exists. Please try signing in instead.';
+  }
+  
+  if (message.includes('Invalid email')) {
+    return 'Please enter a valid email address.';
+  }
+  
+  if (message.includes('Password should be at least') || message.includes('weak password')) {
+    return 'Password must be at least 6 characters long.';
+  }
+  
+  if (message.includes('Email rate limit exceeded')) {
+    return 'Too many signup attempts. Please wait a few minutes before trying again.';
+  }
+  
+  if (message.includes('Invalid credentials')) {
+    return 'Invalid email or password format.';
+  }
+  
+  if (message.includes('Failed to fetch') || message.includes('fetch')) {
+    return 'Connection failed. Please check your internet connection and try again.';
+  }
+  
+  if (message.includes('Network')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+  
+  // Return the original message if no specific translation found
+  return message || 'An unexpected error occurred. Please try again.';
+};
+
 // Auth helper functions
 export const signUp = async (email: string, password: string, username: string, displayName?: string) => {
   try {
+    console.log('Signing up with:', { email, username, displayName });
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -133,10 +180,19 @@ export const signUp = async (email: string, password: string, username: string, 
       }
     })
     
-    if (error) throw error
+    console.log('Supabase auth.signUp response:', { data, error });
+    
+    if (error) {
+      console.error('Supabase signup error:', error);
+      const friendlyError = translateSupabaseError(error);
+      return { data: null, error: friendlyError };
+    }
+    
     return { data, error: null }
   } catch (error: any) {
-    return { data: null, error: error.message }
+    console.error('SignUp function error:', error);
+    const friendlyError = translateSupabaseError(error);
+    return { data: null, error: friendlyError }
   }
 }
 
@@ -417,7 +473,7 @@ export const getUserSecurityAlerts = async () => {
   }
 }
 
-// Connection test function
+// Connection test function with detailed error reporting
 export const testSupabaseConnection = async () => {
   try {
     // Check if we're using demo credentials
@@ -440,11 +496,16 @@ export const testSupabaseConnection = async () => {
       }
     }
 
+    console.log('Testing Supabase connection...', { supabaseUrl, hasKey: !!supabaseAnonKey });
+
     // Test basic Supabase connection first
     try {
       const { data, error } = await supabase.auth.getSession()
       
+      console.log('Auth session test:', { data, error });
+      
       if (error) {
+        console.error('Auth session error:', error);
         // More specific error handling
         if (error.message.includes('Invalid API key') || error.message.includes('invalid key')) {
           return {
@@ -472,6 +533,7 @@ export const testSupabaseConnection = async () => {
         }
       }
     } catch (fetchError: any) {
+      console.error('Connection fetch error:', fetchError);
       return {
         connected: false,
         error: 'Network or credentials error',
@@ -482,12 +544,16 @@ export const testSupabaseConnection = async () => {
 
     // Try a simple database query to ensure tables exist
     try {
+      console.log('Testing database connection...');
       const { error: dbError } = await supabase
         .from('users')
         .select('count')
         .limit(1)
 
+      console.log('Database query test:', { dbError });
+
       if (dbError) {
+        console.error('Database error:', dbError);
         if (dbError.message.includes('relation "public.users" does not exist')) {
           return {
             connected: false,
@@ -505,6 +571,7 @@ export const testSupabaseConnection = async () => {
         }
       }
     } catch (dbError: any) {
+      console.error('Database connection failed:', dbError);
       return {
         connected: false,
         error: 'Database connection failed',
@@ -513,6 +580,7 @@ export const testSupabaseConnection = async () => {
       }
     }
 
+    console.log('✅ Supabase connection test passed');
     return {
       connected: true,
       error: null,
@@ -520,6 +588,7 @@ export const testSupabaseConnection = async () => {
       needsSetup: false
     }
   } catch (error: any) {
+    console.error('Connection test failed:', error);
     return {
       connected: false,
       error: `Connection test failed: ${error.message}`,
