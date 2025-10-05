@@ -11,7 +11,7 @@ import {
   Gear
 } from '@phosphor-icons/react'
 import { TwoFactorSetup } from './TwoFactorSetup'
-import { BiometricAuth } from './BiometricAuth'
+import { BiometricSettings } from './BiometricSettings'
 import { TrustedDevices } from './TrustedDevices'
 import { PrivacySettings } from './PrivacySettings'
 
@@ -182,7 +182,11 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
 
         <TabsContent value="biometric" className="space-y-6">
           <div className="flex justify-center">
-            <BiometricAuth userId={userId} mode="setup" />
+            <BiometricSettings 
+              userId={userId} 
+              userName={currentUser.username}
+              displayName={currentUser.displayName || currentUser.username}
+            />
           </div>
         </TabsContent>
 

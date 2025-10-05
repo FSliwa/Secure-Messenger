@@ -14,7 +14,7 @@ import {
   isDeviceTrusted,
   addTrustedDevice
 } from '@/lib/auth-security'
-import { BiometricAuth } from './BiometricAuth'
+import { BiometricLoginButton } from './BiometricLoginButton'
 
 interface User {
   id: string;
@@ -363,16 +363,20 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
               </Button>
 
               {/* Biometric Login Option */}
-              <div className="text-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setLoginStep('biometric')}
-                  className="text-sm"
-                >
-                  <Fingerprint className="mr-2 h-4 w-4" />
-                  Use Biometric Login
-                </Button>
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
+                
+                <BiometricLoginButton 
+                  onSuccess={onSuccess || (() => {})}
+                  className="h-12"
+                />
               </div>
 
               {/* Forgot Password */}
@@ -433,17 +437,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
             </div>
           )}
 
-          {/* Biometric Step */}
-          {loginStep === 'biometric' && pendingUserId && (
-            <div className="space-y-4">
-              <BiometricAuth
-                userId={pendingUserId}
-                mode="verify"
-                onSuccess={handleBiometricSuccess}
-                onCancel={() => setLoginStep('credentials')}
-              />
-            </div>
-          )}
+          {/* Biometric Step - Removed, using direct BiometricLoginButton */}
 
           {/* Only show sign up section on credentials step */}
           {loginStep === 'credentials' && (

@@ -27,6 +27,22 @@
 - **Session Management**: Tracks login sessions with device fingerprinting and geolocation
 - **Security Alerts**: Monitors and alerts on suspicious login attempts
 
+### Biometric Authentication
+- **WebAuthn Support**: Modern biometric authentication using fingerprint, Face ID, Touch ID, Windows Hello
+- **Device-specific Credentials**: Each device generates unique cryptographic key pairs
+- **Platform Authenticators**: Integration with Touch ID (macOS), Face ID (iOS), Windows Hello, Android fingerprint
+- **Registration Flow**: Users can register biometric credentials from Security Settings
+- **Login Integration**: Biometric login button appears on login screen when available
+- **Multiple Devices**: Users can register biometrics on multiple devices simultaneously
+- **Credential Management**: View, name, and revoke individual biometric credentials
+- **Security Features**:
+  - Private keys never leave the device (stored in secure hardware elements)
+  - Only public keys stored on server for verification
+  - Challenge-response authentication prevents replay attacks
+  - Graceful fallback to username/password when biometric fails
+- **Privacy Protection**: No biometric data transmitted or stored on servers
+- **Cross-platform**: Works across desktop and mobile browsers with biometric hardware
+
 ### User Management & Discovery
 - **User Profile System**: Username, display name, avatar, online status
 - **Unique Username Requirement**: During registration, users create a unique username for identification

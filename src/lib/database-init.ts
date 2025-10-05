@@ -67,6 +67,22 @@ export const initializeDatabaseTables = async () => {
         `
       },
       {
+        name: 'biometric_credentials',
+        sql: `
+          CREATE TABLE IF NOT EXISTS biometric_credentials (
+            id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+            user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+            credential_id TEXT UNIQUE NOT NULL,
+            public_key TEXT NOT NULL,
+            name TEXT DEFAULT 'Biometric Login',
+            type TEXT DEFAULT 'fingerprint' CHECK (type IN ('fingerprint', 'faceId', 'touchId')) NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+            last_used TIMESTAMP WITH TIME ZONE,
+            is_active BOOLEAN DEFAULT TRUE NOT NULL
+          );
+        `
+      },
+      {
         name: 'login_sessions',
         sql: `
           CREATE TABLE IF NOT EXISTS login_sessions (
