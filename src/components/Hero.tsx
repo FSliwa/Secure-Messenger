@@ -17,15 +17,15 @@ export function Hero() {
         {/* Feature highlights */}
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 lg:grid-cols-1 lg:gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
-            <div className="w-2 h-2 bg-accent rounded-full animate-pulse-gentle" />
+            <div className="w-2 h-2 bg-accent rounded-full" />
             <span>Post-quantum encryption</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse-gentle [animation-delay:0.5s]" />
+            <div className="w-2 h-2 bg-primary rounded-full" />
             <span>3-minute security process</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
-            <div className="w-2 h-2 bg-success rounded-full animate-pulse-gentle [animation-delay:1s]" />
+            <div className="w-2 h-2 bg-success rounded-full" />
             <span>Commercial-grade platform</span>
           </div>
         </div>
@@ -34,7 +34,7 @@ export function Hero() {
       <div className="mt-12 animate-fade-in-up [animation-delay:200ms]">
         <div className="relative mx-auto w-64 h-64 lg:w-80 lg:h-80">
           {/* Outer glow effect */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 blur-2xl animate-pulse-gentle"></div>
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 blur-2xl"></div>
           
           {/* Main shield container */}
           <div className="relative flex items-center justify-center h-full">

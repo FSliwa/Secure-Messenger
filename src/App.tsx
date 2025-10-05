@@ -7,6 +7,7 @@ import { LoginCard } from "@/components/LoginCard";
 import { SecurityCallout } from "@/components/SecurityCallout";
 import { Footer } from "@/components/Footer";
 import { Dashboard } from "@/components/Dashboard";
+import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { supabase, signOut, getCurrentUser } from "@/lib/supabase";
 
 type AppState = 'landing' | 'login' | 'dashboard';
@@ -24,6 +25,22 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
+    // Verify Supabase connection on app start
+    const verifyConnection = async () => {
+      try {
+        const { data, error } = await supabase.from('profiles').select('count').limit(1);
+        if (error) {
+          console.log('Supabase connection error:', error.message);
+        } else {
+          console.log('✅ Supabase connected successfully');
+        }
+      } catch (err) {
+        console.log('Supabase connection test failed:', err);
+      }
+    };
+    
+    verifyConnection();
+    
     // Check if user is already logged in
     const checkAuthState = async () => {
       try {
@@ -101,7 +118,7 @@ function App() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-pulse-gentle mb-4">
+          <div className="mb-4">
             <svg 
               className="w-16 h-16 mx-auto text-primary" 
               fill="none" 
@@ -136,6 +153,11 @@ function App() {
       <Header />
       
       <main>
+        {/* Connection Status Banner */}
+        <div className="container mx-auto max-w-screen-xl px-6 pt-4">
+          <ConnectionBanner />
+        </div>
+        
         {/* Hero and Registration/Login Section */}
         <section className="py-8 sm:py-12 lg:py-16">
           <div className="container mx-auto max-w-screen-xl px-6">

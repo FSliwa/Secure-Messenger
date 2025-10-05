@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChatInterface } from './ChatInterface'
+import { SupabaseStatus } from './SupabaseStatus'
 import { 
   SignOut, 
   ChatCircle, 
@@ -137,6 +138,9 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
                 Manage your account and preferences
               </p>
             </div>
+
+            {/* Database Connection Status */}
+            <SupabaseStatus />
 
             <Card>
               <CardHeader>
