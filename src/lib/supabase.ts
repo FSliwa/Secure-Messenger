@@ -15,57 +15,109 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Database types
+// Database types matching your schema
 export interface User {
   id: string
-  email: string
-  first_name: string
-  last_name: string
   username: string
+  display_name?: string
   avatar_url?: string
   public_key: string
+  status: 'online' | 'offline' | 'away'
+  last_seen: string
   created_at: string
   updated_at: string
 }
 
-export interface Contact {
+export interface Conversation {
   id: string
-  user_id: string
-  contact_user_id: string
-  contact_name: string
-  verified: boolean
+  name?: string
+  is_group: boolean
+  access_code?: string
+  created_by?: string
   created_at: string
+  updated_at: string
+}
+
+export interface ConversationParticipant {
+  id: string
+  conversation_id: string
+  user_id: string
+  joined_at: string
+  left_at?: string
+  is_active: boolean
 }
 
 export interface Message {
   id: string
+  conversation_id: string
   sender_id: string
-  recipient_id: string
   encrypted_content: string
-  message_type: 'text' | 'image' | 'file'
-  created_at: string
-  read_at?: string
+  encryption_metadata?: any
+  sent_at: string
+  edited_at?: string
+  is_deleted: boolean
 }
 
-export interface Conversation {
+export interface MessageStatus {
   id: string
-  participant_ids: string[]
-  last_message_id?: string
-  last_message_at: string
+  message_id: string
+  user_id: string
+  status: 'sent' | 'delivered' | 'read'
+  timestamp: string
+}
+
+export interface LoginSession {
+  id: string
+  user_id: string
+  login_time: string
+  logout_time?: string
+  ip_address?: string
+  user_agent?: string
+  location_country?: string
+  location_city?: string
+  device_type?: string
+  browser?: string
+  os?: string
+  is_active: boolean
+  last_activity_at: string
+}
+
+export interface SecurityAlert {
+  id: string
+  user_id: string
+  alert_type: string
+  severity: string
+  description: string
+  metadata?: any
+  ip_address?: string
+  user_agent?: string
+  location?: any
+  is_resolved: boolean
+  resolved_at?: string
   created_at: string
+}
+
+export interface TwoFactorAuth {
+  id: string
+  user_id: string
+  secret: string
+  backup_codes: string[]
+  is_enabled: boolean
+  enabled_at?: string
+  created_at: string
+  updated_at: string
 }
 
 // Auth helper functions
-export const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+export const signUp = async (email: string, password: string, username: string, displayName?: string) => {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          first_name: firstName,
-          last_name: lastName,
-          username: email.split('@')[0], // Generate username from email
+          username,
+          display_name: displayName || username,
         }
       }
     })
@@ -110,19 +162,77 @@ export const getCurrentUser = async () => {
   }
 }
 
-// Message functions
-export const sendMessage = async (recipientId: string, encryptedContent: string) => {
+// User profile functions
+export const getUserProfile = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error: any) {
+    return { data: null, error: error.message }
+  }
+}
+
+export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error: any) {
+    return { data: null, error: error.message }
+  }
+}
+
+// Conversation functions
+export const createConversation = async (name?: string, isGroup: boolean = false) => {
   try {
     const user = await getCurrentUser()
     if (!user) throw new Error('Not authenticated')
 
     const { data, error } = await supabase
-      .from('messages')
+      .from('conversations')
       .insert({
-        sender_id: user.id,
-        recipient_id: recipientId,
-        encrypted_content: encryptedContent,
-        message_type: 'text'
+        name,
+        is_group: isGroup,
+        created_by: user.id
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Add creator as participant
+    await supabase
+      .from('conversation_participants')
+      .insert({
+        conversation_id: data.id,
+        user_id: user.id
+      })
+
+    return { data, error: null }
+  } catch (error: any) {
+    return { data: null, error: error.message }
+  }
+}
+
+export const addParticipantToConversation = async (conversationId: string, userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('conversation_participants')
+      .insert({
+        conversation_id: conversationId,
+        user_id: userId
       })
       .select()
       .single()
@@ -134,16 +244,96 @@ export const sendMessage = async (recipientId: string, encryptedContent: string)
   }
 }
 
-export const getMessages = async (contactId: string) => {
+export const getUserConversations = async () => {
+  try {
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data, error } = await supabase
+      .from('conversation_participants')
+      .select(`
+        conversation_id,
+        conversations (
+          id,
+          name,
+          is_group,
+          created_by,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error: any) {
+    return { data: null, error: error.message }
+  }
+}
+
+// Message functions
+export const sendMessage = async (conversationId: string, encryptedContent: string, encryptionMetadata?: any) => {
   try {
     const user = await getCurrentUser()
     if (!user) throw new Error('Not authenticated')
 
     const { data, error } = await supabase
       .from('messages')
-      .select('*')
-      .or(`and(sender_id.eq.${user.id},recipient_id.eq.${contactId}),and(sender_id.eq.${contactId},recipient_id.eq.${user.id})`)
-      .order('created_at', { ascending: true })
+      .insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        encrypted_content: encryptedContent,
+        encryption_metadata: encryptionMetadata
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error: any) {
+    return { data: null, error: error.message }
+  }
+}
+
+export const getConversationMessages = async (conversationId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        *,
+        sender:users!messages_sender_id_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('conversation_id', conversationId)
+      .eq('is_deleted', false)
+      .order('sent_at', { ascending: true })
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error: any) {
+    return { data: null, error: error.message }
+  }
+}
+
+export const markMessageAsRead = async (messageId: string) => {
+  try {
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data, error } = await supabase
+      .from('message_status')
+      .upsert({
+        message_id: messageId,
+        user_id: user.id,
+        status: 'read'
+      })
+      .select()
+      .single()
 
     if (error) throw error
     return { data, error: null }
@@ -153,45 +343,35 @@ export const getMessages = async (contactId: string) => {
 }
 
 // Real-time subscription for messages
-export const subscribeToMessages = (callback: (message: Message) => void) => {
+export const subscribeToConversationMessages = (conversationId: string, callback: (message: Message) => void) => {
   return supabase
-    .channel('messages')
+    .channel(`conversation-${conversationId}`)
     .on('postgres_changes', 
       { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'messages' 
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
       }, 
       (payload) => callback(payload.new as Message)
     )
     .subscribe()
 }
 
-// Contact functions
-export const addContact = async (contactEmail: string) => {
+// Security functions
+export const createSecurityAlert = async (alertType: string, severity: string, description: string, metadata?: any) => {
   try {
     const user = await getCurrentUser()
     if (!user) throw new Error('Not authenticated')
 
-    // First find the user by email
-    const { data: contactUser, error: findError } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, email')
-      .eq('email', contactEmail)
-      .single()
-
-    if (findError || !contactUser) {
-      throw new Error('User not found')
-    }
-
-    // Add to contacts
     const { data, error } = await supabase
-      .from('contacts')
+      .from('security_alerts')
       .insert({
         user_id: user.id,
-        contact_user_id: contactUser.id,
-        contact_name: `${contactUser.first_name} ${contactUser.last_name}`,
-        verified: false
+        alert_type: alertType,
+        severity,
+        description,
+        metadata
       })
       .select()
       .single()
@@ -203,24 +383,17 @@ export const addContact = async (contactEmail: string) => {
   }
 }
 
-export const getContacts = async () => {
+export const getUserSecurityAlerts = async () => {
   try {
     const user = await getCurrentUser()
     if (!user) throw new Error('Not authenticated')
 
     const { data, error } = await supabase
-      .from('contacts')
-      .select(`
-        *,
-        contact_user:profiles!contacts_contact_user_id_fkey(
-          id,
-          first_name,
-          last_name,
-          email,
-          avatar_url
-        )
-      `)
+      .from('security_alerts')
+      .select('*')
       .eq('user_id', user.id)
+      .eq('is_resolved', false)
+      .order('created_at', { ascending: false })
 
     if (error) throw error
     return { data, error: null }
@@ -256,7 +429,7 @@ export const testSupabaseConnection = async () => {
 
     // Try a simple database query to ensure tables exist
     const { error: dbError } = await supabase
-      .from('profiles')
+      .from('users')
       .select('count')
       .limit(1)
 
