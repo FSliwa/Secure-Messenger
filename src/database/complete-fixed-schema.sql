@@ -1,11 +1,4 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { toast } from 'sonner'
-import { Copy, Database, ArrowSquareOut } from '@phosphor-icons/react'
-
-const DATABASE_SCHEMA_SQL = `-- COMPLETE FIXED SECURECHAT DATABASE SCHEMA
+-- COMPLETE FIXED SECURECHAT DATABASE SCHEMA
 -- This SQL script creates all required tables and policies without infinite recursion
 -- Execute this in Supabase SQL Editor
 
@@ -22,6 +15,16 @@ END $$;
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create profiles table
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  display_name TEXT NOT NULL,
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
 
 -- Create users table (extends auth.users for SecureChat)
 CREATE TABLE IF NOT EXISTS users (
@@ -156,8 +159,33 @@ CREATE TABLE IF NOT EXISTS message_status (
   UNIQUE(message_id, user_id)
 );
 
+-- Create encryption_keys table
+CREATE TABLE IF NOT EXISTS encryption_keys (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  public_key TEXT NOT NULL,
+  encrypted_private_key TEXT NOT NULL,
+  key_type TEXT DEFAULT 'post-quantum' NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  UNIQUE(user_id)
+);
+
+-- Create biometric_credentials table
+CREATE TABLE IF NOT EXISTS biometric_credentials (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  credential_id TEXT UNIQUE NOT NULL,
+  public_key TEXT NOT NULL,
+  name TEXT DEFAULT 'Biometric Login',
+  type TEXT DEFAULT 'fingerprint' CHECK (type IN ('fingerprint', 'faceId', 'touchId')) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  last_used TIMESTAMP WITH TIME ZONE,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL
+);
+
 -- Create performance indexes
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
 CREATE INDEX IF NOT EXISTS idx_conversation_participants_conv_user ON conversation_participants(conversation_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_conversation_participants_user_active ON conversation_participants(user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
@@ -169,6 +197,7 @@ CREATE INDEX IF NOT EXISTS idx_trusted_devices_user ON trusted_devices(user_id);
 CREATE INDEX IF NOT EXISTS idx_security_alerts_user ON security_alerts(user_id);
 
 -- Enable Row Level Security on all tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE two_factor_auth ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trusted_devices ENABLE ROW LEVEL SECURITY;
@@ -178,8 +207,24 @@ ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversation_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_status ENABLE ROW LEVEL SECURITY;
+ALTER TABLE encryption_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE biometric_credentials ENABLE ROW LEVEL SECURITY;
 
 -- Create FIXED RLS Policies (no infinite recursion)
+
+-- Profiles policies
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+    DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+    DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+    
+    CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+    CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+    CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
 
 -- Users policies
 DO $$
@@ -304,10 +349,68 @@ EXCEPTION
     WHEN OTHERS THEN NULL;
 END $$;
 
+-- Encryption keys policies
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Users can view their own encryption keys" ON encryption_keys;
+    DROP POLICY IF EXISTS "Users can insert their own encryption keys" ON encryption_keys;
+    DROP POLICY IF EXISTS "Users can update their own encryption keys" ON encryption_keys;
+    
+    CREATE POLICY "Users can view their own encryption keys" ON encryption_keys FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Users can insert their own encryption keys" ON encryption_keys FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "Users can update their own encryption keys" ON encryption_keys FOR UPDATE USING (auth.uid() = user_id);
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+-- Biometric credentials policies
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Users can access their own biometric credentials" ON biometric_credentials;
+    CREATE POLICY "Users can access their own biometric credentials" ON biometric_credentials FOR ALL USING (auth.uid() = user_id);
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+-- Create functions and triggers for updated_at columns
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = TIMEZONE('utc'::text, NOW());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for updated_at (drop first to avoid duplicates)
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_two_factor_auth_updated_at ON two_factor_auth;
+CREATE TRIGGER update_two_factor_auth_updated_at BEFORE UPDATE ON two_factor_auth
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_conversations_updated_at ON conversations;
+CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Function to handle new user registration
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Insert into profiles table
+  INSERT INTO public.profiles (id, username, display_name)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1))
+  )
+  ON CONFLICT (id) DO NOTHING;
+  
   -- Insert into users table for SecureChat
   INSERT INTO public.users (id, username, display_name, public_key)
   VALUES (
@@ -332,67 +435,4 @@ CREATE TRIGGER on_auth_user_created
 DO $$
 BEGIN
     RAISE NOTICE 'SecureChat database schema created successfully! All tables and policies are now set up without infinite recursion issues.';
-END $$;`
-
-export function DatabaseSetupHelper() {
-  const [isOpen, setIsOpen] = useState(false)
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(DATABASE_SCHEMA_SQL)
-      toast.success('SQL schema copied to clipboard!')
-    } catch (error) {
-      toast.error('Failed to copy to clipboard')
-    }
-  }
-
-  const openSupabaseSQL = () => {
-    // Open Supabase SQL Editor in new tab
-    window.open('https://supabase.com/dashboard/project/_/sql', '_blank')
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Database className="mr-2 h-4 w-4" />
-          View SQL Schema
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>Database Setup - SQL Schema</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="p-4 bg-muted/50 border border-border rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Setup Instructions:</h4>
-            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Copy the SQL schema below</li>
-              <li>Go to your Supabase project dashboard</li>
-              <li>Open the SQL Editor</li>
-              <li>Paste and execute the SQL</li>
-              <li>Return here and click "Recheck" on the database init screen</li>
-            </ol>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button onClick={copyToClipboard} className="flex-1">
-              <Copy className="mr-2 h-4 w-4" />
-              Copy SQL Schema
-            </Button>
-            <Button onClick={openSupabaseSQL} variant="outline" className="flex-1">
-              <ArrowSquareOut className="mr-2 h-4 w-4" />
-              Open Supabase SQL Editor
-            </Button>
-          </div>
-
-          <div className="relative">
-            <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-96 border border-border">
-              <code>{DATABASE_SCHEMA_SQL}</code>
-            </pre>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
+END $$;

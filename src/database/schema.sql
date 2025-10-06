@@ -1,7 +1,19 @@
--- Enable the necessary extensions
+-- SecureChat Database Schema for Supabase (FIXED VERSION)
+-- This version fixes infinite recursion issues in RLS policies
+
+-- Enable UUID extension (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create profiles table
+-- Drop existing problematic policies first (if they exist)
+DROP POLICY IF EXISTS "Users can access their conversation participation" ON conversation_participants;
+DROP POLICY IF EXISTS "Users can access messages in their conversations" ON messages;
+DROP POLICY IF EXISTS "Users can access message status" ON message_status;
+DROP POLICY IF EXISTS "Users can access conversations they participate in" ON conversations;
+DROP POLICY IF EXISTS "Users can view participants in their conversations" ON conversation_participants;
+DROP POLICY IF EXISTS "Users can view messages in their conversations" ON messages;
+DROP POLICY IF EXISTS "Users can view message status in their conversations" ON message_status;
+
+-- Create profiles table for basic user info
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
@@ -17,7 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT UNIQUE NOT NULL,
   display_name TEXT,
   avatar_url TEXT,
-  public_key TEXT NOT NULL,
+  public_key TEXT NOT NULL DEFAULT '',
   status TEXT DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'away')) NOT NULL,
   last_seen TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
@@ -57,8 +69,8 @@ CREATE TABLE IF NOT EXISTS trusted_devices (
 -- Create login_sessions table
 CREATE TABLE IF NOT EXISTS login_sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
-  login_time TIMESTAMP WITH TIME ZONE,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  login_time TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   logout_time TIMESTAMP WITH TIME ZONE,
   ip_address TEXT,
   user_agent TEXT,
@@ -70,12 +82,12 @@ CREATE TABLE IF NOT EXISTS login_sessions (
   browser TEXT,
   os TEXT,
   session_token TEXT,
-  cookies_data JSONB,
+  cookies_data JSONB DEFAULT '{}'::jsonb,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   failed_attempts INTEGER DEFAULT 0,
   last_failed_attempt TIMESTAMP WITH TIME ZONE,
-  session_data JSONB,
+  session_data JSONB DEFAULT '{}'::jsonb,
   last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   screen_resolution TEXT,
   language TEXT,
@@ -92,7 +104,7 @@ CREATE TABLE IF NOT EXISTS security_alerts (
   metadata JSONB DEFAULT '{}'::jsonb,
   ip_address TEXT,
   user_agent TEXT,
-  location JSONB,
+  location JSONB DEFAULT '{}'::jsonb,
   is_resolved BOOLEAN DEFAULT FALSE,
   resolved_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -144,25 +156,6 @@ CREATE TABLE IF NOT EXISTS message_status (
   UNIQUE(message_id, user_id)
 );
 
--- Keep legacy chat tables for compatibility (if they exist)
-CREATE TABLE IF NOT EXISTS chat_rooms (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT,
-  is_group BOOLEAN DEFAULT FALSE NOT NULL,
-  created_by UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS chat_room_participants (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  room_id UUID REFERENCES chat_rooms ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member')) NOT NULL,
-  joined_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  UNIQUE(room_id, user_id)
-);
-
 -- Create encryption_keys table for storing user encryption keys
 CREATE TABLE IF NOT EXISTS encryption_keys (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -200,12 +193,6 @@ CREATE INDEX IF NOT EXISTS idx_trusted_devices_fingerprint ON trusted_devices(de
 CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
--- Legacy indexes for compatibility
-CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
-CREATE INDEX IF NOT EXISTS idx_chat_room_participants_room_id ON chat_room_participants(room_id);
-CREATE INDEX IF NOT EXISTS idx_chat_room_participants_user_id ON chat_room_participants(user_id);
-
 -- Set up Row Level Security (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -220,59 +207,58 @@ ALTER TABLE message_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE encryption_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE biometric_credentials ENABLE ROW LEVEL SECURITY;
 
--- Legacy tables RLS
-ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_room_participants ENABLE ROW LEVEL SECURITY;
+-- FIXED RLS Policies (no infinite recursion)
 
 -- RLS Policies for profiles
-CREATE POLICY "Public profiles are viewable by everyone." ON profiles
+CREATE POLICY "Public profiles are viewable by everyone" ON profiles
   FOR SELECT USING (true);
 
-CREATE POLICY "Users can insert their own profile." ON profiles
+CREATE POLICY "Users can insert their own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Users can update their own profile." ON profiles
+CREATE POLICY "Users can update their own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
--- RLS Policies for chat_rooms
-CREATE POLICY "Users can view chat rooms they participate in." ON chat_rooms
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = chat_rooms.id AND user_id = auth.uid()
-    )
-  );
+-- RLS Policies for users
+CREATE POLICY "Users can view all public user info" ON users
+  FOR SELECT USING (true);
 
-CREATE POLICY "Users can create chat rooms." ON chat_rooms
-  FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "Users can insert their own user record" ON users
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Room admins can update chat rooms." ON chat_rooms
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = chat_rooms.id AND user_id = auth.uid() AND role = 'admin'
-    )
-  );
+CREATE POLICY "Users can update their own user record" ON users
+  FOR UPDATE USING (auth.uid() = id);
 
--- RLS Policies for chat_room_participants
-CREATE POLICY "Users can view participants of rooms they're in." ON chat_room_participants
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants AS crp 
+-- RLS Policies for two_factor_auth
+CREATE POLICY "Users can access their own 2FA settings" ON two_factor_auth
+  FOR ALL USING (auth.uid() = user_id);
+
+-- RLS Policies for trusted_devices
+CREATE POLICY "Users can access their own trusted devices" ON trusted_devices
+  FOR ALL USING (auth.uid() = user_id);
+
+-- RLS Policies for login_sessions
+CREATE POLICY "Users can access their own login sessions" ON login_sessions
+  FOR ALL USING (auth.uid() = user_id);
+
+-- RLS Policies for security_alerts
+CREATE POLICY "Users can access their own security alerts" ON security_alerts
+  FOR ALL USING (auth.uid() = user_id);
+
+-- RLS Policies for conversations (FIXED)
+CREATE POLICY "Users can access conversations they participate in" ON conversations
+  FOR ALL USING (
+    auth.uid() = created_by OR EXISTS (
+      SELECT 1 FROM conversation_participants 
       WHERE conversation_id = conversations.id AND user_id = auth.uid() AND is_active = true
     )
   );
 
--- RLS Policies for conversation_participants
-CREATE POLICY "Users can access their conversation participation" ON conversation_participants
-  FOR ALL USING (
-    auth.uid() = user_id OR EXISTS (
-      SELECT 1 FROM conversation_participants cp 
-      WHERE cp.conversation_id = conversation_participants.conversation_id AND cp.user_id = auth.uid() AND cp.is_active = true
-    )
-  );
+-- RLS Policies for conversation_participants (FIXED - No recursion)
+CREATE POLICY "Users can manage their own participation" ON conversation_participants
+  FOR ALL USING (auth.uid() = user_id);
 
--- RLS Policies for messages
+-- RLS Policies for messages (FIXED)
 CREATE POLICY "Users can access messages in their conversations" ON messages
   FOR ALL USING (
     EXISTS (
@@ -281,66 +267,23 @@ CREATE POLICY "Users can access messages in their conversations" ON messages
     )
   );
 
--- RLS Policies for message_status
-CREATE POLICY "Users can access message status" ON message_status
-  FOR ALL USING (
-    auth.uid() = user_id OR EXISTS (
-      SELECT 1 FROM messages m
-      JOIN conversation_participants cp ON m.conversation_id = cp.conversation_id
-      WHERE m.id = message_status.message_id AND cp.user_id = auth.uid() AND cp.is_active = true
-    )
-  );
+-- RLS Policies for message_status (FIXED)
+CREATE POLICY "Users can manage their own message status" ON message_status
+  FOR ALL USING (auth.uid() = user_id);
 
 -- RLS Policies for encryption_keys
-CREATE POLICY "Users can view their own encryption keys." ON encryption_keys
+CREATE POLICY "Users can view their own encryption keys" ON encryption_keys
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert their own encryption keys." ON encryption_keys
+CREATE POLICY "Users can insert their own encryption keys" ON encryption_keys
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update their own encryption keys." ON encryption_keys
+CREATE POLICY "Users can update their own encryption keys" ON encryption_keys
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- RLS Policies for biometric_credentials
 CREATE POLICY "Users can access their own biometric credentials" ON biometric_credentials
   FOR ALL USING (auth.uid() = user_id);
-
--- Legacy RLS Policies for chat_rooms
-CREATE POLICY "Users can view chat rooms they participate in." ON chat_rooms
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = chat_rooms.id AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can create chat rooms." ON chat_rooms
-  FOR INSERT WITH CHECK (auth.uid() = created_by);
-
-CREATE POLICY "Room admins can update chat rooms." ON chat_rooms
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = chat_rooms.id AND user_id = auth.uid() AND role = 'admin'
-    )
-  );
-
--- Legacy RLS Policies for chat_room_participants
-CREATE POLICY "Users can view participants of rooms they're in." ON chat_room_participants
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants AS crp 
-      WHERE crp.room_id = chat_room_participants.room_id AND crp.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Room admins can manage participants." ON chat_room_participants
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants AS crp 
-      WHERE crp.room_id = chat_room_participants.room_id AND crp.user_id = auth.uid() AND crp.role = 'admin'
-    )
-  );
 
 -- Functions to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -362,13 +305,6 @@ CREATE TRIGGER update_two_factor_auth_updated_at BEFORE UPDATE ON two_factor_aut
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Legacy triggers
-CREATE TRIGGER update_chat_rooms_updated_at BEFORE UPDATE ON chat_rooms
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to handle new user registration

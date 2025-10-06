@@ -79,8 +79,12 @@ export const initializeDatabaseTables = async () => {
 
 // Get the complete database SQL schema
 function getDatabaseSQL(): string {
-  return `-- SecureChat Database Schema
+  return `-- SecureChat Database Schema (FIXED VERSION - no infinite recursion)
 -- Execute this SQL in Supabase SQL Editor to create all required tables
+
+-- Drop existing problematic policies first (if they exist)
+DROP POLICY IF EXISTS "Users can access their conversation participation" ON conversation_participants;
+DROP POLICY IF EXISTS "Users can access message status" ON message_status;
 
 -- Enable UUID extension (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -251,7 +255,7 @@ CREATE POLICY "Enable access for users based on user_id" ON biometric_credential
 CREATE POLICY "Enable access for users based on user_id" ON login_sessions FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Enable access for users based on user_id" ON security_alerts FOR ALL USING (auth.uid() = user_id);
 
--- More complex policies for conversations and messages
+-- More complex policies for conversations and messages (FIXED - no recursion)
 CREATE POLICY "Users can access their conversations" ON conversations FOR ALL USING (
   auth.uid() = created_by OR EXISTS (
     SELECT 1 FROM conversation_participants 
@@ -259,11 +263,8 @@ CREATE POLICY "Users can access their conversations" ON conversations FOR ALL US
   )
 );
 
-CREATE POLICY "Users can access their conversation participation" ON conversation_participants FOR ALL USING (
-  auth.uid() = user_id OR EXISTS (
-    SELECT 1 FROM conversation_participants cp 
-    WHERE cp.conversation_id = conversation_participants.conversation_id AND cp.user_id = auth.uid() AND cp.is_active = true
-  )
+CREATE POLICY "Users can manage their own participation" ON conversation_participants FOR ALL USING (
+  auth.uid() = user_id
 );
 
 CREATE POLICY "Users can access messages in their conversations" ON messages FOR ALL USING (
@@ -273,12 +274,8 @@ CREATE POLICY "Users can access messages in their conversations" ON messages FOR
   )
 );
 
-CREATE POLICY "Users can access message status" ON message_status FOR ALL USING (
-  auth.uid() = user_id OR EXISTS (
-    SELECT 1 FROM messages m
-    JOIN conversation_participants cp ON m.conversation_id = cp.conversation_id
-    WHERE m.id = message_status.message_id AND cp.user_id = auth.uid() AND cp.is_active = true
-  )
+CREATE POLICY "Users can manage their own message status" ON message_status FOR ALL USING (
+  auth.uid() = user_id
 );`
 }
 

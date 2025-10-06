@@ -1,5 +1,15 @@
--- SecureChat Database Schema for Supabase
+-- SecureChat Database Schema for Supabase (FIXED VERSION)
 -- Execute this SQL in Supabase SQL Editor to create all required tables
+-- This version fixes infinite recursion issues in RLS policies
+
+-- Drop existing problematic policies first (prevents infinite recursion)
+DO $$ 
+BEGIN
+    DROP POLICY IF EXISTS "Users can view participants in their conversations" ON conversation_participants;
+    DROP POLICY IF EXISTS "Users can view message status in their conversations" ON message_status;
+EXCEPTION
+    WHEN OTHERS THEN NULL; -- Ignore errors if policies don't exist
+END $$;
 
 -- Enable UUID extension (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -210,15 +220,8 @@ CREATE POLICY "Users can view conversations they participate in" ON conversation
 CREATE POLICY "Users can create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = created_by);
 CREATE POLICY "Users can update conversations they created" ON conversations FOR UPDATE USING (auth.uid() = created_by);
 
--- Conversation participants policies
-CREATE POLICY "Users can view participants in their conversations" ON conversation_participants FOR SELECT USING (
-  auth.uid() = user_id OR EXISTS (
-    SELECT 1 FROM conversation_participants cp 
-    WHERE cp.conversation_id = conversation_participants.conversation_id AND cp.user_id = auth.uid() AND cp.is_active = true
-  )
-);
-CREATE POLICY "Users can join conversations" ON conversation_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their participation" ON conversation_participants FOR UPDATE USING (auth.uid() = user_id);
+-- Conversation participants policies (FIXED - NO RECURSION)
+CREATE POLICY "Users can manage their own participation" ON conversation_participants FOR ALL USING (auth.uid() = user_id);
 
 -- Messages policies
 CREATE POLICY "Users can view messages in their conversations" ON messages FOR SELECT USING (
@@ -235,16 +238,8 @@ CREATE POLICY "Users can send messages to their conversations" ON messages FOR I
 );
 CREATE POLICY "Senders can update their messages" ON messages FOR UPDATE USING (auth.uid() = sender_id);
 
--- Message status policies
-CREATE POLICY "Users can view message status in their conversations" ON message_status FOR SELECT USING (
-  auth.uid() = user_id OR EXISTS (
-    SELECT 1 FROM messages m
-    JOIN conversation_participants cp ON m.conversation_id = cp.conversation_id
-    WHERE m.id = message_status.message_id AND cp.user_id = auth.uid() AND cp.is_active = true
-  )
-);
-CREATE POLICY "Users can update message status for themselves" ON message_status FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their message status" ON message_status FOR UPDATE USING (auth.uid() = user_id);
+-- Message status policies (FIXED - NO RECURSION)
+CREATE POLICY "Users can manage their own message status" ON message_status FOR ALL USING (auth.uid() = user_id);
 
 -- Create indexes for better performance
 CREATE INDEX idx_users_username ON users(username);

@@ -164,15 +164,15 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
 
               <div className="p-3 bg-muted/50 border border-border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-2">
-                  <strong>Manual Database Setup Required:</strong>
+                  <strong>Fixed Database Schema Required:</strong>
                 </p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Your Supabase database is missing required tables. Follow these steps:
+                  Your database has infinite recursion issues in RLS policies. Use the FIXED schema below:
                 </p>
                 <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1 mb-3">
                   <li>Go to your <strong>Supabase Dashboard</strong></li>
                   <li>Open the <strong>SQL Editor</strong></li>
-                  <li>Copy the SQL schema from the button below</li>
+                  <li>Copy the FIXED SQL schema from the button below</li>
                   <li>Paste and execute the SQL in Supabase</li>
                   <li>Click "Recheck" to verify the setup</li>
                 </ol>
