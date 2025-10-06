@@ -266,7 +266,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       } catch (error) {
         console.error('Failed to load conversations:', error)
         // Show demo conversations on error
-        setConversations([
+        const demoConversations = [
           {
             id: 'demo-1',
             name: 'Alice Johnson',
@@ -283,26 +283,13 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
               status: 'online' as const
             }
           }
-        ])
+        ]
+        
+        setConversations(demoConversations)
         
         // Auto-select first conversation for demo
         if (!activeConversation) {
-          setActiveConversation({
-            id: 'demo-1',
-            name: 'Alice Johnson',
-            is_group: false,
-            access_code: 'demo-access-1',
-            created_by: 'demo-user-1',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            otherParticipant: {
-              id: 'demo-user-1',
-              username: 'alice_j',
-              display_name: 'Alice Johnson',
-              avatar_url: null,
-              status: 'online' as const
-            }
-          })
+          setActiveConversation(demoConversations[0])
         }
       }
     }
@@ -528,13 +515,14 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       type: 'text'
     }
 
+    // Add to messages immediately for instant UI feedback
     setMessages((currentMessages) => [...(currentMessages || []), initialMessage])
     setNewMessage('')
     setIsEncrypting(true)
     setShowEncryptionDialog(true)
 
     try {
-      // Encrypt the message with progress tracking
+      // Simulate encryption process
       const encryptedContent = await encryptMessage(
         messageToSend,
         'recipient-public-key', // Would get from conversation participants
@@ -552,12 +540,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         { algorithm: encryptedContent.algorithm, bitLength: encryptedContent.bitLength }
       )
 
-      // Update message with encrypted content
+      // Update message status
       setMessages((currentMessages) => 
         (currentMessages || []).map(msg => 
           msg.id === messageId 
             ? { 
-                ...msg, 
+                ...msg,
                 encrypted_content: encryptedContent, 
                 status: 'sent', 
                 isEncrypted: true 
@@ -568,14 +556,13 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
       setShowEncryptionDialog(false)
       toast.success('Message encrypted and sent securely!')
-
+      
     } catch (error) {
       console.error('Encryption failed:', error)
       setMessages((currentMessages) => 
         (currentMessages || []).filter(msg => msg.id !== messageId)
       )
       toast.error('Failed to encrypt message. Please try again.')
-      setShowEncryptionDialog(false)
     } finally {
       setIsEncrypting(false)
       setEncryptionProgress(null)
@@ -643,8 +630,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         {/* Conversations Sidebar - Facebook Style */}
         <div className="w-80 bg-white border-r border-gray-200">
           {/* Header */}
-          <div className="p-4 border-b border-gray-200 bg-white">
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-bold text-gray-900">Chats</h1>
               <div className="flex gap-2">
                 <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
@@ -671,11 +658,11 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="conversation-password">Conversation Password *</Label>
+                        <Label htmlFor="conversation-password">Conversation Password</Label>
                         <Input
                           id="conversation-password"
                           type="password"
-                          placeholder="Enter a strong password for this conversation"
+                          placeholder="Set a secure password"
                           value={conversationPassword}
                           onChange={(e) => setConversationPassword(e.target.value)}
                         />
@@ -684,7 +671,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                         </p>
                       </div>
                       <Button onClick={handleCreateConversation} className="w-full">
-                        <Lock className="w-4 h-4 mr-2" />
+                        <Shield className="w-4 h-4 mr-2" />
                         Create Encrypted Conversation
                       </Button>
                     </div>
@@ -701,7 +688,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     <DialogHeader>
                       <DialogTitle>Join Conversation</DialogTitle>
                       <DialogDescription>
-                        Enter the access code to join an existing secure conversation
+                        Enter an access code to join an existing secure conversation
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -765,15 +752,16 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                                 <User className="w-5 h-5 text-primary" />
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <p className="font-medium">{user.display_name || user.username}</p>
-                                <p className="text-xs text-muted-foreground">@{user.username}</p>
+                                <p className="text-sm text-muted-foreground">@{user.username}</p>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Badge variant={user.status === 'online' ? 'default' : 'secondary'}>
                                   {user.status}
                                 </Badge>
                                 <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => handleStartConversationWithUser(user)}
                                   className="text-xs"
@@ -785,11 +773,11 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                             </div>
                           </Card>
                         ))
-                      ) : searchQuery ? (
+                      ) : (
                         <div className="text-center py-4">
                           <p className="text-sm text-muted-foreground">No users found</p>
                         </div>
-                      ) : null}
+                      )}
                     </div>
                   </ScrollArea>
                 </div>
@@ -802,52 +790,54 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             {conversations?.map((conversation) => (
               <div
                 key={conversation.id}
-                className={`flex items-center p-3 cursor-pointer facebook-conversation-item ${
+                className={`p-3 hover:bg-gray-50 cursor-pointer facebook-conversation-item ${
                   activeConversation?.id === conversation.id ? 'facebook-conversation-active' : ''
                 }`}
                 onClick={() => setActiveConversation(conversation)}
               >
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-full facebook-avatar flex items-center justify-center text-white font-semibold text-lg">
-                    {(conversation.name || 'PC').substring(0, 2).toUpperCase()}
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-full facebook-avatar flex items-center justify-center text-white font-semibold text-lg">
+                      {(conversation.name || 'PC').substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full facebook-online-indicator"></div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full facebook-online-indicator"></div>
-                </div>
-                <div className="ml-3 flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-gray-900 text-sm truncate">
-                      {conversation.name || 'Private Conversation'}
-                    </h3>
-                    <span className="text-xs text-gray-500">{getLastMessageTime(conversation.id)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-600 truncate">
-                      {getLastMessagePreview(conversation.id)}
-                    </p>
-                    {conversation.access_code && getLastMessageTime(conversation.id) !== 'now' && (
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-gray-900 text-sm truncate">
+                        {conversation.name || 'Private Conversation'}
+                      </h3>
+                      <span className="text-xs text-gray-500">{getLastMessageTime(conversation.id)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-600 truncate">
+                        {getLastMessagePreview(conversation.id)}
+                      </p>
                       <button
+                        className="ml-2 text-xs text-blue-600 hover:text-blue-800"
                         onClick={(e) => {
                           e.stopPropagation()
                           navigator.clipboard.writeText(conversation.access_code!)
                           toast.success('Access code copied!')
                         }}
-                        className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"
-                      ></button>
-                    )}
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
             {(!conversations || conversations.length === 0) && (
-              <div className="text-center py-12 px-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ChatCircle className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">No conversations yet</h3>
-                <p className="text-sm text-gray-600 mb-4">Start a new conversation to connect securely</p>
-                <Button onClick={() => setShowNewConversation(true)} className="text-sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Start Chat
+              <div className="p-4 text-center">
+                <p className="text-sm text-muted-foreground">No conversations yet</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => setShowNewConversation(true)}
+                >
+                  Start a conversation
                 </Button>
               </div>
             )}
