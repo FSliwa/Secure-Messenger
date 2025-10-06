@@ -235,8 +235,13 @@ CREATE POLICY "Users can view conversations they participate in" ON conversation
 CREATE POLICY "Users can create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = created_by);
 CREATE POLICY "Users can update conversations they created" ON conversations FOR UPDATE USING (auth.uid() = created_by);
 
--- Conversation participants policies (FIXED - SIMPLE USER-BASED)
-CREATE POLICY "Users can view their own participation" ON conversation_participants FOR SELECT USING (auth.uid() = user_id);
+-- Conversation participants policies (FIXED - Non-recursive approach)
+CREATE POLICY "Users can view participants in their conversations" ON conversation_participants FOR SELECT USING (
+  user_id = auth.uid() OR 
+  conversation_id IN (
+    SELECT c.id FROM conversations c WHERE c.created_by = auth.uid()
+  )
+);
 CREATE POLICY "Users can insert their own participation" ON conversation_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own participation" ON conversation_participants FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own participation" ON conversation_participants FOR DELETE USING (auth.uid() = user_id);

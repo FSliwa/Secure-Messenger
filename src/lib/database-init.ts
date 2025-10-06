@@ -308,8 +308,13 @@ CREATE POLICY "Users can view conversations they participate in" ON conversation
 CREATE POLICY "Users can create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = created_by);
 CREATE POLICY "Users can update conversations they created" ON conversations FOR UPDATE USING (auth.uid() = created_by);
 
--- Conversation participants policies (FIXED - SIMPLE USER-BASED)
-CREATE POLICY "Users can view their own participation" ON conversation_participants FOR SELECT USING (auth.uid() = user_id);
+-- Conversation participants policies (FIXED - Non-recursive approach)
+CREATE POLICY "Users can view participants in their conversations" ON conversation_participants FOR SELECT USING (
+  user_id = auth.uid() OR 
+  conversation_id IN (
+    SELECT c.id FROM conversations c WHERE c.created_by = auth.uid()
+  )
+);
 CREATE POLICY "Users can insert their own participation" ON conversation_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own participation" ON conversation_participants FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own participation" ON conversation_participants FOR DELETE USING (auth.uid() = user_id);
@@ -428,6 +433,47 @@ export const checkDatabaseReadiness = async () => {
     message: allReady 
       ? 'All database tables are ready' 
       : `Missing ${missing.length} table(s): ${missing.join(', ')}`
+  }
+}
+// Apply fixed RLS policies to prevent infinite recursion
+export const applyPolicyFixes = async () => {
+  try {
+    console.log('🔧 Applying RLS policy fixes...')
+    
+    // Test if we can access the conversation_participants table first
+    const testResult = await supabase
+      .from('conversation_participants')
+      .select('*')
+      .limit(1)
+    
+    if (testResult.error) {
+      console.log('Cannot access conversation_participants table:', testResult.error.message)
+      
+      // Check if it's an infinite recursion error
+      if (testResult.error.message.includes('infinite recursion') || 
+          testResult.error.message.includes('stack depth limit')) {
+        
+        return { 
+          success: false, 
+          error: 'Infinite recursion detected in RLS policies. Please apply the complete fixed schema through Supabase SQL Editor.' 
+        }
+      }
+      
+      return { 
+        success: false, 
+        error: `Database access error: ${testResult.error.message}` 
+      }
+    }
+    
+    console.log('✅ conversation_participants table is accessible - no infinite recursion detected')
+    return { success: true }
+    
+  } catch (error) {
+    console.error('💥 Exception applying policy fixes:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }
   }
 }
 

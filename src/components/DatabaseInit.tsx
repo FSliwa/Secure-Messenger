@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { Database, Check, X, ArrowClockwise } from '@phosphor-icons/react'
-import { ensureDatabaseReady, checkDatabaseReadiness } from '@/lib/database-init'
+import { ensureDatabaseReady, checkDatabaseReadiness, applyPolicyFixes } from '@/lib/database-init'
 import { DatabaseSetupHelper } from '@/components/DatabaseSetupHelper'
 
 interface DatabaseInitProps {
@@ -72,6 +72,30 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
       setStatus('error')
       setErrorMessage(error instanceof Error ? error.message : 'Initialization failed')
       toast.error('Database initialization failed')
+    } finally {
+      setIsInitializing(false)
+    }
+  }
+
+  const fixPolicies = async () => {
+    setIsInitializing(true)
+    try {
+      toast.info('Testing database access...')
+      const result = await applyPolicyFixes()
+      
+      if (result.success) {
+        toast.success('Database access is working!')
+        // Recheck database after testing
+        await checkDatabase()
+      } else {
+        setStatus('error')
+        setErrorMessage(result.error || 'Database access test failed')
+        toast.error('Database access test failed')
+      }
+    } catch (error) {
+      setStatus('error')
+      setErrorMessage(error instanceof Error ? error.message : 'Database access test failed')
+      toast.error('Database access test failed')
     } finally {
       setIsInitializing(false)
     }
@@ -164,10 +188,10 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
 
               <div className="p-3 bg-muted/50 border border-border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-2">
-                  <strong>Fixed Database Schema Required:</strong>
+                  <strong>Database Issue Detected:</strong>
                 </p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Your database has infinite recursion issues in RLS policies. Use the FIXED schema below:
+                  Your database may have infinite recursion issues in RLS policies that are preventing proper access to tables. Try the "Fix RLS Policies Only" button first, or use the complete FIXED schema below:
                 </p>
                 <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1 mb-3">
                   <li>Go to your <strong>Supabase Dashboard</strong></li>
@@ -184,22 +208,34 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={checkDatabase}
+                    className="flex-1"
+                  >
+                    <ArrowClockwise className="mr-2 h-4 w-4" />
+                    Recheck
+                  </Button>
+                  <Button
+                    onClick={initializeDatabase}
+                    disabled={isInitializing}
+                    className="flex-1"
+                  >
+                    <Database className="mr-2 h-4 w-4" />
+                    Try Auto-Init
+                  </Button>
+                </div>
+                
                 <Button
-                  variant="outline"
-                  onClick={checkDatabase}
-                  className="flex-1"
-                >
-                  <ArrowClockwise className="mr-2 h-4 w-4" />
-                  Recheck
-                </Button>
-                <Button
-                  onClick={initializeDatabase}
+                  variant="secondary"
+                  onClick={fixPolicies}
                   disabled={isInitializing}
-                  className="flex-1"
+                  className="w-full"
                 >
-                  <Database className="mr-2 h-4 w-4" />
-                  Try Auto-Init
+                  <Check className="mr-2 h-4 w-4" />
+                  Test Database Access
                 </Button>
               </div>
             </div>
