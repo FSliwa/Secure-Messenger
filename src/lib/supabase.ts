@@ -221,52 +221,64 @@ export const createUserProfileAfterVerification = async (user: any) => {
 }
 
 export const signIn = async (email: string, password: string, publicKey?: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-  if (error) {
-    // Track failed login attempt
-    try {
-      await trackLoginAttempt(null, false, error.message)
-    } catch (trackError) {
-      console.error('Failed to track login attempt:', trackError)
+    if (error) {
+      // Track failed login attempt without throwing
+      try {
+        await trackLoginAttempt(null, false, error.message)
+      } catch (trackError) {
+        console.error('Failed to track login attempt:', trackError)
+      }
+      throw error
     }
-    throw error
-  }
 
-  if (data.user) {
+    if (!data.user) {
+      throw new Error('No user data returned from login')
+    }
+
     // Check if user email is verified
     if (!data.user.email_confirmed_at) {
       await supabase.auth.signOut()
       throw new Error('Please verify your email address before signing in. Check your inbox for the verification link.')
     }
 
-    // Track successful login
+    // Track successful login and create/update profile
     try {
       await trackLoginAttempt(data.user.id, true)
       
       // Check if user profile exists, if not create it (for newly verified users)
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: profileError } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single()
 
-      if (!existingProfile) {
-        // Create profile for newly verified user
+      if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist, create it for newly verified user
         await createUserProfileAfterVerification(data.user)
-      } else {
+      } else if (!profileError && existingProfile) {
         // Update existing profile
         await createOrUpdateUserProfile(data.user, publicKey || existingProfile.public_key || '')
+      } else if (profileError) {
+        console.error('Error checking user profile:', profileError)
+        // Continue with login even if profile check fails
       }
     } catch (trackError) {
       console.error('Failed to track login or create profile:', trackError)
+      // Don't block login for tracking/profile errors
     }
-  }
 
-  return data
+    return data
+    
+  } catch (error) {
+    console.error('Sign in error:', error)
+    throw error
+  }
 }
 
 export const signOut = async () => {
@@ -381,15 +393,21 @@ export const getCurrentUser = async () => {
 
 // Create or update user profile after successful login
 async function createOrUpdateUserProfile(user: any, publicKey: string) {
-  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user'
-  
   try {
+    const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user'
+    
     // Check if profile already exists
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile, error: selectError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single()
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      // Error other than "no rows found"
+      console.error('Error checking existing profile:', selectError)
+      throw selectError
+    }
 
     if (existingProfile) {
       // Update existing profile
@@ -403,7 +421,10 @@ async function createOrUpdateUserProfile(user: any, publicKey: string) {
         })
         .eq('id', user.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error updating user profile:', error)
+        throw error
+      }
     } else {
       // Create new profile
       const { error } = await supabase
@@ -420,7 +441,10 @@ async function createOrUpdateUserProfile(user: any, publicKey: string) {
           updated_at: new Date().toISOString()
         })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error creating user profile:', error)
+        throw error
+      }
     }
   } catch (error) {
     console.error('Failed to create/update user profile:', error)
@@ -430,44 +454,50 @@ async function createOrUpdateUserProfile(user: any, publicKey: string) {
 
 // Track login attempts with detailed session information
 async function trackLoginAttempt(userId: string | null, success: boolean, errorMessage?: string) {
-  const { browser, os } = getBrowserInfo()
-  const deviceType = getDeviceType()
-  
-  const sessionData = {
-    user_id: userId,
-    login_time: success ? new Date().toISOString() : null,
-    ip_address: null, // Would need server-side implementation
-    user_agent: navigator.userAgent,
-    location_country: null, // Would need geolocation API
-    location_city: null,
-    device_type: deviceType,
-    browser: browser,
-    os: os,
-    is_active: success,
-    failed_attempts: success ? 0 : 1,
-    last_failed_attempt: success ? null : new Date().toISOString(),
-    session_data: {
+  try {
+    const { browser, os } = getBrowserInfo()
+    const deviceType = getDeviceType()
+    
+    // Only track if we have a userId and it's a successful login
+    if (!userId || !success) {
+      return
+    }
+    
+    const sessionData = {
+      user_id: userId,
+      login_time: new Date().toISOString(),
+      ip_address: null, // Would need server-side implementation
+      user_agent: navigator.userAgent,
+      location_country: null, // Would need geolocation API
+      location_city: null,
+      device_type: deviceType,
+      browser: browser,
+      os: os,
+      is_active: true,
+      failed_attempts: 0,
+      last_failed_attempt: null,
+      session_data: {
+        screen_resolution: `${screen.width}x${screen.height}`,
+        language: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      },
+      last_activity_at: new Date().toISOString(),
       screen_resolution: `${screen.width}x${screen.height}`,
       language: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      error_message: errorMessage
-    },
-    last_activity_at: new Date().toISOString(),
-    screen_resolution: `${screen.width}x${screen.height}`,
-    language: navigator.language,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-  }
-
-  if (userId) {
-    try {
-      const { error } = await supabase
-        .from('login_sessions')
-        .insert([sessionData])
-
-      if (error) throw error
-    } catch (error) {
-      console.error('Failed to track login session:', error)
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     }
+
+    const { error } = await supabase
+      .from('login_sessions')
+      .insert([sessionData])
+
+    if (error) {
+      console.error('Failed to track login session:', error)
+      // Don't throw error, just log it
+    }
+  } catch (error) {
+    console.error('Failed to track login session:', error)
+    // Don't throw error, just log it to prevent blocking login
   }
 }
 
