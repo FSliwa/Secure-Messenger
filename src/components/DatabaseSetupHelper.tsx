@@ -5,26 +5,39 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner'
 import { Copy, Database, ArrowSquareOut } from '@phosphor-icons/react'
 
-const DATABASE_SCHEMA_SQL = `-- COMPLETE FIXED SECURECHAT DATABASE SCHEMA
--- This SQL script creates all required tables and policies without infinite recursion
--- Execute this in Supabase SQL Editor
+const DATABASE_SCHEMA_SQL = `-- SecureChat Database Schema for Supabase (FIXED VERSION)
+-- Execute this SQL in Supabase SQL Editor to create all required tables
+-- This version fixes infinite recursion issues in RLS policies
 
--- Drop existing problematic policies first (prevents infinite recursion)
+-- Drop existing problematic policies and tables first
 DO $$ 
 BEGIN
-    DROP POLICY IF EXISTS "Users can access their conversation participation" ON conversation_participants;
-    DROP POLICY IF EXISTS "Users can access message status" ON message_status;
+    -- Drop all potentially problematic policies
     DROP POLICY IF EXISTS "Users can view participants in their conversations" ON conversation_participants;
     DROP POLICY IF EXISTS "Users can view message status in their conversations" ON message_status;
+    DROP POLICY IF EXISTS "Users can access their conversation participation" ON conversation_participants;
+    DROP POLICY IF EXISTS "Users can access message status" ON message_status;
+    
+    -- Drop tables in correct order (child tables first)
+    DROP TABLE IF EXISTS message_status CASCADE;
+    DROP TABLE IF EXISTS messages CASCADE;
+    DROP TABLE IF EXISTS conversation_participants CASCADE;
+    DROP TABLE IF EXISTS conversations CASCADE;
+    DROP TABLE IF EXISTS security_alerts CASCADE;
+    DROP TABLE IF EXISTS login_sessions CASCADE;
+    DROP TABLE IF EXISTS biometric_credentials CASCADE;
+    DROP TABLE IF EXISTS trusted_devices CASCADE;
+    DROP TABLE IF EXISTS two_factor_auth CASCADE; 
+    DROP TABLE IF EXISTS users CASCADE;
 EXCEPTION
-    WHEN OTHERS THEN NULL; -- Ignore errors if policies don't exist
+    WHEN OTHERS THEN NULL; -- Ignore errors if policies/tables don't exist
 END $$;
 
--- Enable UUID extension
+-- Enable UUID extension (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create users table (extends auth.users for SecureChat)
-CREATE TABLE IF NOT EXISTS users (
+-- Users table (extends auth.users)
+CREATE TABLE users (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   display_name TEXT,
@@ -36,8 +49,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- Create two_factor_auth table
-CREATE TABLE IF NOT EXISTS two_factor_auth (
+-- Two-factor authentication table
+CREATE TABLE two_factor_auth (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   secret TEXT NOT NULL,
@@ -49,8 +62,8 @@ CREATE TABLE IF NOT EXISTS two_factor_auth (
   UNIQUE(user_id)
 );
 
--- Create trusted_devices table
-CREATE TABLE IF NOT EXISTS trusted_devices (
+-- Trusted devices table
+CREATE TABLE trusted_devices (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   device_fingerprint TEXT NOT NULL,
@@ -66,8 +79,21 @@ CREATE TABLE IF NOT EXISTS trusted_devices (
   UNIQUE(user_id, device_fingerprint)
 );
 
--- Create login_sessions table
-CREATE TABLE IF NOT EXISTS login_sessions (
+-- Biometric credentials table
+CREATE TABLE biometric_credentials (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  credential_id TEXT UNIQUE NOT NULL,
+  public_key TEXT NOT NULL,
+  name TEXT DEFAULT 'Biometric Login',
+  type TEXT DEFAULT 'fingerprint' CHECK (type IN ('fingerprint', 'faceId', 'touchId')) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  last_used TIMESTAMP WITH TIME ZONE,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL
+);
+
+-- Login sessions table
+CREATE TABLE login_sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   login_time TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
@@ -94,8 +120,8 @@ CREATE TABLE IF NOT EXISTS login_sessions (
   timezone TEXT
 );
 
--- Create security_alerts table
-CREATE TABLE IF NOT EXISTS security_alerts (
+-- Security alerts table
+CREATE TABLE security_alerts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   alert_type TEXT NOT NULL,
@@ -110,8 +136,8 @@ CREATE TABLE IF NOT EXISTS security_alerts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- Create conversations table
-CREATE TABLE IF NOT EXISTS conversations (
+-- Conversations table
+CREATE TABLE conversations (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT,
   is_group BOOLEAN DEFAULT FALSE NOT NULL,
@@ -121,8 +147,8 @@ CREATE TABLE IF NOT EXISTS conversations (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- Create conversation_participants table
-CREATE TABLE IF NOT EXISTS conversation_participants (
+-- Conversation participants table
+CREATE TABLE conversation_participants (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   conversation_id UUID REFERENCES conversations ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -132,8 +158,8 @@ CREATE TABLE IF NOT EXISTS conversation_participants (
   UNIQUE(conversation_id, user_id)
 );
 
--- Create messages table
-CREATE TABLE IF NOT EXISTS messages (
+-- Messages table
+CREATE TABLE messages (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   conversation_id UUID REFERENCES conversations ON DELETE CASCADE NOT NULL,
   sender_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -146,8 +172,8 @@ CREATE TABLE IF NOT EXISTS messages (
   forwarding_disabled BOOLEAN DEFAULT TRUE NOT NULL
 );
 
--- Create message_status table
-CREATE TABLE IF NOT EXISTS message_status (
+-- Message status table
+CREATE TABLE message_status (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   message_id UUID REFERENCES messages ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -156,22 +182,11 @@ CREATE TABLE IF NOT EXISTS message_status (
   UNIQUE(message_id, user_id)
 );
 
--- Create performance indexes
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX IF NOT EXISTS idx_conversation_participants_conv_user ON conversation_participants(conversation_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_conversation_participants_user_active ON conversation_participants(user_id, is_active);
-CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
-CREATE INDEX IF NOT EXISTS idx_messages_sent_at ON messages(sent_at);
-CREATE INDEX IF NOT EXISTS idx_message_status_message ON message_status(message_id);
-CREATE INDEX IF NOT EXISTS idx_message_status_user ON message_status(user_id);
-CREATE INDEX IF NOT EXISTS idx_trusted_devices_user ON trusted_devices(user_id);
-CREATE INDEX IF NOT EXISTS idx_security_alerts_user ON security_alerts(user_id);
-
--- Enable Row Level Security on all tables
+-- Enable Row Level Security (RLS) on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE two_factor_auth ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trusted_devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE biometric_credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
@@ -179,142 +194,121 @@ ALTER TABLE conversation_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_status ENABLE ROW LEVEL SECURITY;
 
--- Create FIXED RLS Policies (no infinite recursion)
+-- Create policies for Row Level Security (FIXED - NO INFINITE RECURSION)
 
 -- Users policies
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can view all users" ON users;
-    DROP POLICY IF EXISTS "Users can update their own profile" ON users;
-    DROP POLICY IF EXISTS "Users can insert their own profile" ON users;
-    
-    CREATE POLICY "Users can view all users" ON users FOR SELECT USING (true);
-    CREATE POLICY "Users can update their own profile" ON users FOR UPDATE USING (auth.uid() = id);
-    CREATE POLICY "Users can insert their own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+CREATE POLICY "Users can view all users" ON users FOR SELECT USING (true);
+CREATE POLICY "Users can update their own profile" ON users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert their own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Two-factor auth policies
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can manage their 2FA" ON two_factor_auth;
-    CREATE POLICY "Users can manage their 2FA" ON two_factor_auth FOR ALL USING (auth.uid() = user_id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+CREATE POLICY "Users can manage their 2FA" ON two_factor_auth FOR ALL USING (auth.uid() = user_id);
 
 -- Trusted devices policies
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can manage their trusted devices" ON trusted_devices;
-    CREATE POLICY "Users can manage their trusted devices" ON trusted_devices FOR ALL USING (auth.uid() = user_id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+CREATE POLICY "Users can manage their trusted devices" ON trusted_devices FOR ALL USING (auth.uid() = user_id);
+
+-- Biometric credentials policies  
+CREATE POLICY "Users can manage their biometric credentials" ON biometric_credentials FOR ALL USING (auth.uid() = user_id);
 
 -- Login sessions policies
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can access their login sessions" ON login_sessions;
-    CREATE POLICY "Users can access their login sessions" ON login_sessions FOR ALL USING (auth.uid() = user_id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+CREATE POLICY "Users can view their login sessions" ON login_sessions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their login sessions" ON login_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their login sessions" ON login_sessions FOR UPDATE USING (auth.uid() = user_id);
 
 -- Security alerts policies
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can access their security alerts" ON security_alerts;
-    CREATE POLICY "Users can access their security alerts" ON security_alerts FOR ALL USING (auth.uid() = user_id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+CREATE POLICY "Users can view their security alerts" ON security_alerts FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "System can insert security alerts" ON security_alerts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can update their security alerts" ON security_alerts FOR UPDATE USING (auth.uid() = user_id);
 
--- Conversations policies (FIXED)
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can access conversations they participate in" ON conversations;
-    DROP POLICY IF EXISTS "Users can view conversations they participate in" ON conversations;
-    DROP POLICY IF EXISTS "Users can create conversations" ON conversations;
-    DROP POLICY IF EXISTS "Users can update conversations they created" ON conversations;
-    
-    CREATE POLICY "Users can access conversations they participate in" ON conversations FOR SELECT USING (
-      auth.uid() = created_by OR EXISTS (
-        SELECT 1 FROM conversation_participants 
-        WHERE conversation_id = conversations.id AND user_id = auth.uid() AND is_active = true
-      )
-    );
-    CREATE POLICY "Users can create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = created_by);
-    CREATE POLICY "Users can update conversations they created" ON conversations FOR UPDATE USING (auth.uid() = created_by);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+-- Conversations policies (FIXED - Direct user check first)
+CREATE POLICY "Users can view their own conversations" ON conversations FOR SELECT USING (
+  auth.uid() = created_by
+);
+CREATE POLICY "Users can view conversations they participate in" ON conversations FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM conversation_participants cp
+    WHERE cp.conversation_id = conversations.id 
+    AND cp.user_id = auth.uid() 
+    AND cp.is_active = true
+  )
+);
+CREATE POLICY "Users can create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "Users can update conversations they created" ON conversations FOR UPDATE USING (auth.uid() = created_by);
 
--- Conversation participants policies (FIXED - NO RECURSION)
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can manage their own participation" ON conversation_participants;
-    DROP POLICY IF EXISTS "Users can view participants in their conversations" ON conversation_participants;
-    DROP POLICY IF EXISTS "Users can join conversations" ON conversation_participants;
-    DROP POLICY IF EXISTS "Users can update their participation" ON conversation_participants;
-    
-    -- Simple policy: users can only manage their own participation records
-    CREATE POLICY "Users can manage their own participation" ON conversation_participants FOR ALL USING (auth.uid() = user_id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+-- Conversation participants policies (FIXED - SIMPLE USER-BASED)
+CREATE POLICY "Users can view their own participation" ON conversation_participants FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own participation" ON conversation_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own participation" ON conversation_participants FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own participation" ON conversation_participants FOR DELETE USING (auth.uid() = user_id);
 
--- Messages policies (FIXED)
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can access messages in their conversations" ON messages;
-    DROP POLICY IF EXISTS "Users can view messages in their conversations" ON messages;
-    DROP POLICY IF EXISTS "Users can send messages to their conversations" ON messages;
-    DROP POLICY IF EXISTS "Senders can update their messages" ON messages;
-    
-    CREATE POLICY "Users can access messages in their conversations" ON messages FOR SELECT USING (
-      EXISTS (
-        SELECT 1 FROM conversation_participants 
-        WHERE conversation_id = messages.conversation_id AND user_id = auth.uid() AND is_active = true
-      )
-    );
-    CREATE POLICY "Users can send messages to their conversations" ON messages FOR INSERT WITH CHECK (
-      auth.uid() = sender_id AND EXISTS (
-        SELECT 1 FROM conversation_participants 
-        WHERE conversation_id = messages.conversation_id AND user_id = auth.uid() AND is_active = true
-      )
-    );
-    CREATE POLICY "Senders can update their messages" ON messages FOR UPDATE USING (auth.uid() = sender_id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+-- Messages policies (FIXED - Direct conversation check)
+CREATE POLICY "Users can view messages in their conversations" ON messages FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM conversation_participants cp
+    WHERE cp.conversation_id = messages.conversation_id 
+    AND cp.user_id = auth.uid() 
+    AND cp.is_active = true
+  )
+);
+CREATE POLICY "Users can send messages to their conversations" ON messages FOR INSERT WITH CHECK (
+  auth.uid() = sender_id AND EXISTS (
+    SELECT 1 FROM conversation_participants cp
+    WHERE cp.conversation_id = messages.conversation_id 
+    AND cp.user_id = auth.uid() 
+    AND cp.is_active = true
+  )
+);
+CREATE POLICY "Senders can update their messages" ON messages FOR UPDATE USING (auth.uid() = sender_id);
 
--- Message status policies (FIXED - NO RECURSION)
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can manage their own message status" ON message_status;
-    DROP POLICY IF EXISTS "Users can view message status in their conversations" ON message_status;
-    DROP POLICY IF EXISTS "Users can update message status for themselves" ON message_status;
-    DROP POLICY IF EXISTS "Users can update their message status" ON message_status;
-    
-    -- Simple policy: users can only manage their own message status records
-    CREATE POLICY "Users can manage their own message status" ON message_status FOR ALL USING (auth.uid() = user_id);
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+-- Message status policies (FIXED - SIMPLE USER-BASED)
+CREATE POLICY "Users can view their own message status" ON message_status FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own message status" ON message_status FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own message status" ON message_status FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own message status" ON message_status FOR DELETE USING (auth.uid() = user_id);
 
--- Function to handle new user registration
+-- Create indexes for better performance
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_status ON users(status);
+CREATE INDEX idx_conversations_created_by ON conversations(created_by);
+CREATE INDEX idx_conversation_participants_conversation_id ON conversation_participants(conversation_id);
+CREATE INDEX idx_conversation_participants_user_id ON conversation_participants(user_id);
+CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX idx_messages_sent_at ON messages(sent_at);
+CREATE INDEX idx_message_status_message_id ON message_status(message_id);
+CREATE INDEX idx_message_status_user_id ON message_status(user_id);
+CREATE INDEX idx_login_sessions_user_id ON login_sessions(user_id);
+CREATE INDEX idx_security_alerts_user_id ON security_alerts(user_id);
+CREATE INDEX idx_trusted_devices_user_id ON trusted_devices(user_id);
+
+-- Create triggers for updating timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = TIMEZONE('utc'::text, NOW());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_two_factor_auth_updated_at BEFORE UPDATE ON two_factor_auth
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to handle new user registration  
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Insert into users table for SecureChat
   INSERT INTO public.users (id, username, display_name, public_key)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
-    'temp_key_' || NEW.id::text -- Temporary key, should be replaced with actual public key
+    'temp_key_' || NEW.id::text
   )
   ON CONFLICT (id) DO NOTHING;
   
@@ -322,7 +316,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger for new user registration (drop first to avoid duplicates)
+-- Trigger for new user registration
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -331,7 +325,7 @@ CREATE TRIGGER on_auth_user_created
 -- Success message
 DO $$
 BEGIN
-    RAISE NOTICE 'SecureChat database schema created successfully! All tables and policies are now set up without infinite recursion issues.';
+    RAISE NOTICE 'SecureChat database schema created successfully! All tables and policies are now set up.';
 END $$;`
 
 export function DatabaseSetupHelper() {

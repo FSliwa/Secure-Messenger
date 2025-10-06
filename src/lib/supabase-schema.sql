@@ -5,26 +5,29 @@
 -- Drop existing problematic policies first (prevents infinite recursion)
 DO $$ 
 BEGIN
+    -- Drop all potentially problematic policies
     DROP POLICY IF EXISTS "Users can view participants in their conversations" ON conversation_participants;
     DROP POLICY IF EXISTS "Users can view message status in their conversations" ON message_status;
+    DROP POLICY IF EXISTS "Users can access their conversation participation" ON conversation_participants;
+    DROP POLICY IF EXISTS "Users can access message status" ON message_status;
+    
+    -- Drop tables in correct order (child tables first)
+    DROP TABLE IF EXISTS message_status CASCADE;
+    DROP TABLE IF EXISTS messages CASCADE;
+    DROP TABLE IF EXISTS conversation_participants CASCADE;
+    DROP TABLE IF EXISTS conversations CASCADE;
+    DROP TABLE IF EXISTS security_alerts CASCADE;
+    DROP TABLE IF EXISTS login_sessions CASCADE;
+    DROP TABLE IF EXISTS biometric_credentials CASCADE;
+    DROP TABLE IF EXISTS trusted_devices CASCADE;
+    DROP TABLE IF EXISTS two_factor_auth CASCADE; 
+    DROP TABLE IF EXISTS users CASCADE;
 EXCEPTION
-    WHEN OTHERS THEN NULL; -- Ignore errors if policies don't exist
+    WHEN OTHERS THEN NULL; -- Ignore errors if policies/tables don't exist
 END $$;
 
 -- Enable UUID extension (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Drop existing tables if they exist (for clean setup)
-DROP TABLE IF EXISTS message_status CASCADE;
-DROP TABLE IF EXISTS messages CASCADE;
-DROP TABLE IF EXISTS conversation_participants CASCADE;
-DROP TABLE IF EXISTS conversations CASCADE;
-DROP TABLE IF EXISTS security_alerts CASCADE;
-DROP TABLE IF EXISTS login_sessions CASCADE;
-DROP TABLE IF EXISTS biometric_credentials CASCADE;
-DROP TABLE IF EXISTS trusted_devices CASCADE;
-DROP TABLE IF EXISTS two_factor_auth CASCADE; 
-DROP TABLE IF EXISTS users CASCADE;
 
 -- Users table (extends auth.users)
 CREATE TABLE users (
@@ -184,7 +187,7 @@ ALTER TABLE conversation_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_status ENABLE ROW LEVEL SECURITY;
 
--- Create policies for Row Level Security
+-- Create policies for Row Level Security (FIXED - NO INFINITE RECURSION)
 
 -- Users policies
 CREATE POLICY "Users can view all users" ON users FOR SELECT USING (true);
@@ -197,7 +200,7 @@ CREATE POLICY "Users can manage their 2FA" ON two_factor_auth FOR ALL USING (aut
 -- Trusted devices policies
 CREATE POLICY "Users can manage their trusted devices" ON trusted_devices FOR ALL USING (auth.uid() = user_id);
 
--- Biometric credentials policies
+-- Biometric credentials policies  
 CREATE POLICY "Users can manage their biometric credentials" ON biometric_credentials FOR ALL USING (auth.uid() = user_id);
 
 -- Login sessions policies
@@ -210,36 +213,51 @@ CREATE POLICY "Users can view their security alerts" ON security_alerts FOR SELE
 CREATE POLICY "System can insert security alerts" ON security_alerts FOR INSERT WITH CHECK (true);
 CREATE POLICY "Users can update their security alerts" ON security_alerts FOR UPDATE USING (auth.uid() = user_id);
 
--- Conversations policies
+-- Conversations policies (FIXED - Direct user check first)
+CREATE POLICY "Users can view their own conversations" ON conversations FOR SELECT USING (
+  auth.uid() = created_by
+);
 CREATE POLICY "Users can view conversations they participate in" ON conversations FOR SELECT USING (
-  auth.uid() = created_by OR EXISTS (
-    SELECT 1 FROM conversation_participants 
-    WHERE conversation_id = conversations.id AND user_id = auth.uid() AND is_active = true
+  EXISTS (
+    SELECT 1 FROM conversation_participants cp
+    WHERE cp.conversation_id = conversations.id 
+    AND cp.user_id = auth.uid() 
+    AND cp.is_active = true
   )
 );
 CREATE POLICY "Users can create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = created_by);
 CREATE POLICY "Users can update conversations they created" ON conversations FOR UPDATE USING (auth.uid() = created_by);
 
--- Conversation participants policies (FIXED - NO RECURSION)
-CREATE POLICY "Users can manage their own participation" ON conversation_participants FOR ALL USING (auth.uid() = user_id);
+-- Conversation participants policies (FIXED - SIMPLE USER-BASED)
+CREATE POLICY "Users can view their own participation" ON conversation_participants FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own participation" ON conversation_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own participation" ON conversation_participants FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own participation" ON conversation_participants FOR DELETE USING (auth.uid() = user_id);
 
--- Messages policies
+-- Messages policies (FIXED - Direct conversation check)
 CREATE POLICY "Users can view messages in their conversations" ON messages FOR SELECT USING (
   EXISTS (
-    SELECT 1 FROM conversation_participants 
-    WHERE conversation_id = messages.conversation_id AND user_id = auth.uid() AND is_active = true
+    SELECT 1 FROM conversation_participants cp
+    WHERE cp.conversation_id = messages.conversation_id 
+    AND cp.user_id = auth.uid() 
+    AND cp.is_active = true
   )
 );
 CREATE POLICY "Users can send messages to their conversations" ON messages FOR INSERT WITH CHECK (
   auth.uid() = sender_id AND EXISTS (
-    SELECT 1 FROM conversation_participants 
-    WHERE conversation_id = messages.conversation_id AND user_id = auth.uid() AND is_active = true
+    SELECT 1 FROM conversation_participants cp
+    WHERE cp.conversation_id = messages.conversation_id 
+    AND cp.user_id = auth.uid() 
+    AND cp.is_active = true
   )
 );
 CREATE POLICY "Senders can update their messages" ON messages FOR UPDATE USING (auth.uid() = sender_id);
 
--- Message status policies (FIXED - NO RECURSION)
-CREATE POLICY "Users can manage their own message status" ON message_status FOR ALL USING (auth.uid() = user_id);
+-- Message status policies (FIXED - SIMPLE USER-BASED)
+CREATE POLICY "Users can view their own message status" ON message_status FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own message status" ON message_status FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own message status" ON message_status FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own message status" ON message_status FOR DELETE USING (auth.uid() = user_id);
 
 -- Create indexes for better performance
 CREATE INDEX idx_users_username ON users(username);
