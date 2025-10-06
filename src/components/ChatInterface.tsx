@@ -947,7 +947,6 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && !isEncrypting && handleSendMessage()}
                       disabled={isEncrypting}
-                      className="w-full px-4 py-3 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all facebook-input"
                     />
                   </div>
                   <button
