@@ -26,6 +26,14 @@
 - **Login Flow**: Redirects to login panel after registration with verification message
 - **Session Management**: Tracks login sessions with device fingerprinting and geolocation
 - **Security Alerts**: Monitors and alerts on suspicious login attempts
+- **Enhanced Security Guards**: Multi-layer authentication validation including:
+  - Session validation and automatic refresh
+  - Dashboard access permission checking
+  - Continuous security monitoring (every 5 minutes)
+  - Automatic logout on security violations
+  - Complete session cleanup on logout
+- **Account Protection**: User accounts tied to verified email addresses with strict access control
+- **Route Protection**: Dashboard only accessible after successful authentication and permission validation
 
 ### Biometric Authentication
 - **WebAuthn Support**: Modern biometric authentication using fingerprint, Face ID, Touch ID, Windows Hello

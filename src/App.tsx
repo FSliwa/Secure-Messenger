@@ -12,6 +12,7 @@ import { DatabaseInit } from "@/components/DatabaseInit";
 import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
+import { requireAuthentication, validateDashboardAccess, startSecurityMonitoring } from "@/lib/auth-guards";
 
 type AppState = 'database-init' | 'landing' | 'login' | 'dashboard';
 
@@ -22,14 +23,26 @@ interface User {
   displayName?: string;
 }
 
+// Authentication states
+type AuthState = 'checking' | 'authenticated' | 'unauthenticated';
+
 function App() {
   const [appState, setAppState] = useState<AppState>('database-init');
+  const [authState, setAuthState] = useState<AuthState>('checking');
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [securityCleanup, setSecurityCleanup] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     initializeApp();
-  }, []);
+    
+    // Cleanup security monitoring on unmount
+    return () => {
+      if (securityCleanup) {
+        securityCleanup();
+      }
+    };
+  }, [securityCleanup]);
 
   const initializeApp = async () => {
     try {
@@ -57,21 +70,65 @@ function App() {
 
   const checkAuthState = async () => {
     try {
-      const user = await safeGetCurrentUser();
-      if (user) {
-        const userObject: User = {
-          id: user.id,
-          username: user.profile?.username || user.email?.split('@')[0] || 'user',
-          email: user.email || '',
-          displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
-        };
-        setCurrentUser(userObject);
-        setAppState('dashboard');
-      } else {
+      setAuthState('checking');
+      
+      // First check authentication
+      const isAuthenticated = await requireAuthentication(false);
+      
+      if (!isAuthenticated) {
+        setCurrentUser(null);
+        setAuthState('unauthenticated');
         setAppState('landing');
+        setIsLoading(false);
+        return;
       }
+      
+      // Get user profile
+      const user = await safeGetCurrentUser();
+      
+      if (!user) {
+        setCurrentUser(null);
+        setAuthState('unauthenticated');
+        setAppState('landing');
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate dashboard access permissions
+      const hasAccess = await validateDashboardAccess(user.id);
+      
+      if (!hasAccess) {
+        console.error('User does not have dashboard access');
+        await signOut();
+        setCurrentUser(null);
+        setAuthState('unauthenticated');
+        setAppState('login');
+        setIsLoading(false);
+        return;
+      }
+
+      // Create user object and set authenticated state
+      const userObject: User = {
+        id: user.id,
+        username: user.profile?.username || user.email?.split('@')[0] || 'user',
+        email: user.email || '',
+        displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
+      };
+      
+      setCurrentUser(userObject);
+      setAuthState('authenticated');
+      setAppState('dashboard');
+      
+      // Start security monitoring for authenticated users
+      if (!securityCleanup) {
+        const cleanup = startSecurityMonitoring();
+        setSecurityCleanup(() => cleanup);
+      }
+      
     } catch (error) {
       console.error('Error checking auth state:', error);
+      setCurrentUser(null);
+      setAuthState('unauthenticated');
       setAppState('landing');
     } finally {
       setIsLoading(false);
@@ -84,23 +141,69 @@ function App() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
+        // Stop security monitoring
+        if (securityCleanup) {
+          securityCleanup();
+          setSecurityCleanup(null);
+        }
+        
         setCurrentUser(null);
-        setAppState('login'); // Always redirect to login, not landing
+        setAuthState('unauthenticated');
+        setAppState('login');
       } else if (event === 'SIGNED_IN' && session) {
         try {
-          const user = await safeGetCurrentUser();
-          if (user) {
-            const userObject: User = {
-              id: user.id,
-              username: user.profile?.username || user.email?.split('@')[0] || 'user',
-              email: user.email || '',
-              displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
-            };
-            setCurrentUser(userObject);
-            setAppState('dashboard');
+          setAuthState('checking');
+          
+          // Validate the signed-in user
+          const isAuthenticated = await requireAuthentication(false);
+          
+          if (!isAuthenticated) {
+            setCurrentUser(null);
+            setAuthState('unauthenticated');
+            setAppState('login');
+            return;
           }
+          
+          const user = await safeGetCurrentUser();
+          if (!user) {
+            setCurrentUser(null);
+            setAuthState('unauthenticated');
+            setAppState('login');
+            return;
+          }
+
+          // Check dashboard access
+          const hasAccess = await validateDashboardAccess(user.id);
+          if (!hasAccess) {
+            await signOut();
+            setCurrentUser(null);
+            setAuthState('unauthenticated');
+            setAppState('login');
+            return;
+          }
+
+          const userObject: User = {
+            id: user.id,
+            username: user.profile?.username || user.email?.split('@')[0] || 'user',
+            email: user.email || '',
+            displayName: user.profile?.display_name || user.email?.split('@')[0] || 'User'
+          };
+          
+          setCurrentUser(userObject);
+          setAuthState('authenticated');
+          setAppState('dashboard');
+          
+          // Start security monitoring
+          if (!securityCleanup) {
+            const cleanup = startSecurityMonitoring();
+            setSecurityCleanup(() => cleanup);
+          }
+          
         } catch (error) {
-          console.error('Error loading user profile:', error);
+          console.error('Error handling auth state change:', error);
+          setCurrentUser(null);
+          setAuthState('unauthenticated');
+          setAppState('login');
         }
       }
     });
@@ -110,20 +213,29 @@ function App() {
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
+    setAuthState('authenticated');
     setAppState('dashboard');
   };
 
   const handleLogout = async () => {
     try {
       setIsLoading(true);
+      setAuthState('checking');
+      
+      // Stop security monitoring
+      if (securityCleanup) {
+        securityCleanup();
+        setSecurityCleanup(null);
+      }
       
       // Sign out from Supabase (includes database cleanup)
       await signOut();
       
       // Clear local state
       setCurrentUser(null);
+      setAuthState('unauthenticated');
       
-      // Redirect to login screen (not landing page)
+      // Redirect to login screen
       setAppState('login');
       
       // Clear any cached data (optional)
@@ -138,7 +250,14 @@ function App() {
       console.error('Error during logout:', error);
       // Force logout even if there's an error
       setCurrentUser(null);
+      setAuthState('unauthenticated');
       setAppState('login');
+      
+      // Stop security monitoring on error
+      if (securityCleanup) {
+        securityCleanup();
+        setSecurityCleanup(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -188,13 +307,26 @@ function App() {
     );
   }
 
-  // Dashboard screen
-  if (appState === 'dashboard') {
+  // Dashboard screen - Only accessible when authenticated
+  if (appState === 'dashboard' && authState === 'authenticated' && currentUser) {
     return (
       <>
-        <Dashboard onLogout={handleLogout} currentUser={currentUser || null} />
+        <Dashboard onLogout={handleLogout} currentUser={currentUser} />
         <Toaster position="top-center" />
       </>
+    );
+  }
+
+  // Redirect to login if trying to access dashboard without authentication
+  if (appState === 'dashboard' && authState !== 'authenticated') {
+    // Force redirect to login
+    setTimeout(() => setAppState('login'), 0);
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
     );
   }
 

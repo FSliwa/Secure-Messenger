@@ -42,6 +42,22 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
     loadCryptoKeys()
   }, [])
 
+  // Security guard - ensure user is properly authenticated
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">You must be logged in to access the dashboard.</p>
+          <Button onClick={() => window.location.reload()}>
+            Return to Login
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   const handleLogout = async () => {
     try {
       toast.loading('Signing out...', { id: 'logout' });

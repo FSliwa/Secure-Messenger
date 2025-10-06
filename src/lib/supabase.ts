@@ -326,9 +326,32 @@ export const signOut = async () => {
     }
   }
 
-  // Sign out from Supabase Auth
+  // Clear all local session data
+  try {
+    // Clear Supabase session storage
+    localStorage.removeItem('supabase.auth.token')
+    sessionStorage.clear()
+    
+    // Clear any additional app-specific storage
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('supabase.') || key.startsWith('securechat.'))) {
+        keysToRemove.push(key)
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+  } catch (error) {
+    console.error('Failed to clear local storage:', error)
+  }
+
+  // Sign out from Supabase Auth - this must be last
   const { error } = await supabase.auth.signOut()
-  if (error) throw error
+  
+  if (error) {
+    console.error('Supabase signOut error:', error)
+    throw error
+  }
 }
 
 export const getCurrentUser = async () => {
