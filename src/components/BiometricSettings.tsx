@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { BiometricAuthService, BiometricCredential } from '@/lib/biometric-auth';
+import { BiometricLogin } from '@/lib/biometric-login';
+import { BiometricStorage, BiometricStoredCredential } from '@/lib/biometric-storage';
 import { Fingerprint, Shield, Plus, Trash, CheckCircle, Warning, DeviceMobile } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 
@@ -15,17 +16,17 @@ interface BiometricSettingsProps {
 }
 
 export function BiometricSettings({ userId, userName, displayName }: BiometricSettingsProps) {
-  const [credentials, setCredentials] = useState<BiometricCredential[]>([]);
+  const [credentials, setCredentials] = useState<BiometricStoredCredential[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [capabilities, setCapabilities] = useState<{
     isSupported: boolean;
-    isPlatformAvailable: boolean;
+    isAvailable: boolean;
     type: string;
     description: string;
   }>({
     isSupported: false,
-    isPlatformAvailable: false,
+    isAvailable: false,
     type: 'none',
     description: 'Checking biometric capabilities...'
   });
@@ -37,13 +38,13 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
 
   const checkCapabilities = async () => {
     try {
-      const caps = await BiometricAuthService.getBiometricCapabilities();
+      const caps = await BiometricLogin.getCapabilityInfo();
       setCapabilities(caps);
     } catch (error) {
       console.error('Error checking biometric capabilities:', error);
       setCapabilities({
         isSupported: false,
-        isPlatformAvailable: false,
+        isAvailable: false,
         type: 'none',
         description: 'Error checking biometric capabilities'
       });
@@ -53,7 +54,7 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
   const loadCredentials = async () => {
     setIsLoading(true);
     try {
-      const creds = await BiometricAuthService.getBiometricCredentials(userId);
+      const creds = await BiometricStorage.getUserCredentials(userId);
       setCredentials(creds);
     } catch (error) {
       console.error('Error loading biometric credentials:', error);
@@ -66,9 +67,10 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
   const handleRegisterBiometric = async () => {
     setIsRegistering(true);
     try {
-      await BiometricAuthService.registerBiometric(userId, userName, displayName);
-      await loadCredentials();
-      toast.success('Biometric authentication registered successfully!');
+      const success = await BiometricLogin.registerForUser(userId, userName, displayName);
+      if (success) {
+        await loadCredentials();
+      }
     } catch (error: any) {
       console.error('Error registering biometric:', error);
       toast.error(error.message || 'Failed to register biometric authentication');
@@ -79,8 +81,9 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
 
   const handleRemoveCredential = async (credentialId: string) => {
     try {
-      await BiometricAuthService.removeBiometricCredential(credentialId);
+      await BiometricStorage.deactivateCredential(credentialId);
       await loadCredentials();
+      toast.success('Biometric credential removed successfully');
     } catch (error: any) {
       console.error('Error removing credential:', error);
       toast.error(error.message || 'Failed to remove biometric credential');
@@ -133,7 +136,7 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
     );
   }
 
-  if (!capabilities.isPlatformAvailable) {
+  if (!capabilities.isAvailable) {
     return (
       <Card>
         <CardHeader>
@@ -217,7 +220,7 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
                 <div className="space-y-2">
                   {credentials.map((cred) => (
                     <div
-                      key={cred.id}
+                      key={cred.credential_id}
                       className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
                     >
                       <div className="flex items-center gap-3">
@@ -225,9 +228,9 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
                         <div className="space-y-1">
                           <p className="text-sm font-medium">{cred.name}</p>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>Added: {formatDate(cred.createdAt)}</span>
-                            {cred.lastUsed && (
-                              <span>Last used: {formatDate(cred.lastUsed)}</span>
+                            <span>Added: {formatDate(cred.created_at)}</span>
+                            {cred.last_used && (
+                              <span>Last used: {formatDate(cred.last_used)}</span>
                             )}
                           </div>
                         </div>
@@ -235,7 +238,7 @@ export function BiometricSettings({ userId, userName, displayName }: BiometricSe
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveCredential(cred.id)}
+                        onClick={() => handleRemoveCredential(cred.credential_id)}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash className="w-4 h-4" />

@@ -18,6 +18,7 @@ BEGIN
     DROP TABLE IF EXISTS conversations CASCADE;
     DROP TABLE IF EXISTS security_alerts CASCADE;
     DROP TABLE IF EXISTS login_sessions CASCADE;
+    DROP TABLE IF EXISTS biometric_sessions CASCADE;
     DROP TABLE IF EXISTS biometric_credentials CASCADE;
     DROP TABLE IF EXISTS trusted_devices CASCADE;
     DROP TABLE IF EXISTS two_factor_auth CASCADE; 
@@ -77,11 +78,24 @@ CREATE TABLE biometric_credentials (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   credential_id TEXT UNIQUE NOT NULL,
-  public_key TEXT NOT NULL,
+  public_key TEXT NOT NULL DEFAULT '',
   name TEXT DEFAULT 'Biometric Login',
-  type TEXT DEFAULT 'fingerprint' CHECK (type IN ('fingerprint', 'faceId', 'touchId')) NOT NULL,
+  type TEXT DEFAULT 'fingerprint' CHECK (type IN ('fingerprint', 'faceId', 'touchId', 'windowsHello')) NOT NULL,
+  device_info JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   last_used TIMESTAMP WITH TIME ZONE,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL
+);
+
+-- Biometric sessions table
+CREATE TABLE biometric_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  credential_id TEXT REFERENCES biometric_credentials(credential_id) ON DELETE CASCADE NOT NULL,
+  session_token TEXT UNIQUE NOT NULL,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  invalidated_at TIMESTAMP WITH TIME ZONE,
   is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
 
@@ -180,6 +194,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE two_factor_auth ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trusted_devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE biometric_credentials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE biometric_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
@@ -202,6 +217,9 @@ CREATE POLICY "Users can manage their trusted devices" ON trusted_devices FOR AL
 
 -- Biometric credentials policies  
 CREATE POLICY "Users can manage their biometric credentials" ON biometric_credentials FOR ALL USING (auth.uid() = user_id);
+
+-- Biometric sessions policies
+CREATE POLICY "Users can manage their biometric sessions" ON biometric_sessions FOR ALL USING (auth.uid() = user_id);
 
 -- Login sessions policies
 CREATE POLICY "Users can view their login sessions" ON login_sessions FOR SELECT USING (auth.uid() = user_id);
@@ -278,6 +296,11 @@ CREATE INDEX idx_message_status_user_id ON message_status(user_id);
 CREATE INDEX idx_login_sessions_user_id ON login_sessions(user_id);
 CREATE INDEX idx_security_alerts_user_id ON security_alerts(user_id);
 CREATE INDEX idx_trusted_devices_user_id ON trusted_devices(user_id);
+CREATE INDEX idx_biometric_credentials_user_id ON biometric_credentials(user_id);
+CREATE INDEX idx_biometric_credentials_credential_id ON biometric_credentials(credential_id);
+CREATE INDEX idx_biometric_sessions_user_id ON biometric_sessions(user_id);
+CREATE INDEX idx_biometric_sessions_token ON biometric_sessions(session_token);
+CREATE INDEX idx_biometric_sessions_expires ON biometric_sessions(expires_at);
 
 -- Create triggers for updating timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()

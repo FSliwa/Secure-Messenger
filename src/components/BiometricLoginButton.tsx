@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { BiometricAuthService } from '@/lib/biometric-auth';
-import { supabase } from '@/lib/supabase';
+import { BiometricLogin } from '@/lib/biometric-login';
 import { Fingerprint, DeviceMobile } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 
@@ -21,8 +20,8 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
 
   const checkBiometricAvailability = async () => {
     try {
-      const capabilities = await BiometricAuthService.getBiometricCapabilities();
-      setIsAvailable(capabilities.isSupported && capabilities.isPlatformAvailable);
+      const capabilities = await BiometricLogin.getCapabilityInfo();
+      setIsAvailable(capabilities.isSupported && capabilities.isAvailable);
       setBiometricType(capabilities.type);
     } catch (error) {
       console.error('Error checking biometric availability:', error);
@@ -34,14 +33,31 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
     setIsLoading(true);
     
     try {
-      // For now, show a demo message since full biometric integration requires
-      // more complex server-side implementation
-      toast.info('Biometric authentication is in development. Please use regular login for now.');
+      console.log('🔐 Starting biometric login...');
+      
+      const result = await BiometricLogin.login();
+      
+      if (result.success && result.user) {
+        console.log('✅ Biometric login successful');
+        
+        // Create user object for callback
+        const userObject = {
+          id: result.user.id,
+          username: result.user.profile?.username || result.user.email?.split('@')[0] || 'user',
+          email: result.user.email || '',
+          displayName: result.user.profile?.display_name || result.user.email?.split('@')[0] || 'User'
+        };
+        
+        onSuccess(userObject);
+      } else {
+        console.log('❌ Biometric login failed:', result.error);
+        toast.error(result.error || 'Biometric login failed');
+      }
       
     } catch (error: any) {
       console.error('Biometric login error:', error);
       
-      if (error.message.includes('cancelled')) {
+      if (error.message?.includes('cancelled')) {
         toast.error('Biometric authentication was cancelled');
       } else {
         toast.error(error.message || 'Biometric login failed');

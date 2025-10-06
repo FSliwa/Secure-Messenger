@@ -13,6 +13,7 @@ import {
 import { TwoFactorSetup } from './TwoFactorSetup'
 import { TrustedDevices } from './TrustedDevices'
 import { PrivacySettings } from './PrivacySettings'
+import { BiometricDemo } from './BiometricDemo'
 
 interface SecuritySettingsProps {
   userId: string
@@ -40,7 +41,7 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Gear className="h-4 w-4" />
             Overview
@@ -48,6 +49,10 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
           <TabsTrigger value="2fa" className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" />
             2FA
+          </TabsTrigger>
+          <TabsTrigger value="biometric" className="flex items-center gap-2">
+            <Fingerprint className="h-4 w-4" />
+            Biometric
           </TabsTrigger>
           <TabsTrigger value="devices" className="flex items-center gap-2">
             <Desktop className="h-4 w-4" />
@@ -188,6 +193,10 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
           <div className="flex justify-center">
             <TwoFactorSetup userId={userId} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="biometric">
+          <BiometricDemo currentUser={currentUser} />
         </TabsContent>
 
         <TabsContent value="devices">
