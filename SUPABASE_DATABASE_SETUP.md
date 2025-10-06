@@ -1,18 +1,36 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { toast } from 'sonner'
-import { Copy, Database, ArrowSquareOut } from '@phosphor-icons/react'
+# SecureChat Supabase Database Setup
 
-const DATABASE_SCHEMA_SQL = `-- SecureChat Database Schema for Supabase
+## Quick Setup Guide
+
+Your SecureChat application is reporting missing database tables. Follow these steps to set up your Supabase database:
+
+### Step 1: Copy the SQL Schema
+
+Copy the entire SQL schema from the file: `src/lib/supabase-schema.sql`
+
+Or copy this complete schema:
+
+```sql
+-- SecureChat Database Schema for Supabase
 -- Execute this SQL in Supabase SQL Editor to create all required tables
 
 -- Enable UUID extension (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Drop existing tables if they exist (for clean setup)
+DROP TABLE IF EXISTS message_status CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS conversation_participants CASCADE;
+DROP TABLE IF EXISTS conversations CASCADE;
+DROP TABLE IF EXISTS security_alerts CASCADE;
+DROP TABLE IF EXISTS login_sessions CASCADE;
+DROP TABLE IF EXISTS biometric_credentials CASCADE;
+DROP TABLE IF EXISTS trusted_devices CASCADE;
+DROP TABLE IF EXISTS two_factor_auth CASCADE; 
+DROP TABLE IF EXISTS users CASCADE;
+
 -- Users table (extends auth.users)
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   display_name TEXT,
@@ -25,7 +43,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Two-factor authentication table
-CREATE TABLE IF NOT EXISTS two_factor_auth (
+CREATE TABLE two_factor_auth (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   secret TEXT NOT NULL,
@@ -38,7 +56,7 @@ CREATE TABLE IF NOT EXISTS two_factor_auth (
 );
 
 -- Trusted devices table
-CREATE TABLE IF NOT EXISTS trusted_devices (
+CREATE TABLE trusted_devices (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   device_fingerprint TEXT NOT NULL,
@@ -55,7 +73,7 @@ CREATE TABLE IF NOT EXISTS trusted_devices (
 );
 
 -- Biometric credentials table
-CREATE TABLE IF NOT EXISTS biometric_credentials (
+CREATE TABLE biometric_credentials (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   credential_id TEXT UNIQUE NOT NULL,
@@ -68,7 +86,7 @@ CREATE TABLE IF NOT EXISTS biometric_credentials (
 );
 
 -- Login sessions table
-CREATE TABLE IF NOT EXISTS login_sessions (
+CREATE TABLE login_sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   login_time TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
@@ -96,7 +114,7 @@ CREATE TABLE IF NOT EXISTS login_sessions (
 );
 
 -- Security alerts table
-CREATE TABLE IF NOT EXISTS security_alerts (
+CREATE TABLE security_alerts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   alert_type TEXT NOT NULL,
@@ -112,7 +130,7 @@ CREATE TABLE IF NOT EXISTS security_alerts (
 );
 
 -- Conversations table
-CREATE TABLE IF NOT EXISTS conversations (
+CREATE TABLE conversations (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT,
   is_group BOOLEAN DEFAULT FALSE NOT NULL,
@@ -123,7 +141,7 @@ CREATE TABLE IF NOT EXISTS conversations (
 );
 
 -- Conversation participants table
-CREATE TABLE IF NOT EXISTS conversation_participants (
+CREATE TABLE conversation_participants (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   conversation_id UUID REFERENCES conversations ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -134,7 +152,7 @@ CREATE TABLE IF NOT EXISTS conversation_participants (
 );
 
 -- Messages table
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE messages (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   conversation_id UUID REFERENCES conversations ON DELETE CASCADE NOT NULL,
   sender_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -148,7 +166,7 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 -- Message status table
-CREATE TABLE IF NOT EXISTS message_status (
+CREATE TABLE message_status (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   message_id UUID REFERENCES messages ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -239,67 +257,101 @@ CREATE POLICY "Users can view message status in their conversations" ON message_
   )
 );
 CREATE POLICY "Users can update message status for themselves" ON message_status FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their message status" ON message_status FOR UPDATE USING (auth.uid() = user_id);`
+CREATE POLICY "Users can update their message status" ON message_status FOR UPDATE USING (auth.uid() = user_id);
 
-export function DatabaseSetupHelper() {
-  const [isOpen, setIsOpen] = useState(false)
+-- Create indexes for better performance
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_status ON users(status);
+CREATE INDEX idx_conversations_created_by ON conversations(created_by);
+CREATE INDEX idx_conversation_participants_conversation_id ON conversation_participants(conversation_id);
+CREATE INDEX idx_conversation_participants_user_id ON conversation_participants(user_id);
+CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX idx_messages_sent_at ON messages(sent_at);
+CREATE INDEX idx_message_status_message_id ON message_status(message_id);
+CREATE INDEX idx_message_status_user_id ON message_status(user_id);
+CREATE INDEX idx_login_sessions_user_id ON login_sessions(user_id);
+CREATE INDEX idx_security_alerts_user_id ON security_alerts(user_id);
+CREATE INDEX idx_trusted_devices_user_id ON trusted_devices(user_id);
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(DATABASE_SCHEMA_SQL)
-      toast.success('SQL schema copied to clipboard!')
-    } catch (error) {
-      toast.error('Failed to copy to clipboard')
-    }
-  }
+-- Create triggers for updating timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = TIMEZONE('utc'::text, NOW());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
 
-  const openSupabaseSQL = () => {
-    // Open Supabase SQL Editor in new tab
-    window.open('https://supabase.com/dashboard/project/_/sql', '_blank')
-  }
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Database className="mr-2 h-4 w-4" />
-          View SQL Schema
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>Database Setup - SQL Schema</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="p-4 bg-muted/50 border border-border rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Setup Instructions:</h4>
-            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Copy the SQL schema below</li>
-              <li>Go to your Supabase project dashboard</li>
-              <li>Open the SQL Editor</li>
-              <li>Paste and execute the SQL</li>
-              <li>Return here and click "Recheck" on the database init screen</li>
-            </ol>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button onClick={copyToClipboard} className="flex-1">
-              <Copy className="mr-2 h-4 w-4" />
-              Copy SQL Schema
-            </Button>
-            <Button onClick={openSupabaseSQL} variant="outline" className="flex-1">
-              <ArrowSquareOut className="mr-2 h-4 w-4" />
-              Open Supabase SQL Editor
-            </Button>
-          </div>
+CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-          <div className="relative">
-            <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-96 border border-border">
-              <code>{DATABASE_SCHEMA_SQL}</code>
-            </pre>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
+CREATE TRIGGER update_two_factor_auth_updated_at BEFORE UPDATE ON two_factor_auth
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```
+
+### Step 2: Execute in Supabase
+
+1. Go to your Supabase project dashboard: https://fyxmppbrealxwnstuzuk.supabase.co
+2. Navigate to **SQL Editor** in the left sidebar
+3. Create a new query
+4. Paste the entire SQL schema above
+5. Click **Run** to execute the SQL
+
+### Step 3: Verify Setup
+
+After running the SQL:
+
+1. Check the **Table Editor** to verify all tables were created
+2. You should see these 10 tables:
+   - `users`
+   - `two_factor_auth`
+   - `trusted_devices`
+   - `biometric_credentials`
+   - `login_sessions`
+   - `security_alerts`
+   - `conversations`
+   - `conversation_participants`
+   - `messages`
+   - `message_status`
+
+### Step 4: Test Connection
+
+1. Refresh your SecureChat application
+2. The database initialization screen should now pass
+3. You should be able to proceed to registration/login
+
+## Troubleshooting
+
+### If tables already exist
+The SQL includes `DROP TABLE IF EXISTS` statements to handle existing tables. This will recreate them with the correct structure.
+
+### If you get permission errors
+Make sure you're using the correct API keys:
+- **Project URL**: https://fyxmppbrealxwnstuzuk.supabase.co
+- **Anon Key**: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5eG1wcGJyZWFseHduc3R1enVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDcyNjYsImV4cCI6MjA3NTE4MzI2Nn0.P_u5yDgASYwx-ImH-QhTTqAO8xM96DvqkgJ1tCm-8Pw
+
+### If tables still appear missing
+1. Check that Row Level Security policies are enabled
+2. Verify that all tables have the correct foreign key relationships
+3. Try refreshing the application
+
+## Required Tables Summary
+
+Your SecureChat application requires these specific database tables to function:
+
+1. **users** - User profiles and status
+2. **two_factor_auth** - 2FA settings and backup codes
+3. **trusted_devices** - Device management and trust settings
+4. **biometric_credentials** - Fingerprint/Face ID authentication
+5. **login_sessions** - User session tracking and security
+6. **security_alerts** - Security notifications and alerts
+7. **conversations** - Chat rooms and conversation metadata
+8. **conversation_participants** - Who participates in each conversation
+9. **messages** - Encrypted message content and metadata
+10. **message_status** - Message delivery and read status
+
+All tables include proper Row Level Security (RLS) policies to ensure data privacy and security.

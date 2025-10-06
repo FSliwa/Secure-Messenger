@@ -17,6 +17,7 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
   const [status, setStatus] = useState<'checking' | 'initializing' | 'complete' | 'error'>('checking')
   const [errorMessage, setErrorMessage] = useState('')
   const [tableStatus, setTableStatus] = useState<Record<string, boolean>>({})
+  const [tableErrors, setTableErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     checkDatabase()
@@ -27,13 +28,14 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
     try {
       const result = await checkDatabaseReadiness()
       setTableStatus(result.tables)
+      setTableErrors(result.errors || {})
       
       if (result.ready) {
         setStatus('complete')
         setTimeout(onComplete, 1000)
       } else {
         setStatus('error')
-        setErrorMessage(`Missing tables: ${result.missing.join(', ')}`)
+        setErrorMessage(result.message || `Missing tables: ${result.missing.join(', ')}`)
       }
     } catch (error) {
       setStatus('error')
@@ -138,15 +140,22 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
               {Object.keys(tableStatus).length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Table Status:</h4>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                  <div className="space-y-1 max-h-40 overflow-y-auto border border-border rounded p-2">
                     {Object.entries(tableStatus).map(([table, exists]) => (
                       <div key={table} className="flex items-center justify-between text-xs">
-                        <span className="font-mono">{table}</span>
-                        {exists ? (
-                          <Check className="h-3 w-3 text-success" />
-                        ) : (
-                          <X className="h-3 w-3 text-destructive" />
-                        )}
+                        <span className="font-mono flex-1">{table}</span>
+                        <div className="flex items-center gap-2">
+                          {tableErrors[table] && (
+                            <span className="text-destructive text-xs max-w-32 truncate" title={tableErrors[table]}>
+                              {tableErrors[table]}
+                            </span>
+                          )}
+                          {exists ? (
+                            <Check className="h-3 w-3 text-success flex-shrink-0" />
+                          ) : (
+                            <X className="h-3 w-3 text-destructive flex-shrink-0" />
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -155,13 +164,23 @@ export function DatabaseInit({ onComplete }: DatabaseInitProps) {
 
               <div className="p-3 bg-muted/50 border border-border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-2">
-                  <strong>Manual Setup Required:</strong>
+                  <strong>Manual Database Setup Required:</strong>
                 </p>
-                <p className="text-xs text-muted-foreground mb-2">
-                  The database tables need to be created manually in Supabase.
+                <p className="text-xs text-muted-foreground mb-3">
+                  Your Supabase database is missing required tables. Follow these steps:
                 </p>
+                <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1 mb-3">
+                  <li>Go to your <strong>Supabase Dashboard</strong></li>
+                  <li>Open the <strong>SQL Editor</strong></li>
+                  <li>Copy the SQL schema from the button below</li>
+                  <li>Paste and execute the SQL in Supabase</li>
+                  <li>Click "Recheck" to verify the setup</li>
+                </ol>
                 <div className="flex justify-center mb-2">
                   <DatabaseSetupHelper />
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <strong>Project URL:</strong> https://fyxmppbrealxwnstuzuk.supabase.co
                 </div>
               </div>
 
