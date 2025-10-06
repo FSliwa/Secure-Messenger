@@ -6,9 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Spinner } from "@phosphor-icons/react";
+import { Spinner, ArrowClockwise } from "@phosphor-icons/react";
 import { generateKeyPair, storeKeys, EncryptionProgress } from "@/lib/crypto";
 import { signUp, checkUsernameAvailability } from "@/lib/supabase";
+import { SimpleRetryIndicator } from './RetryStatusDisplay'
+import { NetworkStatusIndicator } from './NetworkStatusIndicator'
+import { 
+  executeWithNetworkAwareRetry, 
+  RetryResult
+} from '@/lib/auth-retry'
+import { 
+  AUTH_RETRY_CONFIG, 
+  getErrorMessage, 
+  shouldRetryError 
+} from '@/lib/auth-config'
 
 interface User {
   id: string;
@@ -66,6 +77,9 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
   const [usernameCheckTimeout, setUsernameCheckTimeout] = useState<NodeJS.Timeout | null>(null);
   const [keyGenerationStep, setKeyGenerationStep] = useState<'idle' | 'generating' | 'complete'>('idle');
   const [encryptionProgress, setEncryptionProgress] = useState<EncryptionProgress | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -200,6 +214,9 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
     }
 
     setIsSubmitting(true);
+    setLastError(null);
+    setRetryCount(0);
+    setIsRetrying(false);
     
     try {
       const displayName = `${formData.firstName} ${formData.lastName}`;
@@ -217,11 +234,40 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       await storeKeys(keyPair);
       setKeyGenerationStep('complete');
       
-      // Sign up with Supabase and public key
-      const { user } = await signUp(formData.email, formData.password, displayName, keyPair.publicKey, formData.username);
+      // Create signup operation with retry mechanism
+      const signupOperation = async () => {
+        return await signUp(formData.email, formData.password, displayName, keyPair.publicKey, formData.username);
+      };
+
+      // Execute signup with retry mechanism
+      toast.loading('Creating your account...', { id: 'signup-process' });
       
-      if (!user) {
-        throw new Error('Failed to create user account');
+      const result: RetryResult<any> = await executeWithNetworkAwareRetry(
+        signupOperation,
+        AUTH_RETRY_CONFIG.AUTHENTICATION,
+        'Account Creation'
+      );
+
+      if (!result.success || !result.data?.user) {
+        console.log('❌ Signup failed after all retries');
+        setLastError(result.error?.message || 'Account creation failed');
+        setRetryCount(result.attempts.length);
+        
+        const userMessage = getErrorMessage(result.error!);
+        toast.error(userMessage, {
+          id: 'signup-process',
+          description: shouldRetryError(result.error!) 
+            ? `Failed after ${result.attempts.length} attempts`
+            : 'Please try again with different information'
+        });
+        return;
+      }
+
+      const user = result.data.user;
+
+      // Show success message if retries were needed
+      if (result.attempts.length > 0) {
+        toast.success(`Account created after ${result.attempts.length + 1} attempts!`, { id: 'signup-process' });
       }
 
       toast.success('Account created successfully! Please check your email to verify your account.', { 
@@ -242,17 +288,22 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
         acceptTerms: false,
       });
       setErrors({});
+      setRetryCount(0);
+      setLastError(null);
       
       // Switch to login view instead of calling onSuccess
       onSwitchToLogin?.();
 
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast.error(error.message || 'Failed to create account. Please try again.', { 
+      setLastError(error.message);
+      const userMessage = getErrorMessage(error);
+      toast.error(userMessage, { 
         id: 'signup-process' 
       });
     } finally {
       setIsSubmitting(false);
+      setIsRetrying(false);
       setKeyGenerationStep('idle');
     }
   };
@@ -265,6 +316,24 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
     <div className="w-full max-w-md mx-auto">
       <Card className="facebook-card">
         <CardContent className="p-6">
+          {/* Network Status */}
+          <div className="mb-4">
+            <NetworkStatusIndicator className="justify-center" />
+          </div>
+
+          {/* Retry Status Banner */}
+          {(retryCount > 0 || lastError || isRetrying) && (
+            <div className="mb-4">
+              <SimpleRetryIndicator
+                isRetrying={isRetrying}
+                retryCount={retryCount}
+                operation="signup"
+                error={lastError || undefined}
+                className="p-3 bg-muted/30 rounded-lg border"
+              />
+            </div>
+          )}
+
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-foreground mb-2">Create a new account</h2>
             <p className="text-sm text-muted-foreground">It's quick and easy.</p>
@@ -375,12 +444,14 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             <Button
               type="submit"
               className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-3 text-lg"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isRetrying}
             >
-              {isSubmitting ? (
+              {isSubmitting || isRetrying ? (
                 <div className="flex items-center gap-2">
                   <Spinner className="w-4 h-4 animate-spin" />
-                  {keyGenerationStep === 'generating' ? (
+                  {isRetrying ? (
+                    'Reconnecting...'
+                  ) : keyGenerationStep === 'generating' ? (
                     <div className="flex flex-col">
                       <span>Securing Account...</span>
                       {encryptionProgress && (
@@ -389,8 +460,15 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                         </span>
                       )}
                     </div>
-                  ) : 'Creating Account...'}
+                  ) : (
+                    'Creating Account...'
+                  )}
                 </div>
+              ) : retryCount > 0 ? (
+                <>
+                  <ArrowClockwise className="mr-2 h-5 w-5" />
+                  Try Again
+                </>
               ) : (
                 'Sign Up'
               )}
