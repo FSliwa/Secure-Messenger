@@ -162,6 +162,8 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
           const userMessage = getErrorMessage(result.error!)
           toast.error(userMessage)
         }
+        setIsLoading(false)
+        setIsRetrying(false)
         return
       }
 
@@ -188,18 +190,19 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
         
         if (trusted) {
           console.log('✅ Device trusted, completing login...')
-          // Device is trusted, skip 2FA
+          // Device is trusted, skip 2FA - keep loading state until completion
           await completeLogin(user.id)
         } else {
           console.log('🔒 Device not trusted, requesting 2FA...')
-          // Require 2FA verification - don't reset loading here
+          // Require 2FA verification - reset loading since we're switching to 2FA step
           setLoginStep('2fa')
-          setIsLoading(false) // Only reset loading when moving to 2FA step
+          setIsLoading(false)
+          setIsRetrying(false)
           toast.info('Please enter your 2FA code to continue')
         }
       } else {
         console.log('✅ No 2FA required, completing login...')
-        // No 2FA, complete login (loading will be reset in completeLogin)
+        // No 2FA, complete login - keep loading state until completion
         await completeLogin(user.id)
       }
       
@@ -217,13 +220,10 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       } else {
         toast.error(userMessage)
       }
-    } finally {
-      console.log('🏁 Login attempt finished, resetting loading state')
-      // Only reset loading if we're not proceeding to 2FA
-      if (loginStep === 'credentials') {
-        setIsLoading(false)
-        setIsRetrying(false)
-      }
+      
+      // Always reset loading on error
+      setIsLoading(false)
+      setIsRetrying(false)
     }
   }
 
@@ -240,6 +240,8 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
     setIsLoading(true)
     setIsRetrying(false)
+    setLastError(null)
+    setRetryCount(0)
     
     try {
       // Create 2FA verification operation with retry
@@ -269,6 +271,9 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
           const userMessage = getErrorMessage(result.error!)
           toast.error(userMessage)
         }
+        
+        setIsLoading(false)
+        setIsRetrying(false)
         return
       }
 
@@ -287,17 +292,19 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
         // Ask if user wants to trust this device
         setDeviceTrustPrompt(true)
         
-        // Complete login (loading will be reset in completeLogin)
+        // Complete login (loading will be handled in completeLogin)
         await completeLogin(pendingUserId)
       } else {
         toast.error('Invalid 2FA code. Please try again.')
+        setIsLoading(false)
+        setIsRetrying(false)
       }
     } catch (error: any) {
       console.error('2FA verification error:', error)
       setLastError(error.message)
       const userMessage = getErrorMessage(error)
       toast.error(userMessage)
-    } finally {
+      
       setIsLoading(false)
       setIsRetrying(false)
     }
@@ -377,7 +384,12 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       }
       
       console.log('🚀 Calling success callback...')
-      // Call success callback first to trigger navigation
+      
+      // Clear loading state before calling success callback
+      setIsLoading(false)
+      setIsRetrying(false)
+      
+      // Call success callback to trigger navigation
       onSuccess?.(userObject)
       console.log('✅ Login completion successful')
       
@@ -389,12 +401,6 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       
       // Reset login state on error
       resetLogin()
-      
-    } finally {
-      console.log('🏁 Complete login finished, clearing loading state')
-      // Always ensure loading state is cleared
-      setIsLoading(false)
-      setIsRetrying(false)
     }
   }
 
@@ -427,6 +433,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
   }
 
   const resetLogin = () => {
+    console.log('🔄 Resetting login state')
     setLoginStep('credentials')
     setTwoFactorCode('')
     setPendingUserId(null)
