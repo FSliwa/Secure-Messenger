@@ -85,7 +85,7 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         setCurrentUser(null);
-        setAppState('landing');
+        setAppState('login'); // Always redirect to login, not landing
       } else if (event === 'SIGNED_IN' && session) {
         try {
           const user = await safeGetCurrentUser();
@@ -115,11 +115,32 @@ function App() {
 
   const handleLogout = async () => {
     try {
+      setIsLoading(true);
+      
+      // Sign out from Supabase (includes database cleanup)
       await signOut();
+      
+      // Clear local state
       setCurrentUser(null);
-      setAppState('landing');
+      
+      // Redirect to login screen (not landing page)
+      setAppState('login');
+      
+      // Clear any cached data (optional)
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      }
+      
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error during logout:', error);
+      // Force logout even if there's an error
+      setCurrentUser(null);
+      setAppState('login');
+    } finally {
+      setIsLoading(false);
     }
   };
 

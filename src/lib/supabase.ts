@@ -273,21 +273,60 @@ export const signOut = async () => {
   const { data: { user } } = await supabase.auth.getUser()
   
   if (user) {
-    // Update login session to mark as logged out
     try {
+      // Update user status to offline
+      await supabase
+        .from('users')
+        .update({ 
+          status: 'offline',
+          last_seen: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      // Update all active login sessions to mark as logged out
       await supabase
         .from('login_sessions')
         .update({ 
           logout_time: new Date().toISOString(),
-          is_active: false 
+          is_active: false,
+          last_activity_at: new Date().toISOString()
         })
         .eq('user_id', user.id)
         .eq('is_active', true)
+
+      // Create security log entry for logout
+      await supabase
+        .from('security_alerts')
+        .insert([{
+          user_id: user.id,
+          alert_type: 'logout',
+          severity: 'info',
+          description: 'User logged out successfully',
+          metadata: {
+            logout_time: new Date().toISOString(),
+            user_agent: navigator.userAgent,
+            browser: getBrowserInfo().browser,
+            os: getBrowserInfo().os
+          },
+          user_agent: navigator.userAgent,
+          location: {
+            browser: getBrowserInfo().browser,
+            os: getBrowserInfo().os,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          },
+          is_resolved: true,
+          resolved_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        }])
+
     } catch (error) {
-      console.error('Failed to update logout time:', error)
+      console.error('Failed to update logout information:', error)
+      // Continue with logout even if database updates fail
     }
   }
 
+  // Sign out from Supabase Auth
   const { error } = await supabase.auth.signOut()
   if (error) throw error
 }

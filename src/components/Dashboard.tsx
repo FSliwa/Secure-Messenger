@@ -42,12 +42,20 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
     loadCryptoKeys()
   }, [])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      toast.success('Logged out successfully')
-      onLogout?.()
+      toast.loading('Signing out...', { id: 'logout' });
+      
+      // Call the parent logout handler which handles all cleanup
+      await onLogout?.();
+      
+      toast.success('Logged out successfully', { id: 'logout' });
     } catch (error) {
-      toast.error('Logout failed')
+      console.error('Logout error:', error);
+      toast.error('Logout failed, but you will be redirected', { id: 'logout' });
+      
+      // Force logout even if there's an error
+      onLogout?.();
     }
   }
 
