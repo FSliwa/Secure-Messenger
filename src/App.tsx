@@ -13,6 +13,7 @@ import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
 import { requireAuthentication, validateDashboardAccess, startSecurityMonitoring } from "@/lib/auth-guards";
+import { initializeNetworkTestInterceptor } from "@/lib/network-testing";
 
 type AppState = 'database-init' | 'landing' | 'login' | 'dashboard';
 
@@ -34,12 +35,21 @@ function App() {
   const [securityCleanup, setSecurityCleanup] = useState<(() => void) | null>(null);
 
   useEffect(() => {
+    // Initialize network test interceptor in development
+    let cleanupNetworkTest: (() => void) | undefined
+    if (process.env.NODE_ENV === 'development') {
+      cleanupNetworkTest = initializeNetworkTestInterceptor()
+    }
+    
     initializeApp();
     
     // Cleanup security monitoring on unmount
     return () => {
       if (securityCleanup) {
         securityCleanup();
+      }
+      if (cleanupNetworkTest) {
+        cleanupNetworkTest();
       }
     };
   }, [securityCleanup]);

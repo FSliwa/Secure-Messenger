@@ -17,6 +17,8 @@ import {
 import { BiometricLoginButton } from './BiometricLoginButton'
 import { SimpleRetryIndicator } from './RetryStatusDisplay'
 import { NetworkStatusIndicator } from './NetworkStatusIndicator'
+import { NetworkTestControls } from './NetworkTestControls'
+import { RetryTestRunner } from './RetryTestRunner'
 import { 
   executeWithNetworkAwareRetry, 
   isRetryableError,
@@ -441,7 +443,15 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
   }
 
   return (
-    <div className="w-full max-w-md animate-fade-in-up">
+    <div className="w-full max-w-md animate-fade-in-up space-y-4">
+      {/* Network Testing Controls - Only show in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <>
+          <NetworkTestControls />
+          <RetryTestRunner className="border-dashed" />
+        </>
+      )}
+      
       {/* Device Trust Prompt */}
       {deviceTrustPrompt && (
         <Card className="bg-card border border-border shadow-lg mb-4">
