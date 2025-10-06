@@ -141,7 +141,9 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
               </p>
             </div>
             
-            <ChatInterface currentUser={currentUser || { id: '', username: '', email: '' }} />
+            <div className="w-full h-[700px]">
+              <ChatInterface currentUser={currentUser || { id: '', username: '', email: '' }} />
+            </div>
           </TabsContent>
 
           <TabsContent value="files" className="space-y-6">

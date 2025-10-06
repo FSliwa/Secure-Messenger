@@ -56,13 +56,11 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
           </TabsTrigger>
           <TabsTrigger value="devices" className="flex items-center gap-2">
             <Desktop className="h-4 w-4" />
-            Devices
-          </TabsTrigger>
           <TabsTrigger value="privacy" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
             Privacy
-          </TabsTrigger>
-        </TabsList>
+            <Eye className="h-4 w-4" />
+            Privacy
 
         <TabsContent value="overview" className="space-y-6">
           <Card>
@@ -197,20 +195,19 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
 
         <TabsContent value="biometric">
           <BiometricDemo currentUser={currentUser} />
+        <TabsContent value="biometric">
+          <BiometricDemo currentUser={currentUser} />
         </TabsContent>
 
-        <TabsContent value="devices">
-          <TrustedDevices userId={userId} />
         </TabsContent>
 
         <TabsContent value="privacy">
           <PrivacySettings userId={userId} />
         </TabsContent>
+          <PrivacySettings userId={userId} />
+  )
       </Tabs>
     </div>
-  )
-}
-
 interface SecurityFeatureCardProps {
   title: string
   description: string

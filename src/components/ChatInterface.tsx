@@ -131,68 +131,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       setKeyPair(keys)
     }
     
-    // Add demo messages
-    const demoMessages: Message[] = [
-      {
-        id: 'demo-msg-1',
-        conversation_id: 'demo-1',
-        sender_id: 'demo-user-1',
-        senderName: 'Alice Johnson',
-        encrypted_content: 'Hey! How are you doing?',
-        timestamp: Date.now() - 300000, // 5 minutes ago
-        status: 'read',
-        isEncrypted: false,
-        type: 'text'
-      },
-      {
-        id: 'demo-msg-2',
-        conversation_id: 'demo-1',
-        sender_id: currentUser.id,
-        senderName: currentUser.displayName || currentUser.username,
-        encrypted_content: 'Hi Alice! I\'m doing great, thanks for asking 😊',
-        timestamp: Date.now() - 240000, // 4 minutes ago
-        status: 'read',
-        isEncrypted: false,
-        type: 'text'
-      },
-      {
-        id: 'demo-msg-3',
-        conversation_id: 'demo-1',
-        sender_id: 'demo-user-1',
-        senderName: 'Alice Johnson',
-        encrypted_content: 'That\'s wonderful! I wanted to share some exciting news with you.',
-        timestamp: Date.now() - 180000, // 3 minutes ago
-        status: 'read',
-        isEncrypted: false,
-        type: 'text'
-      },
-      {
-        id: 'demo-msg-4',
-        conversation_id: 'demo-1',
-        sender_id: 'demo-user-1',
-        senderName: 'Alice Johnson',
-        encrypted_content: 'Our project got approved! 🎉',
-        timestamp: Date.now() - 120000, // 2 minutes ago
-        status: 'read',
-        isEncrypted: false,
-        type: 'text'
-      },
-      {
-        id: 'demo-msg-5',
-        conversation_id: 'demo-1',
-        sender_id: currentUser.id,
-        senderName: currentUser.displayName || currentUser.username,
-        encrypted_content: 'Wow, that\'s amazing! Congratulations! 🎊',
-        timestamp: Date.now() - 60000, // 1 minute ago
-        status: 'delivered',
-        isEncrypted: false,
-        type: 'text'
-      }
-    ]
-    
-    setMessages(demoMessages)
     loadKeys()
-  }, [currentUser.id, currentUser.displayName, currentUser.username, setMessages])
+  }, [currentUser.id])
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -203,94 +143,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           otherParticipant: null // Would be populated with other participant info
         }))
         
-        // Add demo conversations if none exist
-        if (loadedConversations.length === 0) {
-          loadedConversations = [
-            {
-              id: 'demo-1',
-              name: 'Alice Johnson',
-              is_group: false,
-              access_code: 'demo-access-1',
-              created_by: 'demo-user-1',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              otherParticipant: {
-                id: 'demo-user-1',
-                username: 'alice_j',
-                display_name: 'Alice Johnson',
-                avatar_url: null,
-                status: 'online' as const
-              }
-            },
-            {
-              id: 'demo-2',
-              name: 'Project Team',
-              is_group: true,
-              access_code: 'demo-access-2',
-              created_by: 'demo-user-2',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              otherParticipant: {
-                id: 'demo-user-2',
-                username: 'project-team',
-                display_name: 'Project Team',
-                avatar_url: null,
-                status: 'online' as const
-              }
-            },
-            {
-              id: 'demo-3',
-              name: 'Bob Smith',
-              is_group: false,
-              access_code: 'demo-access-3',
-              created_by: 'demo-user-3',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              otherParticipant: {
-                id: 'demo-user-3',
-                username: 'bob_smith',
-                display_name: 'Bob Smith',
-                avatar_url: null,
-                status: 'away' as const
-              }
-            }
-          ]
-        }
+
         
         setConversations(loadedConversations)
         
-        // Auto-select first conversation for demo
+        // Auto-select first conversation if available
         if (loadedConversations.length > 0 && !activeConversation) {
           setActiveConversation(loadedConversations[0])
         }
       } catch (error) {
         console.error('Failed to load conversations:', error)
-        // Show demo conversations on error
-        const demoConversations = [
-          {
-            id: 'demo-1',
-            name: 'Alice Johnson',
-            is_group: false,
-            access_code: 'demo-access-1',
-            created_by: 'demo-user-1',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            otherParticipant: {
-              id: 'demo-user-1',
-              username: 'alice_j',
-              display_name: 'Alice Johnson',
-              avatar_url: null,
-              status: 'online' as const
-            }
-          }
-        ]
-        
-        setConversations(demoConversations)
-        
-        // Auto-select first conversation for demo
-        if (!activeConversation) {
-          setActiveConversation(demoConversations[0])
-        }
+        setConversations([])
       }
     }
 
@@ -615,12 +478,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden facebook-card facebook-chat-container">
+    <div className="w-full max-w-full mx-auto bg-white rounded-xl shadow-lg overflow-hidden facebook-card facebook-chat-container">
       <div className="flex h-full">
         {/* Conversations Sidebar - Facebook Style */}
-        <div className="w-80 bg-white border-r border-gray-200">
+        <div className="w-80 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full">
           {/* Header */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-bold text-gray-900">Chats</h1>
               <div className="flex gap-2">
@@ -776,7 +639,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           </div>
 
           {/* Conversations List */}
-          <div className="h-[calc(100%-120px)] overflow-y-auto facebook-chat-scroll">
+          <div className="flex-1 overflow-y-auto facebook-chat-scroll">
             {conversations?.map((conversation) => (
               <div
                 key={conversation.id}
@@ -837,7 +700,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col h-[600px]">
+        <div className="flex-1 flex flex-col h-full">
           {activeConversation ? (
             <>
               {/* Chat Header */}
