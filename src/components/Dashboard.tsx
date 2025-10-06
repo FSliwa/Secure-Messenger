@@ -134,10 +134,10 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
           </TabsList>
 
           <TabsContent value="chat" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Secure Messaging</h2>
-              <p className="text-muted-foreground mb-6">
-                Send end-to-end encrypted messages to your contacts
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-2">SecureChat Messenger</h2>
+              <p className="text-muted-foreground">
+                Facebook-style interface with military-grade encryption
               </p>
             </div>
             
