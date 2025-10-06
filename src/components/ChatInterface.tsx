@@ -293,19 +293,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         }
       }
     }
-    
-    if (currentUser.id) {
-      loadConversations()
-    }
+
+    loadConversations()
   }, [currentUser.id, setConversations])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   const handleSearchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -510,7 +500,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       senderName: currentUser.displayName || currentUser.username,
       encrypted_content: messageToSend,
       timestamp: Date.now(),
-      status: 'encrypting',
+      status: 'sending',
       isEncrypted: false,
       type: 'text'
     }
@@ -537,25 +527,24 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         activeConversation.id,
         currentUser.id,
         JSON.stringify(encryptedContent),
-        { algorithm: encryptedContent.algorithm, bitLength: encryptedContent.bitLength }
+        { algorithm: 'PQC-AES-256-GCM-RSA2048', bitLength: 2048 }
       )
 
       // Update message status
       setMessages((currentMessages) => 
         (currentMessages || []).map(msg => 
           msg.id === messageId 
-            ? { 
+            ? {
                 ...msg,
                 encrypted_content: encryptedContent, 
-                status: 'sent', 
-                isEncrypted: true 
+                isEncrypted: true,
+                status: 'sent'
               }
             : msg
         )
       )
-
+      
       setShowEncryptionDialog(false)
-      toast.success('Message encrypted and sent securely!')
       
     } catch (error) {
       console.error('Encryption failed:', error)
@@ -571,14 +560,15 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
   const handleDecryptMessage = async (message: Message) => {
     if (!keyPair || typeof message.encrypted_content === 'string') return
-
+      
     setIsDecrypting(true)
+    
     try {
       const decryptedContent = await decryptMessage(
         message.encrypted_content as EncryptedMessage,
         keyPair,
         (progress) => {
-          toast.loading(`Decrypting: ${progress.message}`, { id: `decrypt-${message.id}` })
+          // Handle decryption progress
         }
       )
 
@@ -625,7 +615,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="h-[600px] max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden facebook-card facebook-chat-container">
+    <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden facebook-card facebook-chat-container">
       <div className="flex h-full">
         {/* Conversations Sidebar - Facebook Style */}
         <div className="w-80 bg-white border-r border-gray-200">
@@ -672,7 +662,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       </div>
                       <Button onClick={handleCreateConversation} className="w-full">
                         <Shield className="w-4 h-4 mr-2" />
-                        Create Encrypted Conversation
+                        Create Conversation
                       </Button>
                     </div>
                   </DialogContent>
@@ -813,16 +803,18 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       <p className="text-sm text-gray-600 truncate">
                         {getLastMessagePreview(conversation.id)}
                       </p>
-                      <button
-                        className="ml-2 text-xs text-blue-600 hover:text-blue-800"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigator.clipboard.writeText(conversation.access_code!)
-                          toast.success('Access code copied!')
-                        }}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
+                      {conversation.access_code && (
+                        <button
+                          className="ml-2 text-xs text-blue-600 hover:text-blue-800"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigator.clipboard.writeText(conversation.access_code!)
+                            toast.success('Access code copied!')
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -844,17 +836,15 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           </div>
         </div>
 
-        {/* Chat Area - Facebook Style */}
-        <div className="flex-1 flex flex-col bg-white">
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col h-[600px]">
           {activeConversation ? (
             <>
               {/* Chat Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+              <div className="p-4 border-b border-gray-200 bg-white">
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
-                      {(activeConversation.name || 'PC').substring(0, 2).toUpperCase()}
-                    </div>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                    {(activeConversation.name || 'PC').substring(0, 2).toUpperCase()}
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <div>
