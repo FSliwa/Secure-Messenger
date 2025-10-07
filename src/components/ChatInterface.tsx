@@ -1064,22 +1064,22 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="w-full max-w-full mx-auto bg-white rounded-xl shadow-lg overflow-hidden facebook-card facebook-chat-container">
+    <div className="w-full h-full bg-card border-0 overflow-hidden facebook-chat-container">
       <div className="flex h-full">
-        {/* Conversations Sidebar - Facebook Style */}
-        <div className="w-80 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full">
+        {/* Conversations Sidebar - Messenger Style with Mobile Responsive */}
+        <div className={`${activeConversation ? 'hidden lg:flex' : 'flex'} w-full lg:w-80 xl:w-96 bg-card border-r border-border flex-shrink-0 flex-col h-full`}>
           {/* Header */}
-          <div className="p-4 border-b border-gray-200 flex-shrink-0">
+          <div className="p-4 border-b border-border flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold text-gray-900">{t.chats}</h1>
+              <h1 className="text-xl font-bold text-foreground">{t.chats}</h1>
               <div className="flex gap-2">
                 {/* Direct Message Button - Polish Feature 1 */}
                 <button 
                   onClick={() => setShowDirectMessage(true)}
-                  className="w-9 h-9 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 rounded-full bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 flex items-center justify-center transition-colors"
                   title={t.sendDirectMessage}
                 >
-                  <EnvelopeSimple className="w-5 h-5 text-blue-600" />
+                  <EnvelopeSimple className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </button>
 
                 {/* Advanced User Search Button - Polish Feature 2 */}
@@ -1088,20 +1088,20 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     setUserSearchMode('chat')
                     setShowUserSearchDialog(true)
                   }}
-                  className="w-9 h-9 rounded-full bg-green-100 hover:bg-green-200 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 flex items-center justify-center transition-colors"
                   title={t.advancedUserSearch}
                 >
-                  <User className="w-5 h-5 text-green-600" />
+                  <User className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </button>
 
                 {/* Add Users to Current Conversation - Polish Feature 3 */}
                 {activeConversation && (
                   <button 
                     onClick={() => setShowAddUsersDialog(true)}
-                    className="w-9 h-9 rounded-full bg-purple-100 hover:bg-purple-200 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 rounded-full bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 flex items-center justify-center transition-colors"
                     title={t.addUsersToConversation}
                   >
-                    <Users className="w-5 h-5 text-purple-600" />
+                    <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </button>
                 )}
 
@@ -1109,26 +1109,26 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 {activeConversation && (
                   <button 
                     onClick={handleGenerateAccessCode}
-                    className="w-9 h-9 rounded-full bg-yellow-100 hover:bg-yellow-200 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 rounded-full bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 flex items-center justify-center transition-colors"
                     title={t.generateAccessCode}
                   >
-                    <Key className="w-5 h-5 text-yellow-600" />
+                    <Key className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                   </button>
                 )}
                 
                 {/* Message Search Button */}
                 <button 
                   onClick={() => setShowMessageSearch(true)}
-                  className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
                   title={t.searchMessages}
                 >
-                  <MagnifyingGlass className="w-5 h-5 text-gray-600" />
+                  <MagnifyingGlass className="w-5 h-5 text-muted-foreground" />
                 </button>
                 
                 <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
                   <DialogTrigger asChild>
-                    <button className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                      <Plus className="w-5 h-5 text-gray-600" />
+                    <button className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+                      <Plus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </DialogTrigger>
                   <DialogContent>
@@ -1171,8 +1171,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
                 <Dialog open={showJoinConversation} onOpenChange={setShowJoinConversation}>
                   <DialogTrigger asChild>
-                    <button className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                      <UserPlus className="w-5 h-5 text-gray-600" />
+                    <button className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+                      <UserPlus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </DialogTrigger>
                   <DialogContent>
@@ -1205,9 +1205,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             <Dialog open={showUserSearch} onOpenChange={setShowUserSearch}>
               <DialogTrigger asChild>
                 <div className="relative">
-                  <MagnifyingGlass className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                  <MagnifyingGlass className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <input
-                    className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-full text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                    className="w-full pl-10 pr-4 py-2 bg-muted rounded-full text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-background transition-all border border-border"
                     placeholder={t.searchConversations}
                     readOnly
                   />
@@ -1281,8 +1281,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             {conversations?.map((conversation) => (
               <div
                 key={conversation.id}
-                className={`p-3 hover:bg-gray-50 cursor-pointer facebook-conversation-item ${
-                  activeConversation?.id === conversation.id ? 'facebook-conversation-active' : ''
+                className={`p-3 hover:bg-muted/50 cursor-pointer facebook-conversation-item border-l-4 ${
+                  activeConversation?.id === conversation.id 
+                    ? 'bg-muted/70 border-l-primary facebook-conversation-active' 
+                    : 'border-l-transparent'
                 }`}
                 onClick={() => selectConversation(conversation)}
               >
@@ -1293,15 +1295,15 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                        conversation.otherParticipant?.username?.substring(0, 2).toUpperCase() ||
                        (conversation.name || 'PC').substring(0, 2).toUpperCase()}
                     </div>
-                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full facebook-online-indicator ${
+                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-card rounded-full facebook-online-indicator ${
                       conversation.otherParticipant?.status === 'online' ? 'bg-green-500' :
-                      conversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                      conversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-muted-foreground'
                     }`}></div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <h3 className="font-semibold text-gray-900 text-sm truncate">
+                        <h3 className="font-semibold text-foreground text-sm truncate">
                           {conversation.otherParticipant?.display_name || 
                            conversation.otherParticipant?.username ||
                            conversation.name || 'Private Conversation'}
@@ -1312,15 +1314,15 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                           </div>
                         )}
                       </div>
-                      <span className="text-xs text-gray-500">{getLastMessageTime(conversation.id)}</span>
+                      <span className="text-xs text-muted-foreground">{getLastMessageTime(conversation.id)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600 truncate">
+                      <p className="text-sm text-muted-foreground truncate">
                         {getLastMessagePreview(conversation.id)}
                       </p>
                       {conversation.access_code && (
                         <button
-                          className="ml-2 text-xs text-blue-600 hover:text-blue-800"
+                          className="ml-2 text-xs text-primary hover:text-primary/80"
                           onClick={(e) => {
                             e.stopPropagation()
                             navigator.clipboard.writeText(conversation.access_code!)
@@ -1352,24 +1354,38 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col h-full">
+        <div className={`${activeConversation ? 'flex' : 'hidden lg:flex'} flex-1 flex-col h-full`}>
           {activeConversation ? (
             <>
+              {/* Mobile Back Button */}
+              <div className="lg:hidden p-2 border-b border-border bg-card">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveConversation(null)}
+                  className="gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to Chats
+                </Button>
+              </div>
               {/* Chat Header */}
-              <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="p-4 border-b border-border bg-card">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold shadow-sm relative">
                     {activeConversation.otherParticipant?.display_name?.substring(0, 2).toUpperCase() || 
                      activeConversation.otherParticipant?.username?.substring(0, 2).toUpperCase() ||
                      (activeConversation.name || 'PC').substring(0, 2).toUpperCase()}
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full ${
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-card rounded-full ${
                       activeConversation.otherParticipant?.status === 'online' ? 'bg-green-500' :
-                      activeConversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                      activeConversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-muted-foreground'
                     }`}></div>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h2 className="font-semibold text-gray-900">
+                      <h2 className="font-semibold text-foreground">
                         {activeConversation.otherParticipant?.display_name || 
                          activeConversation.otherParticipant?.username ||
                          activeConversation.name || 'Private Conversation'}
@@ -1380,22 +1396,22 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <span>{t.activeNow}</span>
                       <Lock className="w-3 h-3 ml-2" />
                       {/* Access Code Display */}
                       {activeConversation.access_code && (
-                        <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-yellow-50 rounded text-xs border border-yellow-200">
+                        <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded text-xs border border-yellow-200 dark:border-yellow-800">
                           <Key className="w-3 h-3 text-yellow-600" />
-                          <span className="font-mono text-yellow-800">{activeConversation.access_code}</span>
+                          <span className="font-mono text-yellow-800 dark:text-yellow-300">{activeConversation.access_code}</span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               navigator.clipboard.writeText(activeConversation.access_code!)
                               toast.success(t.accessCodeCopied)
                             }}
-                            className="ml-1 text-yellow-600 hover:text-yellow-800"
+                            className="ml-1 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
                             title={t.copyAccessCode}
                           >
                             <Copy className="w-3 h-3" />
@@ -1405,8 +1421,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                <div className="flex items-center gap-3 mt-3">
+                  <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                     🛡️ Encrypted
                   </Badge>
                   
@@ -1432,7 +1448,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     title={t.generateAccessCode}
                   >
                     {generatingAccessCode ? (
-                      <div className="w-3 h-3 border border-gray-300 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3 h-3 border border-muted-foreground border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <Key className="w-3 h-3" />
                     )}
@@ -1442,7 +1458,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 bg-gray-50 facebook-chat-scroll">
+              <div className="flex-1 overflow-y-auto p-4 bg-muted/30 facebook-chat-scroll">
                 <div className="space-y-3">
                   {getFilteredMessages().map((message, index) => {
                     const isOwn = message.sender_id === currentUser.id
@@ -1512,7 +1528,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                               <p className="text-sm leading-relaxed">{message.encrypted_content as string}</p>
                             )}
                           </div>
-                          <div className={`flex items-center gap-1 mt-1 text-xs text-gray-500 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`flex items-center gap-1 mt-1 text-xs text-muted-foreground ${isOwn ? 'justify-end' : 'justify-start'}`}>
                             <span>{formatTime(message.timestamp)}</span>
                             {isOwn && (
                               <div className="flex items-center">
@@ -1529,7 +1545,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 bg-white border-t border-gray-200">
+              <div className="p-4 bg-card border-t border-border">
                 {showVoiceRecorder ? (
                   <VoiceRecorder
                     onVoiceMessage={handleSendVoiceMessage}
@@ -1543,19 +1559,19 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     {/* File Attachment Button */}
                     <button
                       onClick={() => setShowFileAttachment(true)}
-                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                      className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
                       title={t.attachFile}
                     >
-                      <Paperclip className="w-5 h-5 text-gray-600" />
+                      <Paperclip className="w-5 h-5 text-muted-foreground" />
                     </button>
                     
                     {/* Voice Recording Button */}
                     <button
                       onClick={() => setShowVoiceRecorder(true)}
-                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                      className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
                       title="Record Voice Message"
                     >
-                      <Microphone className="w-5 h-5 text-gray-600" />
+                      <Microphone className="w-5 h-5 text-muted-foreground" />
                     </button>
                     
                     <div className="flex-1 relative">
@@ -1566,16 +1582,16 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && !isEncrypting && handleSendMessage()}
                         disabled={isEncrypting}
-                        className="w-full px-4 py-3 bg-gray-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                        className="w-full px-4 py-3 bg-muted rounded-full border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
                       />
                     </div>
                     <button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() || isEncrypting}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center facebook-send-button ${
+                      className={`w-10 h-10 rounded-full flex items-center justify-center facebook-send-button transition-all ${
                         newMessage.trim() && !isEncrypting
-                          ? 'bg-blue-500 text-white hover:bg-blue-600'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'bg-muted text-muted-foreground cursor-not-allowed'
                       }`}
                     >
                       {isEncrypting ? (
@@ -1586,20 +1602,20 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     </button>
                   </div>
                 )}
-                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <Lock className="w-3 h-3" />
                   <span>{t.messagesEncrypted}</span>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="flex-1 flex items-center justify-center bg-muted/30">
               <div className="text-center max-w-sm">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <ChatCircle className="w-10 h-10 text-blue-500" />
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <ChatCircle className="w-10 h-10 text-primary" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">{t.yourMessages}</h2>
-                <p className="text-gray-600 mb-6">
+                <h2 className="text-xl font-semibold text-foreground mb-2">{t.yourMessages}</h2>
+                <p className="text-muted-foreground mb-6">
                   {t.sendPrivatePhotos}
                 </p>
                 <Button onClick={() => setShowNewConversation(true)} className="facebook-button">
