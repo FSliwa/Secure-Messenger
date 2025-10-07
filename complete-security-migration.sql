@@ -17,12 +17,11 @@
 CREATE TABLE IF NOT EXISTS public.account_lockouts (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL,
-  reason text NOT NULL,
+  reason text NOT NULL CHECK (reason IN ('failed_login', 'suspicious_activity', 'admin_action', 'security_violation')),
   locked_until timestamp with time zone NOT NULL,
-  locked_by text,
+  locked_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
-  lockout_reason text CHECK (lockout_reason IN ('failed_login', 'suspicious_activity', 'admin_action', 'security_violation')),
   unlock_attempts integer DEFAULT 0,
   is_permanent boolean DEFAULT false,
   unlock_token text UNIQUE,
@@ -150,7 +149,7 @@ ALTER COLUMN is_resolved SET NOT NULL;
 -- INDEKSY DLA WYDAJNOŚCI
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_account_lockouts_user_id ON public.account_lockouts(user_id);
-CREATE INDEX IF NOT EXISTS idx_account_lockouts_unlocks_at ON public.account_lockouts(locked_until);
+CREATE INDEX IF NOT EXISTS idx_account_lockouts_locked_until ON public.account_lockouts(locked_until);
 CREATE INDEX IF NOT EXISTS idx_account_lockouts_is_active ON public.account_lockouts(is_active);
 
 CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON public.login_attempts(email);
@@ -321,7 +320,7 @@ CREATE OR REPLACE FUNCTION public.unlock_account(user_uuid uuid)
 RETURNS boolean AS $$
 BEGIN
   UPDATE public.account_lockouts 
-  SET locked_until = NOW(), is_active = false
+  SET is_active = false
   WHERE user_id = user_uuid 
   AND (locked_until IS NULL OR locked_until > NOW())
   AND NOT is_permanent;
