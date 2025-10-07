@@ -385,8 +385,9 @@ function AppContent() {
       </main>
       
       <Footer />
+      
       <Toaster 
-        position="top-center" 
+        position="top-center"
         toastOptions={{
           className: 'text-sm sm:text-base',
           style: {
@@ -408,7 +409,7 @@ function App() {
         </NotificationProvider>
       </LanguageProvider>
     </ThemeProvider>
-  )
+  );
 }
 
 export default App;
