@@ -404,9 +404,9 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? (
-                          <EyeSlash className="h-5 w-5 opacity-90" />
+                          <EyeSlash className="h-5 w-5 icon-enhanced" />
                         ) : (
-                          <Eye className="h-5 w-5 opacity-90" />
+                          <Eye className="h-5 w-5 icon-enhanced" />
                         )}
                       </button>
                     </div>
@@ -421,7 +421,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   <div className="pt-2">
                     <Button
                       type="submit"
-                      className="w-full facebook-button h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base sm:text-lg shadow-sm"
+                      className="w-full facebook-button h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base sm:text-lg shadow-md hover:shadow-lg transition-all btn-text-enhanced"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -469,7 +469,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
               {loginStep === '2fa' && (
                 <div className="space-y-6 sm:space-y-8">
                   <div className="text-center mb-6 sm:mb-8">
-                    <ShieldCheck className="h-10 w-10 sm:h-12 sm:w-12 text-primary mx-auto mb-4 sm:mb-6" />
+                    <ShieldCheck className="h-12 w-12 sm:h-14 sm:w-14 text-primary mx-auto mb-4 sm:mb-6 icon-enhanced" />
                   </div>
                   
                   <div className="space-y-2">

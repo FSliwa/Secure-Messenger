@@ -55,25 +55,25 @@ body {
 
 /* Ensure proper foreground text color in light mode - Enhanced contrast */
 :root {
-  /* SecureChat Facebook-inspired Theme Colors - Light Mode - Enhanced Readability */
-  --background: oklch(0.98 0.005 220);  /* Slightly brighter background */
-  --foreground: oklch(0.08 0.02 240);  /* Much darker text for better contrast */
+  /* SecureChat Facebook-inspired Theme Colors - Light Mode - Maximum Readability */
+  --background: oklch(0.99 0.003 220);  /* Bright clean background */
+  --foreground: oklch(0.05 0.02 240);  /* Very dark text for maximum contrast */
   --card: oklch(1.0 0 0);  /* Pure white cards */
-  --card-foreground: oklch(0.08 0.02 240);  /* Ensure card text is very dark */
+  --card-foreground: oklch(0.05 0.02 240);  /* Very dark card text */
   --popover: oklch(1.0 0 0);
-  --popover-foreground: oklch(0.08 0.02 240);
+  --popover-foreground: oklch(0.05 0.02 240);
   
-  /* Primary Blue - Facebook-style blue with better contrast */
-  --primary: oklch(0.42 0.16 250);  /* Slightly darker Facebook blue for better readability */
-  --primary-foreground: oklch(0.98 0.01 240);
+  /* Primary Blue - Facebook-style blue with enhanced contrast */
+  --primary: oklch(0.40 0.17 250);  /* Darker Facebook blue for better readability */
+  --primary-foreground: oklch(1.0 0 0);  /* Pure white text on primary */
   
-  /* Secondary - Elegant grays with better contrast */
-  --secondary: oklch(0.94 0.01 240);  /* Slightly darker gray */
-  --secondary-foreground: oklch(0.20 0.02 240);  /* Much darker text */
+  /* Secondary - Elegant grays with enhanced contrast */
+  --secondary: oklch(0.92 0.01 240);  /* Darker gray background */
+  --secondary-foreground: oklch(0.15 0.02 240);  /* Very dark text */
   
-  /* Muted - Sophisticated subtle tones with better readability */
-  --muted: oklch(0.95 0.005 240);  /* Slightly darker background */
-  --muted-foreground: oklch(0.35 0.02 240);  /* Much darker muted text */
+  /* Muted - Sophisticated subtle tones with enhanced readability */
+  --muted: oklch(0.94 0.005 240);  /* Darker muted background */
+  --muted-foreground: oklch(0.30 0.02 240);  /* Darker muted text for better contrast */
   
   /* Accent Green - Facebook-style accent green */
   --accent: oklch(0.45 0.12 145);  /* Slightly darker green for better contrast */
@@ -975,12 +975,40 @@ body {
 
 /* Enhanced icon visibility utilities */
 .icon-enhanced {
-  opacity: 0.95;
-  transition: opacity 0.2s ease;
+  opacity: 1;
+  transition: all 0.2s ease;
+  filter: brightness(1.1) contrast(1.2);
 }
 
 .icon-enhanced:hover {
   opacity: 1;
+  filter: brightness(1.2) contrast(1.3);
+  transform: scale(1.05);
+}
+
+/* Icon size utilities for better visibility */
+.icon-xs {
+  @apply w-4 h-4;
+  min-width: 16px;
+  min-height: 16px;
+}
+
+.icon-sm {
+  @apply w-5 h-5;
+  min-width: 20px;
+  min-height: 20px;
+}
+
+.icon-md {
+  @apply w-6 h-6;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.icon-lg {
+  @apply w-8 h-8;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 /* High contrast text utilities */

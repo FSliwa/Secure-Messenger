@@ -15,13 +15,13 @@ export function Header({ onLoginClick }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full bg-background border-b border-border/40 shadow-sm">
       {/* Full width container with proper alignment to match registration card */}
-      <div className="w-full flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 max-w-screen-xl mx-auto">
+      <div className="w-full flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 max-w-6xl mx-auto">
         {/* Left side - Logo and Search - aligned to SecureChat Pro text */}
         <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
           {/* Logo with enhanced visibility */}
           <div className="flex items-center space-x-2 flex-shrink-0">
-            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-primary text-primary-foreground facebook-button shadow-sm">
-              <ChatCircle className="h-5 w-5 sm:h-6 sm:w-6 opacity-100" weight="fill" />
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-primary text-primary-foreground facebook-button shadow-md">
+              <ChatCircle className="h-5 w-5 sm:h-6 sm:w-6 icon-enhanced" weight="fill" />
             </div>
             <span className="text-lg sm:text-xl font-bold text-foreground hidden sm:block">SecureChat Pro</span>
           </div>
@@ -29,7 +29,7 @@ export function Header({ onLoginClick }: HeaderProps) {
           {/* Search Bar - Facebook style with better contrast */}
           <div className="hidden md:flex flex-1 max-w-xs">
             <div className="relative w-full">
-              <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-foreground/60" />
+              <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-foreground/80 icon-enhanced" />
               <Input
                 type="text"
                 placeholder="Search SecureChat"
@@ -45,9 +45,9 @@ export function Header({ onLoginClick }: HeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="md:hidden w-9 h-9 rounded-full hover:bg-muted/70 text-foreground/70 hover:text-foreground facebook-button"
+            className="md:hidden w-9 h-9 rounded-full hover:bg-muted/70 text-foreground hover:text-foreground facebook-button"
           >
-            <MagnifyingGlass className="h-5 w-5 opacity-90" />
+            <MagnifyingGlass className="h-5 w-5 icon-enhanced" />
           </Button>
           
           {/* Theme and Language Switchers with better contrast */}
@@ -59,7 +59,7 @@ export function Header({ onLoginClick }: HeaderProps) {
           {/* Login Button with enhanced visibility */}
           <Button
             onClick={onLoginClick}
-            className="facebook-button bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base font-semibold rounded-md shadow-sm border border-primary/20"
+            className="facebook-button bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 sm:px-5 sm:py-2.5 text-sm sm:text-base font-bold rounded-md shadow-md border border-primary/10 transition-all hover:shadow-lg btn-text-enhanced"
           >
             {t.signIn}
           </Button>
