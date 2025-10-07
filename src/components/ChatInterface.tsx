@@ -158,12 +158,38 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const [passwordDialogMode, setPasswordDialogMode] = useState<'set' | 'verify'>('verify')
   const [passwordProtectedConversation, setPasswordProtectedConversation] = useState<string | null>(null)
   const [conversationAccess, setConversationAccess] = useState<Record<string, boolean>>({})
+  const [passwordDialogConversationName, setPasswordDialogConversationName] = useState<string>('')
+  const [passwordDialogHint, setPasswordDialogHint] = useState<string | null>(null)
+  const [passwordDialogOnSuccess, setPasswordDialogOnSuccess] = useState<(() => void) | null>(null)
   
   // Voice recording state
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
   const [isRecordingVoice, setIsRecordingVoice] = useState(false)
   
+  // State for tracking password-protected conversations
+  const [passwordProtectedConversations, setPasswordProtectedConversations] = useState<Set<string>>(new Set())
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Check if conversation is password protected
+  useEffect(() => {
+    const checkPasswordProtection = async () => {
+      if (!conversations || conversations.length === 0) return
+
+      const protectedConversations = new Set<string>()
+      
+      for (const conversation of conversations) {
+        const passwordInfo = await ConversationPasswordManager.getConversationPasswordInfo(conversation.id)
+        if (passwordInfo.hasPassword) {
+          protectedConversations.add(conversation.id)
+        }
+      }
+      
+      setPasswordProtectedConversations(protectedConversations)
+    }
+
+    checkPasswordProtection()
+  }, [conversations])
   
   // Biometric verification hook
   const { 
@@ -264,21 +290,99 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     }
   };
 
-  const handlePasswordSuccess = () => {
-    if (passwordProtectedConversation) {
-      const conversation = conversations?.find(c => c.id === passwordProtectedConversation);
-      if (conversation) {
-        setActiveConversation(conversation);
-        setConversationAccess(prev => ({ ...prev, [passwordProtectedConversation]: true }));
-      }
-      setPasswordProtectedConversation(null);
-    }
-  };
-
   const showSetPasswordDialog = async (conversationId: string) => {
     setPasswordProtectedConversation(conversationId);
     setPasswordDialogMode('set');
+    setPasswordDialogConversationName(activeConversation?.name || 'this conversation');
+    setPasswordDialogHint(null);
+    setPasswordDialogOnSuccess(null);
     setShowPasswordDialog(true);
+  };
+
+  // Check conversation access and prompt for password if needed
+  const checkConversationAccess = async (conversation: Conversation): Promise<boolean> => {
+    const passwordInfo = await ConversationPasswordManager.getConversationPasswordInfo(conversation.id);
+    
+    if (!passwordInfo.hasPassword) {
+      return true; // No password protection
+    }
+    
+    // Check if user already has access
+    const hasAccess = await ConversationPasswordManager.hasConversationAccess(conversation.id);
+    
+    if (hasAccess) {
+      setConversationAccess(prev => ({ ...prev, [conversation.id]: true }));
+      return true;
+    }
+    
+    // Show password dialog
+    setPasswordProtectedConversation(conversation.id);
+    setPasswordDialogMode('verify');
+    setPasswordDialogConversationName(conversation.name || conversation.otherParticipant?.display_name || 'this conversation');
+    setPasswordDialogHint(passwordInfo.hint);
+    setPasswordDialogOnSuccess(() => () => {
+      // Reload messages after successful password verification
+      loadConversationMessages(conversation);
+    });
+    setShowPasswordDialog(true);
+    
+    return false; // Access not granted yet
+  };
+
+  // Separate function to load conversation messages
+  const loadConversationMessages = async (conversation: Conversation) => {
+    try {
+      const conversationMessages = await getConversationMessages(conversation.id, 50, 0);
+      
+      // Transform database messages to our Message interface
+      const transformedMessages: Message[] = conversationMessages.reverse().map((dbMessage: any) => ({
+        id: dbMessage.id,
+        conversation_id: dbMessage.conversation_id,
+        sender_id: dbMessage.sender_id,
+        senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
+        encrypted_content: typeof dbMessage.encrypted_content === 'string' 
+          ? JSON.parse(dbMessage.encrypted_content) 
+          : dbMessage.encrypted_content,
+        timestamp: new Date(dbMessage.sent_at).getTime(),
+        status: 'delivered' as const,
+        isEncrypted: true,
+        type: 'text' as const
+      }));
+
+      // Replace messages for this conversation
+      setMessages((currentMessages) => {
+        const otherConversationMessages = (currentMessages || []).filter(
+          msg => msg.conversation_id !== conversation.id
+        );
+        return [...otherConversationMessages, ...transformedMessages];
+      });
+
+      // Set up real-time subscription
+      const subscription = subscribeToMessages(conversation.id, (newMessage) => {
+        const transformedMessage: Message = {
+          id: newMessage.id,
+          conversation_id: newMessage.conversation_id,
+          sender_id: newMessage.sender_id,
+          senderName: 'New User', // Real name would be fetched via additional query
+          encrypted_content: typeof newMessage.encrypted_content === 'string' 
+            ? JSON.parse(newMessage.encrypted_content) 
+            : newMessage.encrypted_content,
+          timestamp: new Date(newMessage.sent_at).getTime(),
+          status: 'delivered',
+          isEncrypted: true,
+          type: 'text'
+        };
+
+        setMessages((currentMessages) => [...(currentMessages || []), transformedMessage]);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      toast.error('Failed to load messages');
+    }
   };
 
   // Load messages when active conversation changes
@@ -289,58 +393,16 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         return
       }
 
-      try {
-        const conversationMessages = await getConversationMessages(activeConversation.id, 50, 0)
-        
-        // Transform database messages to our Message interface
-        const transformedMessages: Message[] = conversationMessages.reverse().map((dbMessage: any) => ({
-          id: dbMessage.id,
-          conversation_id: dbMessage.conversation_id,
-          sender_id: dbMessage.sender_id,
-          senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
-          encrypted_content: typeof dbMessage.encrypted_content === 'string' 
-            ? JSON.parse(dbMessage.encrypted_content) 
-            : dbMessage.encrypted_content,
-          timestamp: new Date(dbMessage.sent_at).getTime(),
-          status: 'delivered' as const,
-          isEncrypted: true,
-          type: 'text' as const
-        }))
-
-        // Replace messages for this conversation
-        setMessages((currentMessages) => {
-          const otherConversationMessages = (currentMessages || []).filter(
-            msg => msg.conversation_id !== activeConversation.id
-          )
-          return [...otherConversationMessages, ...transformedMessages]
-        })
-
-        // Set up real-time subscription
-        const subscription = subscribeToMessages(activeConversation.id, (newMessage) => {
-          const transformedMessage: Message = {
-            id: newMessage.id,
-            conversation_id: newMessage.conversation_id,
-            sender_id: newMessage.sender_id,
-            senderName: 'New User', // Real name would be fetched via additional query
-            encrypted_content: typeof newMessage.encrypted_content === 'string' 
-              ? JSON.parse(newMessage.encrypted_content) 
-              : newMessage.encrypted_content,
-            timestamp: new Date(newMessage.sent_at).getTime(),
-            status: 'delivered',
-            isEncrypted: true,
-            type: 'text'
-          }
-
-          setMessages((currentMessages) => [...(currentMessages || []), transformedMessage])
-        })
-
-        return () => {
-          subscription.unsubscribe()
-        }
-      } catch (error) {
-        console.error('Failed to load messages:', error)
-        toast.error('Failed to load messages')
+      // Check conversation access (including password protection)
+      const hasAccess = await checkConversationAccess(activeConversation);
+      
+      if (hasAccess) {
+        // Load messages if access is granted
+        return await loadConversationMessages(activeConversation);
       }
+      
+      // If access not granted, messages will be loaded after password verification
+      return undefined;
     }
 
     loadMessages()
@@ -718,6 +780,32 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }
 
   const handleDecryptMessage = async (message: Message) => {
+    if (!keyPair || typeof message.encrypted_content === 'string') return
+    
+    // Check if conversation has password protection
+    const passwordInfo = await ConversationPasswordManager.getConversationPasswordInfo(message.conversation_id)
+    
+    if (passwordInfo.hasPassword) {
+      // Check if user already has access to this conversation
+      const hasAccess = await ConversationPasswordManager.hasConversationAccess(message.conversation_id)
+      
+      if (!hasAccess) {
+        // Show password dialog before decrypting
+        setPasswordProtectedConversation(message.conversation_id)
+        setPasswordDialogMode('verify')
+        setPasswordDialogConversationName(activeConversation?.name || 'this conversation')
+        setPasswordDialogHint(passwordInfo.hint)
+        setPasswordDialogOnSuccess(() => () => performMessageDecryption(message))
+        setShowPasswordDialog(true)
+        return
+      }
+    }
+    
+    // Proceed with decryption if no password or access already granted
+    await performMessageDecryption(message)
+  }
+
+  const performMessageDecryption = async (message: Message) => {
     if (!keyPair || typeof message.encrypted_content === 'string') return
       
     setIsDecrypting(true)
@@ -1161,11 +1249,18 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-gray-900 text-sm truncate">
-                        {conversation.otherParticipant?.display_name || 
-                         conversation.otherParticipant?.username ||
-                         conversation.name || 'Private Conversation'}
-                      </h3>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm truncate">
+                          {conversation.otherParticipant?.display_name || 
+                           conversation.otherParticipant?.username ||
+                           conversation.name || 'Private Conversation'}
+                        </h3>
+                        {passwordProtectedConversations.has(conversation.id) && (
+                          <div className="flex-shrink-0" title="Password protected conversation">
+                            <Lock className="w-3 h-3 text-amber-600" />
+                          </div>
+                        )}
+                      </div>
                       <span className="text-xs text-gray-500">{getLastMessageTime(conversation.id)}</span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -1222,11 +1317,18 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     }`}></div>
                   </div>
                   <div className="flex-1">
-                    <h2 className="font-semibold text-gray-900">
-                      {activeConversation.otherParticipant?.display_name || 
-                       activeConversation.otherParticipant?.username ||
-                       activeConversation.name || 'Private Conversation'}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-semibold text-gray-900">
+                        {activeConversation.otherParticipant?.display_name || 
+                         activeConversation.otherParticipant?.username ||
+                         activeConversation.name || 'Private Conversation'}
+                      </h2>
+                      {passwordProtectedConversations.has(activeConversation.id) && (
+                        <div title="Password protected conversation">
+                          <Lock className="w-4 h-4 text-amber-600" />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <span>{t.activeNow}</span>
@@ -1558,17 +1660,25 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         onClose={() => {
           setShowPasswordDialog(false);
           setPasswordProtectedConversation(null);
+          setPasswordDialogOnSuccess(null);
         }}
         mode={passwordDialogMode}
         conversationId={passwordProtectedConversation || ''}
-        conversationName={
-          passwordProtectedConversation 
-            ? conversations?.find(c => c.id === passwordProtectedConversation)?.name || 
-              conversations?.find(c => c.id === passwordProtectedConversation)?.otherParticipant?.display_name ||
-              undefined
-            : undefined
-        }
-        onSuccess={handlePasswordSuccess}
+        conversationName={passwordDialogConversationName}
+        passwordHint={passwordDialogHint || undefined}
+        onSuccess={() => {
+          // Call the stored success callback if it exists
+          if (passwordDialogOnSuccess) {
+            passwordDialogOnSuccess();
+          }
+          // Update conversation access state
+          if (passwordProtectedConversation) {
+            setConversationAccess(prev => ({
+              ...prev,
+              [passwordProtectedConversation]: true
+            }));
+          }
+        }}
       />
     </div>
   )
