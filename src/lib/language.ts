@@ -120,6 +120,22 @@ export interface LanguageContent {
   secureChatTitle: string
   secureChatSubtitle: string
   getStarted: string
+  
+  // Voice Messages
+  voiceRecordingNotSupported: string
+  voiceMessageRecorded: string
+  recordingFailed: string
+  playbackFailed: string
+  microphonePermissionDenied: string
+  recordingStarted: string
+  microphoneAccessRequired: string
+  requestPermission: string
+  recordingPaused: string
+  recording: string
+  tapToStartRecording: string
+  maxDuration: string
+  voiceMessage: string
+  failedToLoadVoiceMessage: string
 }
 
 export const languages: Record<string, LanguageContent> = {
@@ -244,7 +260,23 @@ export const languages: Record<string, LanguageContent> = {
     // Hero Section
     secureChatTitle: "Secure Messaging for Everyone",
     secureChatSubtitle: "End-to-end encrypted conversations with post-quantum cryptography",
-    getStarted: "Get Started"
+    getStarted: "Get Started",
+    
+    // Voice Messages
+    voiceRecordingNotSupported: "Voice recording is not supported in this browser",
+    voiceMessageRecorded: "Voice message recorded successfully",
+    recordingFailed: "Failed to record voice message",
+    playbackFailed: "Failed to play voice message",
+    microphonePermissionDenied: "Microphone permission denied",
+    recordingStarted: "Recording started",
+    microphoneAccessRequired: "Microphone Access Required",
+    requestPermission: "Request Permission",
+    recordingPaused: "Recording Paused",
+    recording: "Recording",
+    tapToStartRecording: "Tap to start recording",
+    maxDuration: "Max duration",
+    voiceMessage: "Voice Message",
+    failedToLoadVoiceMessage: "Failed to load voice message"
   },
   
   pl: {
@@ -368,7 +400,23 @@ export const languages: Record<string, LanguageContent> = {
     // Hero Section
     secureChatTitle: "Bezpieczne wiadomości dla każdego",
     secureChatSubtitle: "Konwersacje szyfrowane end-to-end z kryptografią post-kwantową",
-    getStarted: "Rozpocznij"
+    getStarted: "Rozpocznij",
+    
+    // Voice Messages
+    voiceRecordingNotSupported: "Nagrywanie głosu nie jest obsługiwane w tej przeglądarce",
+    voiceMessageRecorded: "Wiadomość głosowa nagrana pomyślnie",
+    recordingFailed: "Nie udało się nagrać wiadomości głosowej",
+    playbackFailed: "Nie udało się odtworzyć wiadomości głosowej",
+    microphonePermissionDenied: "Odmowa dostępu do mikrofonu",
+    recordingStarted: "Rozpoczęto nagrywanie",
+    microphoneAccessRequired: "Wymagany dostęp do mikrofonu",
+    requestPermission: "Żądaj pozwolenia",
+    recordingPaused: "Nagrywanie wstrzymane",
+    recording: "Nagrywanie",
+    tapToStartRecording: "Naciśnij, aby rozpocząć nagrywanie",
+    maxDuration: "Maksymalny czas",
+    voiceMessage: "Wiadomość głosowa",
+    failedToLoadVoiceMessage: "Nie udało się załadować wiadomości głosowej"
   }
 }
 

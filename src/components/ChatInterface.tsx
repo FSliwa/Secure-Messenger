@@ -26,11 +26,15 @@ import {
   Copy,
   Paperclip,
   EnvelopeSimple,
-  Users
+  Users,
+  Microphone
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { VoiceRecorder } from '@/components/VoiceRecorder'
+import { VoiceMessage } from '@/components/VoiceMessage'
+import { VoiceRecording, VoiceUtils } from '@/lib/voice-recorder'
 import { 
   getStoredKeys, 
   encryptMessage, 
@@ -50,7 +54,6 @@ import {
   generateAccessCode,
   regenerateAccessCode
 } from '@/lib/supabase'
-import { VoiceMessage } from './VoiceMessage'
 import { BiometricVerificationDialog } from './BiometricVerificationDialog'
 import { MessageSearch } from './MessageSearch'
 import { FileAttachment } from './FileAttachment'
@@ -143,6 +146,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const [showUserSearchDialog, setShowUserSearchDialog] = useState(false)
   const [showAddUsersDialog, setShowAddUsersDialog] = useState(false)
   const [userSearchMode, setUserSearchMode] = useState<'chat' | 'add-to-conversation'>('chat')
+  
+  // Voice recording state
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
@@ -450,6 +457,115 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
   const generateAccessCode = () => {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  }
+
+  const handleSendVoiceMessage = async (recording: VoiceRecording) => {
+    if (!activeConversation || !keyPair) return
+
+    // Check if this is the first message in the conversation (sensitive key exchange)
+    const conversationMessages = (messages || []).filter(m => m.conversation_id === activeConversation.id)
+    const isFirstMessage = conversationMessages.length === 0
+    
+    if (isFirstMessage) {
+      await executeWithBiometricVerification(
+        'send the first voice message in this secure conversation',
+        async () => {
+          await performSendVoiceMessage(recording)
+        }
+      )
+    } else {
+      await performSendVoiceMessage(recording)
+    }
+    
+    setShowVoiceRecorder(false)
+  }
+
+  const performSendVoiceMessage = async (recording: VoiceRecording) => {
+    if (!activeConversation || !keyPair) return
+
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // Convert voice recording to base64
+    const voiceBase64 = await VoiceUtils.blobToBase64(recording.blob)
+    
+    // Create initial voice message
+    const initialMessage: Message = {
+      id: messageId,
+      conversation_id: activeConversation.id,
+      sender_id: currentUser.id,
+      senderName: currentUser.displayName || currentUser.username,
+      encrypted_content: voiceBase64,
+      timestamp: recording.timestamp,
+      status: 'sending',
+      isEncrypted: false,
+      type: 'voice',
+      fileSize: recording.size,
+      fileName: `voice-${recording.timestamp}.webm`
+    }
+
+    // Add to messages immediately for instant UI feedback
+    setMessages((currentMessages) => [...(currentMessages || []), initialMessage])
+    setIsEncrypting(true)
+    setShowEncryptionDialog(true)
+
+    try {
+      // Encrypt the voice data
+      const encryptedContent = await encryptMessage(
+        voiceBase64,
+        'recipient-public-key', // Would get from conversation participants
+        keyPair,
+        (progress) => {
+          setEncryptionProgress({
+            ...progress,
+            message: progress.message.replace('message', 'voice message')
+          })
+        }
+      )
+
+      // Send to database with voice metadata
+      const dbMessage = await sendMessage(
+        activeConversation.id,
+        currentUser.id,
+        JSON.stringify(encryptedContent),
+        { 
+          algorithm: 'PQC-AES-256-GCM-RSA2048', 
+          bitLength: 2048,
+          type: 'voice',
+          duration: recording.duration,
+          size: recording.size,
+          waveform: recording.waveform,
+          mime_type: recording.blob.type
+        }
+      )
+
+      // Update message with real database ID and status
+      setMessages((currentMessages) => 
+        (currentMessages || []).map(msg => 
+          msg.id === messageId 
+            ? {
+                ...msg,
+                id: dbMessage.id, // Use real database ID
+                encrypted_content: encryptedContent, 
+                isEncrypted: true,
+                status: 'sent'
+              }
+            : msg
+        )
+      )
+      
+      setShowEncryptionDialog(false)
+      toast.success(t.voiceMessageRecorded)
+      
+    } catch (error) {
+      console.error('Voice message encryption failed:', error)
+      setMessages((currentMessages) => 
+        (currentMessages || []).filter(msg => msg.id !== messageId)
+      )
+      toast.error('Failed to encrypt voice message. Please try again.')
+    } finally {
+      setIsEncrypting(false)
+      setEncryptionProgress(null)
+    }
   }
 
   const handleSendMessage = async () => {
@@ -1129,7 +1245,23 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                                 : 'facebook-chat-bubble-other'
                             }`}
                           >
-                            {message.isEncrypted ? (
+                            {/* Handle different message types */}
+                            {message.type === 'voice' ? (
+                              <VoiceMessage
+                                voiceData={{
+                                  encrypted_content: typeof message.encrypted_content === 'string' 
+                                    ? message.encrypted_content 
+                                    : JSON.stringify(message.encrypted_content),
+                                  duration: message.fileSize ? message.fileSize / 1000 : 30, // Approximate duration
+                                  size: message.fileSize || 0,
+                                  timestamp: message.timestamp,
+                                  mime_type: message.fileType || 'audio/webm'
+                                }}
+                                isOwn={isOwn}
+                                conversationKey={activeConversation.access_code || 'default-key'}
+                                className="voice-message-in-chat"
+                              />
+                            ) : message.isEncrypted ? (
                               <div className="space-y-2">
                                 <div className={`flex items-center gap-2 text-xs ${isOwn ? 'text-blue-100' : 'text-gray-500'}`}>
                                   <Lock className="w-3 h-3" />
@@ -1175,43 +1307,62 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
               {/* Message Input */}
               <div className="p-4 bg-white border-t border-gray-200">
-                <div className="flex items-end gap-3">
-                  {/* File Attachment Button */}
-                  <button
-                    onClick={() => setShowFileAttachment(true)}
-                    className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                    title={t.attachFile}
-                  >
-                    <Paperclip className="w-5 h-5 text-gray-600" />
-                  </button>
-                  
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      placeholder={t.typeMessage}
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && !isEncrypting && handleSendMessage()}
-                      disabled={isEncrypting}
-                      className="w-full px-4 py-3 bg-gray-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                    />
+                {showVoiceRecorder ? (
+                  <VoiceRecorder
+                    onVoiceMessage={handleSendVoiceMessage}
+                    onCancel={() => setShowVoiceRecorder(false)}
+                    maxDuration={300} // 5 minutes
+                    disabled={isEncrypting}
+                    className="mb-4"
+                  />
+                ) : (
+                  <div className="flex items-end gap-3">
+                    {/* File Attachment Button */}
+                    <button
+                      onClick={() => setShowFileAttachment(true)}
+                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                      title={t.attachFile}
+                    >
+                      <Paperclip className="w-5 h-5 text-gray-600" />
+                    </button>
+                    
+                    {/* Voice Recording Button */}
+                    <button
+                      onClick={() => setShowVoiceRecorder(true)}
+                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                      title="Record Voice Message"
+                    >
+                      <Microphone className="w-5 h-5 text-gray-600" />
+                    </button>
+                    
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        placeholder={t.typeMessage}
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && !isEncrypting && handleSendMessage()}
+                        disabled={isEncrypting}
+                        className="w-full px-4 py-3 bg-gray-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                      />
+                    </div>
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || isEncrypting}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center facebook-send-button ${
+                        newMessage.trim() && !isEncrypting
+                          ? 'bg-blue-500 text-white hover:bg-blue-600'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isEncrypting ? (
+                        <Shield className="w-5 h-5 animate-pulse" />
+                      ) : (
+                        <PaperPlaneRight className="w-5 h-5" />
+                      )}
+                    </button>
                   </div>
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim() || isEncrypting}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center facebook-send-button ${
-                      newMessage.trim() && !isEncrypting
-                        ? 'bg-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {isEncrypting ? (
-                      <Shield className="w-5 h-5 animate-pulse" />
-                    ) : (
-                      <PaperPlaneRight className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
+                )}
                 <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
                   <Lock className="w-3 h-3" />
                   <span>{t.messagesEncrypted}</span>
