@@ -11,7 +11,7 @@ import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { DatabaseInit } from "@/components/DatabaseInit";
 import { PasswordResetHandler } from "@/components/PasswordResetHandler";
 import { AuthCallback } from "@/components/AuthCallback";
-import { LanguageProvider } from "@/contexts/LanguageContext";
+import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
@@ -29,7 +29,8 @@ interface User {
 // Authentication states
 type AuthState = 'checking' | 'authenticated' | 'unauthenticated';
 
-function App() {
+function AppContent() {
+  const { t } = useLanguage()
   const [appState, setAppState] = useState<AppState>('database-init');
   const [authState, setAuthState] = useState<AuthState>('checking');
   const [isLoading, setIsLoading] = useState(true);
@@ -245,30 +246,30 @@ function App() {
   // Database initialization screen
   if (appState === 'database-init') {
     return (
-      <LanguageProvider>
+      <>
         <DatabaseInit onComplete={handleDatabaseReady} />
         <Toaster position="top-center" />
-      </LanguageProvider>
+      </>
     );
   }
 
   // Auth callback screen
   if (appState === 'auth-callback') {
     return (
-      <LanguageProvider>
+      <>
         <AuthCallback />
         <Toaster position="top-center" />
-      </LanguageProvider>
+      </>
     );
   }
 
   // Password reset screen
   if (appState === 'reset-password') {
     return (
-      <LanguageProvider>
+      <>
         <PasswordResetHandler />
         <Toaster position="top-center" />
-      </LanguageProvider>
+      </>
     );
   }
 
@@ -301,10 +302,10 @@ function App() {
   // Dashboard screen - Only accessible when authenticated
   if (appState === 'dashboard' && authState === 'authenticated' && currentUser) {
     return (
-      <LanguageProvider>
+      <>
         <Dashboard onLogout={handleLogout} currentUser={currentUser} />
         <Toaster position="top-center" />
-      </LanguageProvider>
+      </>
     );
   }
 
@@ -323,68 +324,74 @@ function App() {
 
   // Landing/Login screens
   return (
-    <LanguageProvider>
-      <div className="min-h-screen bg-background">
-        <Header />
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main>
+        {/* Connection Status Banner */}
+        <div className="container mx-auto max-w-screen-xl px-6 pt-4">
+          <ConnectionBanner />
+        </div>
         
-        <main>
-          {/* Connection Status Banner */}
-          <div className="container mx-auto max-w-screen-xl px-6 pt-4">
-            <ConnectionBanner />
-          </div>
-          
-          {/* Hero and Registration/Login Section */}
-          <section className="py-16 sm:py-20 lg:py-24">
-            <div className="container mx-auto max-w-screen-xl px-6">
-              <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-start">
-                {/* Left Column - Hero */}
-                <div className="order-2 lg:order-1">
-                  <Hero />
-                  <div className="mt-12">
-                    <SecurityCallout />
-                  </div>
-                </div>
-                
-                {/* Right Column - Authentication Forms */}
-                <div className="order-1 lg:order-2 flex flex-col items-center lg:items-end">
-                  {appState === 'login' ? (
-                    <LoginCard 
-                      onSuccess={handleLoginSuccess}
-                      onSwitchToSignUp={handleSwitchToSignUp}
-                    />
-                  ) : (
-                    <SignUpCard 
-                      onSuccess={handleLoginSuccess}
-                      onSwitchToLogin={handleSwitchToLogin}
-                    />
-                  )}
-
-                  {/* Switch between login and signup */}
-                  {appState === 'landing' && (
-                    <div className="mt-8 text-center w-full max-w-md">
-                      <p className="text-sm text-muted-foreground">
-                        Already have an account?{' '}
-                        <button
-                          type="button"
-                          className="text-primary hover:underline font-medium"
-                          onClick={handleSwitchToLogin}
-                        >
-                          Sign in here
-                        </button>
-                      </p>
-                    </div>
-                  )}
+        {/* Hero and Registration/Login Section */}
+        <section className="py-16 sm:py-20 lg:py-24">
+          <div className="container mx-auto max-w-screen-xl px-6">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-start">
+              {/* Left Column - Hero */}
+              <div className="order-2 lg:order-1">
+                <Hero />
+                <div className="mt-12">
+                  <SecurityCallout />
                 </div>
               </div>
+              
+              {/* Right Column - Authentication Forms */}
+              <div className="order-1 lg:order-2 flex flex-col items-center lg:items-end">
+                {appState === 'login' ? (
+                  <LoginCard 
+                    onSuccess={handleLoginSuccess}
+                    onSwitchToSignUp={handleSwitchToSignUp}
+                  />
+                ) : (
+                  <SignUpCard 
+                    onSuccess={handleLoginSuccess}
+                    onSwitchToLogin={handleSwitchToLogin}
+                  />
+                )}
+
+                {/* Switch between login and signup */}
+                {appState === 'landing' && (
+                  <div className="mt-8 text-center w-full max-w-md">
+                    <p className="text-sm text-muted-foreground">
+                      {t.alreadyHaveAccount}{' '}
+                      <button
+                        type="button"
+                        className="text-primary hover:underline font-medium"
+                        onClick={handleSwitchToLogin}
+                      >
+                        {t.signInHere}
+                      </button>
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </section>
-        </main>
-        
-        <Footer />
-        <Toaster position="top-center" />
-      </div>
-    </LanguageProvider>
+          </div>
+        </section>
+      </main>
+      
+      <Footer />
+      <Toaster position="top-center" />
+    </div>
   );
+}
+
+function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
+  )
 }
 
 export default App;

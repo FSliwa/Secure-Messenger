@@ -136,6 +136,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   // New state for message search and file attachments
   const [showMessageSearch, setShowMessageSearch] = useState(false)
   const [showFileAttachment, setShowFileAttachment] = useState(false)
+  const [generatingAccessCode, setGeneratingAccessCode] = useState(false)
   
   // New state for Polish features
   const [showDirectMessage, setShowDirectMessage] = useState(false)
@@ -669,23 +670,27 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }
 
   // Handler for generating new access code
-  const handleGenerateAccessCode = async (conversationId: string) => {
-    if (!conversationId) {
+  const handleGenerateAccessCode = async () => {
+    if (!activeConversation) {
       toast.error('No conversation selected')
       return
     }
 
     try {
-      const newAccessCode = await regenerateAccessCode(conversationId, currentUser.id)
+      setGeneratingAccessCode(true)
+      const newAccessCode = await regenerateAccessCode(activeConversation.id, currentUser.id)
       
       // Update the local conversation
       setConversations(prev => 
         (prev || []).map(conv => 
-          conv.id === conversationId 
+          conv.id === activeConversation.id 
             ? { ...conv, access_code: newAccessCode }
             : conv
         )
       )
+      
+      // Update active conversation
+      setActiveConversation(prev => prev ? { ...prev, access_code: newAccessCode } : null)
       
       toast.success(t.accessCodeGenerated, {
         duration: 8000,
@@ -697,10 +702,11 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           }
         }
       })
-      
     } catch (error) {
-      console.error('Failed to regenerate access code:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to generate access code')
+      console.error('Failed to generate access code:', error)
+      toast.error('Failed to generate access code')
+    } finally {
+      setGeneratingAccessCode(false)
     }
   }
 
@@ -749,7 +755,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 {/* Generate Access Code Button */}
                 {activeConversation && (
                   <button 
-                    onClick={() => handleGenerateAccessCode(activeConversation.id)}
+                    onClick={handleGenerateAccessCode}
                     className="w-9 h-9 rounded-full bg-yellow-100 hover:bg-yellow-200 flex items-center justify-center transition-colors"
                     title={t.generateAccessCode}
                   >
@@ -1022,6 +1028,22 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                     🛡️ Encrypted
                   </Badge>
+                  {/* Generate Access Code Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateAccessCode}
+                    disabled={generatingAccessCode}
+                    className="text-xs gap-1 h-6 px-2"
+                    title={t.generateAccessCode}
+                  >
+                    {generatingAccessCode ? (
+                      <div className="w-3 h-3 border border-gray-300 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Key className="w-3 h-3" />
+                    )}
+                    <span className="hidden sm:inline">{t.generateAccessCode}</span>
+                  </Button>
                 </div>
               </div>
 

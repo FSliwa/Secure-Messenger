@@ -12,6 +12,7 @@ import { signUp, checkUsernameAvailability } from "@/lib/supabase";
 import { SimpleRetryIndicator } from './RetryStatusDisplay'
 import { NetworkStatusIndicator } from './NetworkStatusIndicator'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { 
   executeWithNetworkAwareRetry, 
   RetryResult
@@ -61,6 +62,7 @@ interface FormErrors {
 }
 
 export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -378,8 +380,8 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
           )}
 
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-foreground mb-3">Create a new account</h2>
-            <p className="text-sm text-muted-foreground">It's quick and easy.</p>
+            <h2 className="text-2xl font-bold text-black mb-3">{t.createNewAccount}</h2>
+            <p className="text-sm text-muted-foreground">{t.quickAndEasy}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -387,7 +389,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Input
-                  placeholder="First name"
+                  placeholder={t.firstName}
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   className={`facebook-input ${inputClassName(!!errors.firstName)}`}
@@ -399,7 +401,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
               </div>
               <div>
                 <Input
-                  placeholder="Last name"
+                  placeholder={t.lastName}
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   className={`facebook-input ${inputClassName(!!errors.lastName)}`}
@@ -415,7 +417,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             <div className="space-y-2">
               <div className="relative">
                 <Input
-                  placeholder="Username"
+                  placeholder={t.username}
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
                   className={`facebook-input ${inputClassName(!!errors.username)}`}
@@ -431,7 +433,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 <p className="text-xs text-destructive">{errors.username}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Others will find you by this username to start conversations
+                {t.usernameHelper}
               </p>
             </div>
 
@@ -439,7 +441,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             <div className="space-y-2">
               <Input
                 type="email"
-                placeholder="Email"
+                placeholder={t.email}
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className={`facebook-input ${inputClassName(!!errors.email)}`}
@@ -454,7 +456,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             <div className="space-y-2">
               <Input
                 type="password"
-                placeholder="New password"
+                placeholder={t.newPassword}
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 className={`facebook-input ${inputClassName(!!errors.password)}`}
@@ -476,8 +478,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   className="mt-0.5"
                 />
                 <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed">
-                  By clicking Sign Up, you agree to our Terms, Data Policy and Cookies Policy.
-                  You may receive SMS Notifications from us and can opt out any time.
+                  {t.acceptTerms}
                 </Label>
               </div>
               {errors.acceptTerms && (
@@ -516,7 +517,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                     Try Again
                   </>
                 ) : (
-                  'Sign Up'
+                  t.signUp
                 )}
               </Button>
             </div>
@@ -526,7 +527,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
           <div className="mt-10 text-center">
             <Separator className="mb-8" />
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
+              <span className="font-semibold">{t.createPage}</span>
             </p>
           </div>
         </CardContent>

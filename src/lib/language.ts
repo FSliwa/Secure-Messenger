@@ -65,6 +65,21 @@ export interface LanguageContent {
   copyAccessCode: string
   shareAccessCode: string
   accessCodeInfo: string
+  
+  // Sign Up Form
+  createNewAccount: string
+  quickAndEasy: string
+  firstName: string
+  lastName: string
+  username: string
+  email: string
+  newPassword: string
+  signUp: string
+  acceptTerms: string
+  createPage: string
+  alreadyHaveAccount: string
+  signInHere: string
+  usernameHelper: string
 }
 
 export const languages: Record<string, LanguageContent> = {
@@ -134,7 +149,22 @@ export const languages: Record<string, LanguageContent> = {
     accessCodeGenerated: "Access code generated successfully",
     copyAccessCode: "Copy Access Code",
     shareAccessCode: "Share Access Code",
-    accessCodeInfo: "Share this code with others to let them join your conversation"
+    accessCodeInfo: "Share this code with others to let them join your conversation",
+    
+    // Sign Up Form
+    createNewAccount: "Create a new account",
+    quickAndEasy: "It's quick and easy.",
+    firstName: "First name",
+    lastName: "Last name",
+    username: "Username",
+    email: "Email",
+    newPassword: "New password",
+    signUp: "Sign Up",
+    acceptTerms: "By clicking Sign Up, you agree to our Terms, Data Policy and Cookies Policy. You may receive SMS Notifications from us and can opt out any time.",
+    createPage: "Create a Page for a celebrity, brand or business.",
+    alreadyHaveAccount: "Already have an account?",
+    signInHere: "Sign in here",
+    usernameHelper: "Others will find you by this username to start conversations"
   },
   
   pl: {
@@ -203,7 +233,22 @@ export const languages: Record<string, LanguageContent> = {
     accessCodeGenerated: "Kod dostępu został wygenerowany pomyślnie",
     copyAccessCode: "Kopiuj kod dostępu",
     shareAccessCode: "Udostępnij kod dostępu",
-    accessCodeInfo: "Udostępnij ten kod innym, aby mogli dołączyć do konwersacji"
+    accessCodeInfo: "Udostępnij ten kod innym, aby mogli dołączyć do konwersacji",
+    
+    // Sign Up Form
+    createNewAccount: "Utwórz nowe konto",
+    quickAndEasy: "To szybkie i łatwe.",
+    firstName: "Imię",
+    lastName: "Nazwisko",
+    username: "Nazwa użytkownika",
+    email: "Email",
+    newPassword: "Nowe hasło",
+    signUp: "Zarejestruj się",
+    acceptTerms: "Klikając Zarejestruj się, wyrażasz zgodę na nasze Warunki, Politykę Danych i Politykę Plików Cookie. Możesz otrzymywać powiadomienia SMS od nas i w każdej chwili zrezygnować.",
+    createPage: "Utwórz stronę dla gwiazdy, marki lub firmy.",
+    alreadyHaveAccount: "Masz już konto?",
+    signInHere: "Zaloguj się tutaj",
+    usernameHelper: "Inni znajdą Cię po tej nazwie użytkownika, aby rozpocząć rozmowy"
   }
 }
 
