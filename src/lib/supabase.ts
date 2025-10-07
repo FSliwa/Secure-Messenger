@@ -767,3 +767,44 @@ export const testSupabaseConnection = async () => {
     }
   }
 }
+
+// Generate a random access code for conversations
+export const generateAccessCode = (length: number = 8): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
+// Regenerate access code for existing conversation
+export const regenerateAccessCode = async (conversationId: string, userId: string): Promise<string> => {
+  // Check if user has permission to regenerate access code (is creator or admin)
+  const { data: conversation, error: fetchError } = await supabase
+    .from('conversations')
+    .select('created_by')
+    .eq('id', conversationId)
+    .single()
+
+  if (fetchError) throw fetchError
+  
+  if (conversation.created_by !== userId) {
+    throw new Error('Only conversation creator can regenerate access code')
+  }
+
+  const newAccessCode = generateAccessCode()
+  
+  const { data, error } = await supabase
+    .from('conversations')
+    .update({ 
+      access_code: newAccessCode,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', conversationId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return newAccessCode
+}

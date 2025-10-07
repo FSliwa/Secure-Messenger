@@ -46,7 +46,9 @@ import {
   getUserConversations,
   getConversationMessages,
   sendMessage,
-  subscribeToMessages
+  subscribeToMessages,
+  generateAccessCode,
+  regenerateAccessCode
 } from '@/lib/supabase'
 import { VoiceMessage } from './VoiceMessage'
 import { BiometricVerificationDialog } from './BiometricVerificationDialog'
@@ -666,6 +668,42 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     // and notify all participants about the new members
   }
 
+  // Handler for generating new access code
+  const handleGenerateAccessCode = async (conversationId: string) => {
+    if (!conversationId) {
+      toast.error('No conversation selected')
+      return
+    }
+
+    try {
+      const newAccessCode = await regenerateAccessCode(conversationId, currentUser.id)
+      
+      // Update the local conversation
+      setConversations(prev => 
+        (prev || []).map(conv => 
+          conv.id === conversationId 
+            ? { ...conv, access_code: newAccessCode }
+            : conv
+        )
+      )
+      
+      toast.success(t.accessCodeGenerated, {
+        duration: 8000,
+        action: {
+          label: t.copyAccessCode,
+          onClick: () => {
+            navigator.clipboard.writeText(newAccessCode)
+            toast.success(t.accessCodeCopied)
+          }
+        }
+      })
+      
+    } catch (error) {
+      console.error('Failed to regenerate access code:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to generate access code')
+    }
+  }
+
   return (
     <div className="w-full max-w-full mx-auto bg-white rounded-xl shadow-lg overflow-hidden facebook-card facebook-chat-container">
       <div className="flex h-full">
@@ -705,6 +743,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     title={t.addUsersToConversation}
                   >
                     <Users className="w-5 h-5 text-purple-600" />
+                  </button>
+                )}
+
+                {/* Generate Access Code Button */}
+                {activeConversation && (
+                  <button 
+                    onClick={() => handleGenerateAccessCode(activeConversation.id)}
+                    className="w-9 h-9 rounded-full bg-yellow-100 hover:bg-yellow-200 flex items-center justify-center transition-colors"
+                    title={t.generateAccessCode}
+                  >
+                    <Key className="w-5 h-5 text-yellow-600" />
                   </button>
                 )}
                 
@@ -940,14 +989,32 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     {(activeConversation.name || 'PC').substring(0, 2).toUpperCase()}
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h2 className="font-semibold text-gray-900">
                       {activeConversation.name || 'Private Conversation'}
                     </h2>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <span>{t.activeNow}</span>
                       <Lock className="w-3 h-3 ml-2" />
+                      {/* Access Code Display */}
+                      {activeConversation.access_code && (
+                        <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-yellow-50 rounded text-xs border border-yellow-200">
+                          <Key className="w-3 h-3 text-yellow-600" />
+                          <span className="font-mono text-yellow-800">{activeConversation.access_code}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigator.clipboard.writeText(activeConversation.access_code!)
+                              toast.success(t.accessCodeCopied)
+                            }}
+                            className="ml-1 text-yellow-600 hover:text-yellow-800"
+                            title={t.copyAccessCode}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

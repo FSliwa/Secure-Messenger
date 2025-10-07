@@ -45,7 +45,7 @@ SecureChat Pro is an enterprise-grade encrypted messaging platform with Facebook
 - **All Polish text properly internationalized for both Polish and English
 
 ## Essential Features
-- User authentication and registration
+- User authentication and registration with language selection
 - End-to-end encrypted messaging
 - Two-factor authentication
 - Biometric authentication
@@ -53,14 +53,18 @@ SecureChat Pro is an enterprise-grade encrypted messaging platform with Facebook
 - File sharing capabilities
 - Voice messages
 - User profiles and settings
+- **Access code generation and management for conversations**
+- **Multi-language support (Polish/English) in all interfaces**
 
-### New Features Added
+### New Features Added (December 2024 Update)
 - **Multi-Language Support**: Complete Polish/English localization system
 - **Improved Session Management**: Better handling of authentication states
 - **Enhanced Chat Features**: Fixed message description and Polish feature integration
 - **User Profile Customization**: Comprehensive profile settings with avatar upload, bio, privacy controls, and notification preferences
 - **Message Search & Filtering**: Advanced search across all conversations with filters by type, sender, date range, and content
 - **File Attachment Support**: Secure file sharing with encryption, support for images, documents, videos, audio files, and archives
+- **Access Code Generation**: Generate and regenerate access codes for conversations with secure sharing capabilities
+- **Enhanced Language Switcher**: Language switcher now visible in login, registration, and user panels with persistent preferences
 
 ### Profile Customization Features
 - Avatar upload with thumbnail generation
@@ -87,6 +91,15 @@ SecureChat Pro is an enterprise-grade encrypted messaging platform with Facebook
 - Progress tracking during upload and encryption
 - File type validation and size restrictions
 - Secure file storage with encrypted URLs
+
+### Access Code Management Features
+- **Generate Access Codes**: Create unique 8-character alphanumeric codes for conversations
+- **Regenerate Access Codes**: Only conversation creators can regenerate access codes for security
+- **Copy & Share**: One-click copy to clipboard with visual feedback
+- **Visual Display**: Access codes prominently displayed in conversation headers
+- **Security Integration**: Access code generation integrated with biometric verification system
+- **Multi-language Support**: All access code features fully localized in Polish and English
+- **Persistent Storage**: Access codes stored securely and persist across sessions
 
 ## Design Direction
 

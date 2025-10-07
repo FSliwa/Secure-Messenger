@@ -11,6 +11,7 @@ import { generateKeyPair, storeKeys, EncryptionProgress } from "@/lib/crypto";
 import { signUp, checkUsernameAvailability } from "@/lib/supabase";
 import { SimpleRetryIndicator } from './RetryStatusDisplay'
 import { NetworkStatusIndicator } from './NetworkStatusIndicator'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import { 
   executeWithNetworkAwareRetry, 
   RetryResult
@@ -279,7 +280,6 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
         toast.success(`Account created after ${result.attempts.length + 1} attempts!`, { id: 'signup-process' });
       }
 
-      // Check if email confirmation is required
       if (user && !user.email_confirmed_at) {
         toast.success('Account created successfully! Please check your email to verify your account.', { 
           id: 'signup-process',
@@ -314,6 +314,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       }
 
       // Reset form
+      // Reset form
       setFormData({
         firstName: '',
         lastName: '',
@@ -343,7 +344,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       setIsRetrying(false);
       setKeyGenerationStep('idle');
     }
-  };
+  }
 
   const inputClassName = (hasError: boolean) => `
     ${hasError ? 'border-destructive focus:ring-destructive' : ''}
@@ -353,6 +354,11 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
     <div className="w-full max-w-md mx-auto">
       <Card className="facebook-card">
         <CardContent className="p-8">
+          {/* Language Switcher */}
+          <div className="flex justify-end mb-4">
+            <LanguageSwitcher />
+          </div>
+
           {/* Network Status */}
           <div className="mb-8">
             <NetworkStatusIndicator className="justify-center" />

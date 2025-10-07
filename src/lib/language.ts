@@ -58,6 +58,13 @@ export interface LanguageContent {
   doNotClose: string
   secureConversation: string
   biometricRequired: string
+  
+  // Access Code Generation
+  generateAccessCode: string
+  accessCodeGenerated: string
+  copyAccessCode: string
+  shareAccessCode: string
+  accessCodeInfo: string
 }
 
 export const languages: Record<string, LanguageContent> = {
@@ -120,7 +127,14 @@ export const languages: Record<string, LanguageContent> = {
     encryptionDescription: "Your message is being secured with 2048-bit post-quantum cryptography. This process takes approximately 3 minutes to ensure maximum security.",
     doNotClose: "Do not close this window during encryption",
     secureConversation: "Secure Conversation Access", 
-    biometricRequired: "This conversation requires biometric verification for enhanced security."
+    biometricRequired: "This conversation requires biometric verification for enhanced security.",
+    
+    // Access Code Generation
+    generateAccessCode: "Generate Access Code",
+    accessCodeGenerated: "Access code generated successfully",
+    copyAccessCode: "Copy Access Code",
+    shareAccessCode: "Share Access Code",
+    accessCodeInfo: "Share this code with others to let them join your conversation"
   },
   
   pl: {
@@ -182,7 +196,14 @@ export const languages: Record<string, LanguageContent> = {
     encryptionDescription: "Twoja wiadomość jest zabezpieczana 2048-bitową kryptografią post-kwantową. Ten proces trwa około 3 minut aby zapewnić maksymalne bezpieczeństwo.",
     doNotClose: "Nie zamykaj tego okna podczas szyfrowania",
     secureConversation: "Dostęp do bezpiecznej konwersacji",
-    biometricRequired: "Ta konwersacja wymaga weryfikacji biometrycznej dla zwiększenia bezpieczeństwa."
+    biometricRequired: "Ta konwersacja wymaga weryfikacji biometrycznej dla zwiększenia bezpieczeństwa.",
+    
+    // Access Code Generation
+    generateAccessCode: "Wygeneruj kod dostępu",
+    accessCodeGenerated: "Kod dostępu został wygenerowany pomyślnie",
+    copyAccessCode: "Kopiuj kod dostępu",
+    shareAccessCode: "Udostępnij kod dostępu",
+    accessCodeInfo: "Udostępnij ten kod innym, aby mogli dołączyć do konwersacji"
   }
 }
 
