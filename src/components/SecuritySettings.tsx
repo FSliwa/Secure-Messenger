@@ -56,11 +56,13 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
           </TabsTrigger>
           <TabsTrigger value="devices" className="flex items-center gap-2">
             <Desktop className="h-4 w-4" />
+            Devices
+          </TabsTrigger>
           <TabsTrigger value="privacy" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
             Privacy
-            <Eye className="h-4 w-4" />
-            Privacy
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           <Card>
@@ -94,6 +96,13 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
                   status="enabled"
                   icon={<ShieldCheck className="h-5 w-5" />}
                   onClick={() => setActiveTab('2fa')}
+                />
+                <SecurityFeatureCard
+                  title="Biometric Auth"
+                  description="Fingerprint verification"
+                  status="enabled"
+                  icon={<Fingerprint className="h-5 w-5" />}
+                  onClick={() => setActiveTab('biometric')}
                 />
                 <SecurityFeatureCard
                   title="Trusted Devices"
@@ -193,21 +202,24 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
           </div>
         </TabsContent>
 
-        <TabsContent value="biometric">
-          <BiometricDemo currentUser={currentUser} />
-        <TabsContent value="biometric">
-          <BiometricDemo currentUser={currentUser} />
+        <TabsContent value="devices" className="space-y-6">
+          <div className="flex justify-center">
+            <TrustedDevices userId={userId} />
+          </div>
         </TabsContent>
 
+        <TabsContent value="biometric">
+          <BiometricDemo currentUser={currentUser} />
         </TabsContent>
 
         <TabsContent value="privacy">
           <PrivacySettings userId={userId} />
         </TabsContent>
-          <PrivacySettings userId={userId} />
-  )
       </Tabs>
     </div>
+  )
+}
+
 interface SecurityFeatureCardProps {
   title: string
   description: string
