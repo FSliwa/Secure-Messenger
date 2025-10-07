@@ -94,7 +94,7 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
       ) : (
         <>
           {getBiometricIcon()}
-          Sign in with {biometricType || 'Biometric'}
+          Sign in with Auth
         </>
       )}
     </Button>
