@@ -278,11 +278,11 @@ function AppContent() {
   // Loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4">
+      <div className="min-h-screen bg-background flex items-center justify-center safe-area-top safe-area-bottom px-4">
+        <div className="text-center max-w-sm mx-auto">
+          <div className="mb-4 sm:mb-6">
             <svg 
-              className="w-16 h-16 mx-auto text-primary" 
+              className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-primary" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -295,7 +295,7 @@ function AppContent() {
               />
             </svg>
           </div>
-          <p className="text-muted-foreground">{t.loadingSecureChat}</p>
+          <p className="text-muted-foreground text-sm sm:text-base px-4">{t.loadingSecureChat}</p>
         </div>
       </div>
     );
@@ -316,9 +316,9 @@ function AppContent() {
     // Force redirect to login
     setTimeout(() => setAppState('login'), 0);
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">{t.redirectingToLogin}</p>
+      <div className="min-h-screen bg-background flex items-center justify-center safe-area-top safe-area-bottom px-4">
+        <div className="text-center max-w-sm mx-auto">
+          <p className="text-muted-foreground text-sm sm:text-base px-4">{t.redirectingToLogin}</p>
         </div>
       </div>
     );
@@ -326,49 +326,51 @@ function AppContent() {
 
   // Landing/Login screens
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
       <Header onLoginClick={handleSwitchToLogin} />
       
       <main>
         {/* Connection Status Banner */}
-        <div className="container mx-auto max-w-screen-xl px-6 pt-4">
+        <div className="container mx-auto max-w-screen-xl px-4 sm:px-6 pt-2 sm:pt-4 safe-area-left safe-area-right">
           <ConnectionBanner />
         </div>
         
         {/* Hero and Registration/Login Section */}
-        <section className="py-16 sm:py-20 lg:py-24">
-          <div className="container mx-auto max-w-screen-xl px-6">
-            <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-start">
+        <section className="py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24">
+          <div className="container mx-auto max-w-screen-xl px-4 sm:px-6 safe-area-left safe-area-right">
+            <div className="grid gap-8 sm:gap-10 md:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20 items-start">
               {/* Left Column - Hero */}
               <div className="order-2 lg:order-1">
                 <Hero />
-                <div className="mt-12">
+                <div className="mt-8 sm:mt-10 md:mt-12">
                   <SecurityCallout />
                 </div>
               </div>
               
               {/* Right Column - Authentication Forms */}
-              <div className="order-1 lg:order-2 flex flex-col items-center lg:items-end">
-                {appState === 'login' ? (
-                  <LoginCard 
-                    onSuccess={handleLoginSuccess}
-                    onSwitchToSignUp={handleSwitchToSignUp}
-                  />
-                ) : (
-                  <SignUpCard 
-                    onSuccess={handleLoginSuccess}
-                    onSwitchToLogin={handleSwitchToLogin}
-                  />
-                )}
+              <div className="order-1 lg:order-2 flex flex-col items-center lg:items-end w-full">
+                <div className="w-full max-w-md mx-auto lg:mx-0">
+                  {appState === 'login' ? (
+                    <LoginCard 
+                      onSuccess={handleLoginSuccess}
+                      onSwitchToSignUp={handleSwitchToSignUp}
+                    />
+                  ) : (
+                    <SignUpCard 
+                      onSuccess={handleLoginSuccess}
+                      onSwitchToLogin={handleSwitchToLogin}
+                    />
+                  )}
+                </div>
 
                 {/* Switch between login and signup */}
                 {appState === 'landing' && (
-                  <div className="mt-8 text-center w-full max-w-md">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="mt-6 sm:mt-8 text-center w-full max-w-md mx-auto lg:mx-0">
+                    <p className="text-sm sm:text-base text-muted-foreground px-4 sm:px-0">
                       {t.alreadyHaveAccount}{' '}
                       <button
                         type="button"
-                        className="text-primary hover:underline font-medium"
+                        className="text-primary hover:underline font-medium min-h-[44px] inline-flex items-center"
                         onClick={handleSwitchToLogin}
                       >
                         {t.signInHere}
@@ -383,7 +385,16 @@ function AppContent() {
       </main>
       
       <Footer />
-      <Toaster position="top-center" />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          className: 'text-sm sm:text-base',
+          style: {
+            margin: '0.5rem',
+            maxWidth: 'calc(100vw - 1rem)'
+          }
+        }}
+      />
     </div>
   );
 }

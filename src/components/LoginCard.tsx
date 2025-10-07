@@ -303,7 +303,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
   }
 
   return (
-    <div className="w-full max-w-md animate-fade-in-up space-y-6">
+    <div className="w-full max-w-md animate-fade-in-up space-y-4 sm:space-y-6 px-4 sm:px-0">
       {/* Show forgot password component */}
       {loginStep === 'forgot-password' && (
         <ForgotPasswordCard 
@@ -316,27 +316,27 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
         <>
           {/* Device Trust Prompt */}
           {deviceTrustPrompt && (
-            <Card className="bg-card border border-border shadow-lg">
-              <CardContent className="p-6">
-                <div className="text-center space-y-4">
-                  <ShieldCheck className="h-8 w-8 text-primary mx-auto" />
+            <Card className="bg-card border border-border shadow-lg facebook-card">
+              <CardContent className="p-4 sm:p-6">
+                <div className="text-center space-y-3 sm:space-y-4">
+                  <ShieldCheck className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto" />
                   <div className="space-y-2">
-                    <h3 className="font-medium">Trust This Device?</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-medium text-sm sm:text-base">Trust This Device?</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Skip 2FA on this device for 30 days
                     </p>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex gap-2 sm:gap-3">
                     <Button 
                       variant="outline" 
                       onClick={() => handleTrustDevice(false)}
-                      className="flex-1"
+                      className="flex-1 facebook-button min-h-[44px]"
                     >
                       No
                     </Button>
                     <Button 
                       onClick={() => handleTrustDevice(true)}
-                      className="flex-1"
+                      className="flex-1 facebook-button min-h-[44px]"
                     >
                       Trust Device
                     </Button>
@@ -347,18 +347,18 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
           )}
 
           {/* Main Login Card */}
-          <Card className="bg-card border border-border shadow-lg">
-            <CardContent className="p-8">
+          <Card className="bg-card border border-border shadow-lg facebook-card">
+            <CardContent className="p-4 sm:p-6 md:p-8">
 
               
-              <div className="text-center mb-10">
-                <h1 className="text-2xl font-bold text-foreground mb-3">
+              <div className="text-center mb-6 sm:mb-8 md:mb-10">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">
                   {loginStep === 'credentials' && t.signInToAccount}
                   {loginStep === '2fa' && t.twoFactorAuth}
                   {loginStep === 'biometric' && t.biometricAuth}
                 </h1>
                 {loginStep === '2fa' && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground px-2">
                     Enter the 6-digit code from your authenticator app
                   </p>
                 )}
@@ -366,7 +366,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
               {/* Credentials Step */}
               {loginStep === 'credentials' && (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                   {/* Email */}
                   <div className="space-y-2">
                     <Input
@@ -375,11 +375,11 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       placeholder={t.email}
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
-                      className={`h-12 ${errors.email ? 'border-destructive focus:ring-destructive' : ''}`}
+                      className={`facebook-input h-12 sm:h-14 ${errors.email ? 'border-destructive focus:ring-destructive' : ''}`}
                       aria-invalid={!!errors.email}
                     />
                     {errors.email && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-xs text-destructive px-2">
                         {errors.email}
                       </p>
                     )}
@@ -394,12 +394,12 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                         placeholder={t.password}
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className={`h-12 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
+                        className={`facebook-input h-12 sm:h-14 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
                         aria-invalid={!!errors.password}
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
@@ -410,7 +410,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       </button>
                     </div>
                     {errors.password && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-xs text-destructive px-2">
                         {errors.password}
                       </p>
                     )}
@@ -420,7 +420,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   <div className="pt-2">
                     <Button
                       type="submit"
-                      className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
+                      className="w-full facebook-button h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base sm:text-lg"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -438,7 +438,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   <div className="text-center pt-2">
                     <button
                       type="button"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] inline-flex items-center px-2"
                       onClick={() => setLoginStep('forgot-password')}
                     >
                       {t.forgotPassword}
@@ -446,7 +446,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   </div>
 
                   {/* Biometric Login Option */}
-                  <div className="flex flex-col gap-6 pt-4">
+                  <div className="flex flex-col gap-4 sm:gap-6 pt-4">
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
                         <Separator className="w-full" />
@@ -458,7 +458,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                     
                     <BiometricLoginButton 
                       onSuccess={onSuccess || (() => {})}
-                      className="h-12"
+                      className="h-12 sm:h-14 facebook-button"
                     />
                   </div>
                 </form>
@@ -466,9 +466,9 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
               {/* 2FA Step */}
               {loginStep === '2fa' && (
-                <div className="space-y-8">
-                  <div className="text-center mb-8">
-                    <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-6" />
+                <div className="space-y-6 sm:space-y-8">
+                  <div className="text-center mb-6 sm:mb-8">
+                    <ShieldCheck className="h-10 w-10 sm:h-12 sm:w-12 text-primary mx-auto mb-4 sm:mb-6" />
                   </div>
                   
                   <div className="space-y-2">
@@ -478,7 +478,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       value={twoFactorCode}
                       onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       maxLength={6}
-                      className="text-center text-lg font-mono h-12"
+                      className="facebook-input text-center text-lg font-mono h-12 sm:h-14"
                     />
                   </div>
 
@@ -486,7 +486,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                     <Button
                       onClick={handleTwoFactorSubmit}
                       disabled={isLoading || twoFactorCode.length !== 6}
-                      className="w-full h-12"
+                      className="w-full facebook-button h-12 sm:h-14"
                     >
                       {isLoading ? (
                         <>
@@ -502,7 +502,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   <div className="text-center pt-4">
                     <button
                       type="button"
-                      className="text-sm text-muted-foreground hover:text-foreground"
+                      className="text-sm text-muted-foreground hover:text-foreground min-h-[44px] inline-flex items-center px-2"
                       onClick={resetLogin}
                     >
                       Back to login
@@ -515,7 +515,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
               {loginStep === 'credentials' && (
                 <>
                   {/* Separator */}
-                  <div className="my-10">
+                  <div className="my-6 sm:my-8 md:my-10">
                     <Separator />
                   </div>
 
@@ -524,7 +524,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                     <Button
                       type="button"
                       variant="outline"
-                      className="px-8 py-3 h-12 bg-accent hover:bg-accent/90 text-white font-semibold border-accent"
+                      className="facebook-button px-6 sm:px-8 py-3 h-12 sm:h-14 bg-accent hover:bg-accent/90 text-white font-semibold border-accent text-base sm:text-lg"
                       onClick={onSwitchToSignUp}
                     >
                       {t.createNewAccount}
@@ -537,8 +537,8 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
           {/* Footer Links - only on credentials step */}
           {loginStep === 'credentials' && (
-            <div className="text-center mt-8">
-              <p className="text-sm text-muted-foreground">
+            <div className="text-center mt-6 sm:mt-8 px-4">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
               </p>
             </div>

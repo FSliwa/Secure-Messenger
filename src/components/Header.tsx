@@ -11,12 +11,12 @@ export function Header({ onLoginClick }: HeaderProps) {
   const { t } = useLanguage()
   
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
-      <div className="container mx-auto flex h-16 max-w-screen-xl items-center justify-between px-6">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm safe-area-top">
+      <div className="container mx-auto flex h-14 sm:h-16 max-w-screen-xl items-center justify-between px-4 sm:px-6 safe-area-left safe-area-right">
         <div className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <svg
-              className="h-5 w-5"
+              className="h-4 w-4 sm:h-5 sm:w-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -30,16 +30,18 @@ export function Header({ onLoginClick }: HeaderProps) {
               />
             </svg>
           </div>
-          <span className="text-xl font-bold text-foreground">SecureChat</span>
-          <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full font-medium">PRO</span>
+          <span className="text-lg sm:text-xl font-bold text-foreground">SecureChat</span>
+          <span className="hidden xs:inline text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full font-medium">PRO</span>
         </div>
         
-        <div className="flex items-center gap-2">
-          <ThemeSwitcher />
-          <LanguageSwitcher />
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="hidden sm:flex items-center gap-2">
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+          </div>
           <Button 
             variant="ghost" 
-            className="text-primary hover:text-primary hover:bg-primary/10"
+            className="text-primary hover:text-primary hover:bg-primary/10 min-h-[44px] px-3 sm:px-4 text-sm sm:text-base"
             onClick={onLoginClick}
           >
             {t.signIn}

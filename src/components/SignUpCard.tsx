@@ -353,47 +353,47 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
   `;
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-md mx-auto px-4 sm:px-0">
       <Card className="facebook-card">
-        <CardContent className="p-8">
+        <CardContent className="p-4 sm:p-6 md:p-8">
 
 
           {/* Network Status */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <NetworkStatusIndicator className="justify-center" />
           </div>
 
           {/* Retry Status Banner */}
           {(retryCount > 0 || lastError || isRetrying) && (
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <SimpleRetryIndicator
                 isRetrying={isRetrying}
                 retryCount={retryCount}
                 operation="signup"
                 error={lastError || undefined}
-                className="p-4 bg-muted/30 rounded-lg border"
+                className="p-4 bg-muted/30 rounded-lg border text-sm"
               />
             </div>
           )}
 
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-black mb-3">{t.createNewAccount}</h2>
-            <p className="text-sm text-muted-foreground">{t.quickAndEasy}</p>
+          <div className="text-center mb-6 sm:mb-8 md:mb-10">
+            <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 sm:mb-3">{t.createNewAccount}</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">{t.quickAndEasy}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Input
                   placeholder={t.firstName}
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  className={`facebook-input ${inputClassName(!!errors.firstName)}`}
+                  className={`facebook-input h-12 ${inputClassName(!!errors.firstName)}`}
                   disabled={isSubmitting}
                 />
                 {errors.firstName && (
-                  <p className="text-xs text-destructive mt-2">{errors.firstName}</p>
+                  <p className="text-xs text-destructive mt-2 px-2">{errors.firstName}</p>
                 )}
               </div>
               <div>
@@ -401,11 +401,11 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   placeholder={t.lastName}
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  className={`facebook-input ${inputClassName(!!errors.lastName)}`}
+                  className={`facebook-input h-12 ${inputClassName(!!errors.lastName)}`}
                   disabled={isSubmitting}
                 />
                 {errors.lastName && (
-                  <p className="text-xs text-destructive mt-2">{errors.lastName}</p>
+                  <p className="text-xs text-destructive mt-2 px-2">{errors.lastName}</p>
                 )}
               </div>
             </div>
@@ -417,7 +417,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   placeholder={t.username}
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
-                  className={`facebook-input ${inputClassName(!!errors.username)}`}
+                  className={`facebook-input h-12 ${inputClassName(!!errors.username)}`}
                   disabled={isSubmitting}
                 />
                 {isCheckingUsername && (
@@ -427,9 +427,9 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 )}
               </div>
               {errors.username && (
-                <p className="text-xs text-destructive">{errors.username}</p>
+                <p className="text-xs text-destructive px-2">{errors.username}</p>
               )}
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground px-2">
                 {t.usernameHelper}
               </p>
             </div>
@@ -441,11 +441,11 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 placeholder={t.email}
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`facebook-input ${inputClassName(!!errors.email)}`}
+                className={`facebook-input h-12 ${inputClassName(!!errors.email)}`}
                 disabled={isSubmitting}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
+                <p className="text-xs text-destructive px-2">{errors.email}</p>
               )}
             </div>
 
@@ -456,38 +456,38 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 placeholder={t.newPassword}
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                className={`facebook-input ${inputClassName(!!errors.password)}`}
+                className={`facebook-input h-12 ${inputClassName(!!errors.password)}`}
                 disabled={isSubmitting}
               />
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
+                <p className="text-xs text-destructive px-2">{errors.password}</p>
               )}
             </div>
 
             {/* Terms and Conditions */}
             <div className="pt-2">
-              <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-3 px-2">
                 <Checkbox
                   id="accept-terms"
                   checked={formData.acceptTerms}
                   onCheckedChange={(checked) => handleInputChange('acceptTerms', checked)}
                   disabled={isSubmitting}
-                  className="mt-0.5"
+                  className="mt-0.5 min-h-[20px] min-w-[20px]"
                 />
-                <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed">
+                <Label htmlFor="accept-terms" className="text-xs sm:text-sm text-muted-foreground leading-relaxed cursor-pointer">
                   {t.acceptTerms}
                 </Label>
               </div>
               {errors.acceptTerms && (
-                <p className="text-xs text-destructive mt-2">{errors.acceptTerms}</p>
+                <p className="text-xs text-destructive mt-2 px-2">{errors.acceptTerms}</p>
               )}
             </div>
 
             {/* Submit Button */}
-            <div className="pt-4">
+            <div className="pt-2 sm:pt-4">
               <Button
                 type="submit"
-                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-4 text-lg h-12"
+                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-3 sm:py-4 text-base sm:text-lg h-12 sm:h-14"
                 disabled={isSubmitting || isRetrying}
               >
                 {isSubmitting || isRetrying ? (
@@ -521,9 +521,9 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
           </form>
 
           {/* Footer */}
-          <div className="mt-10 text-center">
-            <Separator className="mb-8" />
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-6 sm:mt-8 md:mt-10 text-center">
+            <Separator className="mb-6 sm:mb-8" />
+            <p className="text-xs sm:text-sm text-muted-foreground px-4">
               <span className="font-semibold">{t.createPage}</span>
             </p>
           </div>
