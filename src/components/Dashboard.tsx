@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ChatInterface } from './ChatInterface'
+import { ProfileSettings } from './ProfileSettings'
 import { 
   SignOut, 
-  Shield
+  Shield,
+  User,
+  Gear
 } from '@phosphor-icons/react'
 import { getStoredKeys, KeyPair } from '@/lib/crypto'
 import { toast } from 'sonner'
@@ -23,6 +26,7 @@ interface DashboardProps {
 
 export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const [keyInfo, setKeyInfo] = useState<KeyPair | null>(null)
+  const [showProfileSettings, setShowProfileSettings] = useState(false)
 
   useEffect(() => {
     const loadCryptoKeys = async () => {
@@ -66,6 +70,11 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
     }
   }
 
+  const handleProfileUpdate = (updatedProfile: any) => {
+    // Handle profile update - could refresh user data
+    toast.success('Profile updated successfully')
+  }
+
   const userName = currentUser?.displayName || currentUser?.username || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || 'user@example.com'
 
@@ -88,6 +97,17 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
                 <p className="text-sm font-medium">{userName}</p>
                 <p className="text-xs text-muted-foreground">{userEmail}</p>
               </div>
+              
+              {/* Profile Settings Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowProfileSettings(true)}
+                className="gap-2"
+              >
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
               
               <Button
                 variant="outline"
@@ -115,6 +135,14 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
           <ChatInterface currentUser={currentUser || { id: '', username: '', email: '' }} />
         </div>
       </main>
+
+      {/* Profile Settings Dialog */}
+      <ProfileSettings
+        currentUser={currentUser}
+        isOpen={showProfileSettings}
+        onClose={() => setShowProfileSettings(false)}
+        onProfileUpdate={handleProfileUpdate}
+      />
     </div>
   )
 }
