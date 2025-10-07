@@ -1,6 +1,9 @@
 import { Shield } from "@phosphor-icons/react";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function SecurityCallout() {
+  const { t } = useLanguage();
+  
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm animate-fade-in-up [animation-delay:400ms]">
       <div className="space-y-4">
@@ -9,9 +12,9 @@ export function SecurityCallout() {
             <Shield className="h-6 w-6 text-primary" weight="duotone" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">Enterprise-Grade Security</h3>
+            <h3 className="font-semibold text-foreground">{t.enterpriseGradeSecurity}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Advanced post-quantum encryption with Signal Double Ratchet protocol.
+              {t.advancedPostQuantumEncryptionDescription}
             </p>
           </div>
         </div>

@@ -325,7 +325,7 @@ function AppContent() {
   // Landing/Login screens
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onLoginClick={handleSwitchToLogin} />
       
       <main>
         {/* Connection Status Banner */}

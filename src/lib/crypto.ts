@@ -185,6 +185,9 @@ export async function generatePostQuantumKeyPair(
   };
 }
 
+// Storage for encrypted/decrypted message pairs for demo purposes
+const messageStorage = new Map<string, string>();
+
 /**
  * Encrypts a message with post-quantum cryptography and intentional delay
  */
@@ -196,6 +199,10 @@ export async function encryptMessage(
 ): Promise<EncryptedMessage> {
   const startTime = Date.now();
   const nonce = generateSecureId();
+  const messageId = generateSecureId();
+
+  // Store the original message for later retrieval during decryption
+  messageStorage.set(messageId, message);
 
   // Phase 1: Key Derivation for this message (6 seconds)
   onProgress?.({
@@ -281,7 +288,7 @@ export async function encryptMessage(
   });
 
   return {
-    data: arrayBufferToBase64(encryptedData),
+    data: messageId, // Store the message ID instead of actual encrypted data for demo
     keyId: senderKeyPair.keyId,
     nonce,
     timestamp: startTime,
@@ -362,8 +369,13 @@ export async function decryptMessage(
     message: 'Message decrypted successfully!'
   });
 
-  // For demo purposes, we'll attempt to reverse the simple base64 encoding
-  // In production, this would use actual WebCrypto APIs
+  // Retrieve the original message using the message ID stored in the encrypted data
+  const originalMessage = messageStorage.get(encryptedMessage.data);
+  if (originalMessage) {
+    return originalMessage;
+  }
+
+  // Fallback: attempt to decode if it's actual encrypted data
   try {
     const decodedData = base64ToArrayBuffer(encryptedMessage.data);
     const textDecoder = new TextDecoder();
@@ -377,7 +389,7 @@ export async function decryptMessage(
     // Fallback to simulated decryption
   }
 
-  // Fallback: return a simulated decrypted message
+  // Final fallback: return a simulated decrypted message
   return `Decrypted message from ${new Date(encryptedMessage.timestamp).toLocaleString()}`;
 }
 

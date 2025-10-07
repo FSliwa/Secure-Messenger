@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useLanguage } from '@/contexts/LanguageContext';
 
-export function Header() {
+interface HeaderProps {
+  onLoginClick?: () => void;
+}
+
+export function Header({ onLoginClick }: HeaderProps) {
+  const { t } = useLanguage()
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto flex h-16 max-w-screen-xl items-center justify-between px-6">
@@ -31,12 +38,9 @@ export function Header() {
           <Button 
             variant="ghost" 
             className="text-primary hover:text-primary hover:bg-primary/10"
-            onClick={() => {
-              // In a real app, this would navigate to login
-              console.log('Navigate to login');
-            }}
+            onClick={onLoginClick}
           >
-            Log in
+            {t.signIn}
           </Button>
         </div>
       </div>

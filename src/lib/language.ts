@@ -194,6 +194,13 @@ export interface LanguageContent {
   maxDuration: string
   voiceMessage: string
   failedToLoadVoiceMessage: string
+  
+  // Hero section features
+  postQuantumEncryption: string
+  threeMinuteSecurityProcess: string
+  commercialGradePlatform: string
+  enterpriseGradeSecurity: string
+  advancedPostQuantumEncryptionDescription: string
 }
 
 export const languages: Record<string, LanguageContent> = {
@@ -392,7 +399,14 @@ export const languages: Record<string, LanguageContent> = {
     tapToStartRecording: "Tap to start recording",
     maxDuration: "Max duration",
     voiceMessage: "Voice Message",
-    failedToLoadVoiceMessage: "Failed to load voice message"
+    failedToLoadVoiceMessage: "Failed to load voice message",
+    
+    // Hero section features
+    postQuantumEncryption: "Post-quantum encryption",
+    threeMinuteSecurityProcess: "3-minute security process",
+    commercialGradePlatform: "Commercial-grade platform",
+    enterpriseGradeSecurity: "Enterprise-Grade Security",
+    advancedPostQuantumEncryptionDescription: "Advanced post-quantum encryption with Signal Double Ratchet protocol."
   },
   
   pl: {
@@ -590,7 +604,14 @@ export const languages: Record<string, LanguageContent> = {
     tapToStartRecording: "Naciśnij, aby rozpocząć nagrywanie",
     maxDuration: "Maksymalny czas",
     voiceMessage: "Wiadomość głosowa",
-    failedToLoadVoiceMessage: "Nie udało się załadować wiadomości głosowej"
+    failedToLoadVoiceMessage: "Nie udało się załadować wiadomości głosowej",
+    
+    // Hero section features
+    postQuantumEncryption: "Szyfrowanie post-kwantowe",
+    threeMinuteSecurityProcess: "3-minutowy proces bezpieczeństwa",
+    commercialGradePlatform: "Platforma klasy komercyjnej",
+    enterpriseGradeSecurity: "Bezpieczeństwo klasy korporacyjnej",
+    advancedPostQuantumEncryptionDescription: "Zaawansowane szyfrowanie post-kwantowe z protokołem Signal Double Ratchet."
   }
 }
 

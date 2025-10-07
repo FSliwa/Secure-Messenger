@@ -19,15 +19,15 @@ export function Hero() {
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 lg:grid-cols-1 lg:gap-4">
           <div className="flex items-center gap-3 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-accent rounded-full" />
-            <span>Post-quantum encryption</span>
+            <span>{t.postQuantumEncryption}</span>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-primary rounded-full" />
-            <span>3-minute security process</span>
+            <span>{t.threeMinuteSecurityProcess}</span>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-success rounded-full" />
-            <span>Commercial-grade platform</span>
+            <span>{t.commercialGradePlatform}</span>
           </div>
         </div>
       </div>
