@@ -1,9 +1,10 @@
 // Enhanced Authentication with Security Features Integration
 import { supabase } from './supabase';
-import { isAccountLocked, trackFailedLoginAttempt, LOCKOUT_REASONS } from './account-lockout';
+import { isAccountLocked, trackFailedLoginAttempt, trackSuccessfulLogin, LOCKOUT_REASONS } from './account-lockout';
 import { savePasswordHistory, isPasswordReused } from './password-history';
 import { generateDeviceFingerprint, saveTrustedDevice, isDeviceTrusted, detectSuspiciousActivity } from './trusted-devices';
 import { is2FAEnabled, verify2FA } from './two-factor-auth';
+import { checkSuspiciousActivity } from './security-audit';
 import type { AuthError, User } from '@supabase/supabase-js';
 
 export interface EnhancedAuthResult {
