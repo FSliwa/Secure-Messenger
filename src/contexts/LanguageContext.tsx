@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { languages, LanguageCode, LanguageContent } from '@/lib/language'
 
@@ -14,9 +14,21 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [savedLanguage, setSavedLanguage] = useKV<LanguageCode>('app-language', 'en')
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(savedLanguage || 'en')
   
+  // Sync state when saved language changes
+  useEffect(() => {
+    if (savedLanguage && savedLanguage !== currentLanguage) {
+      setCurrentLanguage(savedLanguage)
+    }
+  }, [savedLanguage])
+  
   const setLanguage = (lang: LanguageCode) => {
     setCurrentLanguage(lang)
     setSavedLanguage(lang)
+    
+    // Force re-render by updating the entire component tree
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }))
+    }, 0)
   }
   
   const t = languages[currentLanguage] || languages.en

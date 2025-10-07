@@ -14,6 +14,7 @@ export interface LanguageContent {
   messagesEncrypted: string
   encrypted: string
   decrypt: string
+  decrypting: string
   yourMessages: string
   sendPrivatePhotos: string
   sendMessage: string
@@ -80,6 +81,45 @@ export interface LanguageContent {
   alreadyHaveAccount: string
   signInHere: string
   usernameHelper: string
+
+  // Login Form
+  signInToAccount: string
+  password: string
+  signIn: string
+  forgotPassword: string
+  
+  // Dashboard & General UI
+  loadingSecureChat: string
+  redirectingToLogin: string
+  logout: string
+  settings: string
+  profile: string
+  security: string
+  privacy: string
+  
+  // Database
+  initializingDatabase: string
+  databaseInitialized: string
+  databaseError: string
+  
+  // Common Actions
+  save: string
+  delete: string
+  edit: string
+  close: string
+  back: string
+  next: string
+  finish: string
+  
+  // Security Features
+  biometricAuth: string
+  twoFactorAuth: string
+  trustedDevices: string
+  
+  // Hero Section
+  secureChatTitle: string
+  secureChatSubtitle: string
+  getStarted: string
 }
 
 export const languages: Record<string, LanguageContent> = {
@@ -99,6 +139,7 @@ export const languages: Record<string, LanguageContent> = {
     messagesEncrypted: "Messages are end-to-end encrypted",
     encrypted: "Encrypted",
     decrypt: "Decrypt",
+    decrypting: "Decrypting...",
     yourMessages: "Your Messages",
     sendPrivatePhotos: "Send private photos and messages to a friend or group",
     sendMessage: "Send message",
@@ -164,7 +205,46 @@ export const languages: Record<string, LanguageContent> = {
     createPage: "Create a Page for a celebrity, brand or business.",
     alreadyHaveAccount: "Already have an account?",
     signInHere: "Sign in here",
-    usernameHelper: "Others will find you by this username to start conversations"
+    usernameHelper: "Others will find you by this username to start conversations",
+
+    // Login Form
+    signInToAccount: "Sign in to your account",
+    password: "Password",
+    signIn: "Sign In",
+    forgotPassword: "Forgot password?",
+    
+    // Dashboard & General UI
+    loadingSecureChat: "Loading SecureChat...",
+    redirectingToLogin: "Redirecting to login...",
+    logout: "Logout",
+    settings: "Settings",
+    profile: "Profile",
+    security: "Security",
+    privacy: "Privacy",
+    
+    // Database
+    initializingDatabase: "Initializing database...",
+    databaseInitialized: "Database initialized successfully",
+    databaseError: "Database initialization error",
+    
+    // Common Actions
+    save: "Save",
+    delete: "Delete",
+    edit: "Edit",
+    close: "Close",
+    back: "Back",
+    next: "Next",
+    finish: "Finish",
+    
+    // Security Features
+    biometricAuth: "Biometric Authentication",
+    twoFactorAuth: "Two-Factor Authentication",
+    trustedDevices: "Trusted Devices",
+    
+    // Hero Section
+    secureChatTitle: "Secure Messaging for Everyone",
+    secureChatSubtitle: "End-to-end encrypted conversations with post-quantum cryptography",
+    getStarted: "Get Started"
   },
   
   pl: {
@@ -183,6 +263,7 @@ export const languages: Record<string, LanguageContent> = {
     messagesEncrypted: "Wiadomości są szyfrowane end-to-end",
     encrypted: "Zaszyfrowane",
     decrypt: "Odszyfruj",
+    decrypting: "Odszyfrowywanie...",
     yourMessages: "Twoje wiadomości",
     sendPrivatePhotos: "Wysyłaj prywatne zdjęcia i wiadomości do znajomego lub grupy",
     sendMessage: "Wyślij wiadomość",
@@ -248,7 +329,46 @@ export const languages: Record<string, LanguageContent> = {
     createPage: "Utwórz stronę dla gwiazdy, marki lub firmy.",
     alreadyHaveAccount: "Masz już konto?",
     signInHere: "Zaloguj się tutaj",
-    usernameHelper: "Inni znajdą Cię po tej nazwie użytkownika, aby rozpocząć rozmowy"
+    usernameHelper: "Inni znajdą Cię po tej nazwie użytkownika, aby rozpocząć rozmowy",
+
+    // Login Form
+    signInToAccount: "Zaloguj się do swojego konta",
+    password: "Hasło",
+    signIn: "Zaloguj się",
+    forgotPassword: "Zapomniałeś hasła?",
+    
+    // Dashboard & General UI
+    loadingSecureChat: "Ładowanie SecureChat...",
+    redirectingToLogin: "Przekierowanie do logowania...",
+    logout: "Wyloguj",
+    settings: "Ustawienia",
+    profile: "Profil",
+    security: "Bezpieczeństwo",
+    privacy: "Prywatność",
+    
+    // Database
+    initializingDatabase: "Inicjalizacja bazy danych...",
+    databaseInitialized: "Baza danych zainicjalizowana pomyślnie",
+    databaseError: "Błąd inicjalizacji bazy danych",
+    
+    // Common Actions
+    save: "Zapisz",
+    delete: "Usuń",
+    edit: "Edytuj",
+    close: "Zamknij",
+    back: "Wstecz",
+    next: "Dalej",
+    finish: "Zakończ",
+    
+    // Security Features
+    biometricAuth: "Uwierzytelnienie biometryczne",
+    twoFactorAuth: "Uwierzytelnienie dwuskładnikowe",
+    trustedDevices: "Zaufane urządzenia",
+    
+    // Hero Section
+    secureChatTitle: "Bezpieczne wiadomości dla każdego",
+    secureChatSubtitle: "Konwersacje szyfrowane end-to-end z kryptografią post-kwantową",
+    getStarted: "Rozpocznij"
   }
 }
 

@@ -293,7 +293,7 @@ function AppContent() {
               />
             </svg>
           </div>
-          <p className="text-muted-foreground">Loading SecureChat...</p>
+          <p className="text-muted-foreground">{t.loadingSecureChat}</p>
         </div>
       </div>
     );
@@ -316,7 +316,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground">Redirecting to login...</p>
+          <p className="text-muted-foreground">{t.redirectingToLogin}</p>
         </div>
       </div>
     );

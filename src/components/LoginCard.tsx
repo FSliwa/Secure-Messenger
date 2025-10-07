@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Spinner, Eye, EyeSlash, ShieldCheck, Fingerprint } from '@phosphor-icons/react'
 import { signIn, getCurrentUser } from '@/lib/supabase'
 import { getStoredKeys } from '@/lib/crypto'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { 
   getUserTwoFactorStatus, 
   verifyTwoFactorLogin,
@@ -31,6 +32,7 @@ interface LoginProps {
 }
 
 export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -354,9 +356,9 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
               
               <div className="text-center mb-10">
                 <h1 className="text-2xl font-bold text-foreground mb-3">
-                  {loginStep === 'credentials' && 'Log in to SecureChat'}
-                  {loginStep === '2fa' && 'Two-Factor Authentication'}
-                  {loginStep === 'biometric' && 'Biometric Verification'}
+                  {loginStep === 'credentials' && t.signInToAccount}
+                  {loginStep === '2fa' && t.twoFactorAuth}
+                  {loginStep === 'biometric' && t.biometricAuth}
                 </h1>
                 {loginStep === '2fa' && (
                   <p className="text-sm text-muted-foreground">
@@ -373,7 +375,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="Email or phone number"
+                      placeholder={t.email}
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       className={`h-12 ${errors.email ? 'border-destructive focus:ring-destructive' : ''}`}
@@ -392,7 +394,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Password"
+                        placeholder={t.password}
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className={`h-12 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
@@ -427,10 +429,10 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       {isLoading ? (
                         <>
                           <Spinner className="mr-2 h-5 w-5 animate-spin" />
-                          Signing in...
+                          {t.signIn}...
                         </>
                       ) : (
-                        'Log In'
+                        t.signIn
                       )}
                     </Button>
                   </div>
@@ -442,7 +444,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       className="text-sm text-primary hover:underline"
                       onClick={() => setLoginStep('forgot-password')}
                     >
-                      Forgotten password?
+                      {t.forgotPassword}
                     </button>
                   </div>
 
@@ -528,7 +530,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       className="px-8 py-3 h-12 bg-accent hover:bg-accent/90 text-white font-semibold border-accent"
                       onClick={onSwitchToSignUp}
                     >
-                      Create new account
+                      {t.createNewAccount}
                     </Button>
                   </div>
                 </>

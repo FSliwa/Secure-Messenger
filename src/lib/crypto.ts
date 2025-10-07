@@ -292,7 +292,7 @@ export async function encryptMessage(
 }
 
 /**
- * Decrypts a message (faster than encryption, ~30 seconds)
+ * Decrypts a message (faster than encryption, ~10 seconds)
  */
 export async function decryptMessage(
   encryptedMessage: EncryptedMessage,
@@ -302,14 +302,14 @@ export async function decryptMessage(
   // Decryption is faster but still secure
   onProgress?.({
     phase: 'key-derivation',
-    progress: 10,
+    progress: 15,
     message: 'Retrieving decryption keys...'
   });
   
-  await simulateComplexComputation(10000, (progress) => {
+  await simulateComplexComputation(3000, (progress) => {
     onProgress?.({
       phase: 'key-derivation',
-      progress: 10 + (progress * 0.3),
+      progress: 15 + (progress * 0.25),
       message: 'Retrieving decryption keys...'
     });
   });
@@ -320,7 +320,7 @@ export async function decryptMessage(
     message: 'Decrypting with post-quantum algorithms...'
   });
   
-  await simulateComplexComputation(15000, (progress) => {
+  await simulateComplexComputation(5000, (progress) => {
     onProgress?.({
       phase: 'quantum-resistance',
       progress: 40 + (progress * 0.4),
@@ -334,7 +334,7 @@ export async function decryptMessage(
     message: 'Verifying message integrity...'
   });
   
-  await simulateComplexComputation(5000, (progress) => {
+  await simulateComplexComputation(1500, (progress) => {
     onProgress?.({
       phase: 'integrity-hash',
       progress: 80 + (progress * 0.15),
@@ -348,7 +348,13 @@ export async function decryptMessage(
     message: 'Finalizing decryption...'
   });
   
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await simulateComplexComputation(500, (progress) => {
+    onProgress?.({
+      phase: 'finalization',
+      progress: 95 + (progress * 0.05),
+      message: 'Finalizing decryption...'
+    });
+  });
 
   onProgress?.({
     phase: 'finalization',
@@ -356,8 +362,23 @@ export async function decryptMessage(
     message: 'Message decrypted successfully!'
   });
 
-  // Simplified decryption for demo
-  return `[DECRYPTED] ${encryptedMessage.data.slice(0, 50)}...`;
+  // For demo purposes, we'll attempt to reverse the simple base64 encoding
+  // In production, this would use actual WebCrypto APIs
+  try {
+    const decodedData = base64ToArrayBuffer(encryptedMessage.data);
+    const textDecoder = new TextDecoder();
+    const possibleText = textDecoder.decode(decodedData);
+    
+    // If it looks like readable text, return it
+    if (possibleText.length > 0 && /^[\x20-\x7E\s]*$/.test(possibleText)) {
+      return possibleText;
+    }
+  } catch (error) {
+    // Fallback to simulated decryption
+  }
+
+  // Fallback: return a simulated decrypted message
+  return `Decrypted message from ${new Date(encryptedMessage.timestamp).toLocaleString()}`;
 }
 
 /**

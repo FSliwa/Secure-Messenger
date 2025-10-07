@@ -1,4 +1,8 @@
+import { useLanguage } from '@/contexts/LanguageContext'
+
 export function Hero() {
+  const { t } = useLanguage()
+  
   return (
     <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
       <div className="animate-fade-in-up">
@@ -8,10 +12,7 @@ export function Hero() {
           </span>
         </h1>
         <p className="mt-8 text-lg text-muted-foreground sm:text-xl lg:text-xl max-w-2xl leading-relaxed">
-          Enterprise-grade secure messaging with 
-          <span className="font-semibold text-foreground"> post-quantum cryptography</span>.
-          Your communications are protected by encryption so advanced, 
-          <span className="text-accent font-medium"> it takes 3 minutes to secure each message</span>.
+          {t.secureChatSubtitle}
         </p>
         
         {/* Feature highlights */}

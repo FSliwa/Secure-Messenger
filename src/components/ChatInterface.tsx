@@ -166,11 +166,41 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     const loadConversations = async () => {
       try {
         const userConversations = await getUserConversations(currentUser.id)
-        let loadedConversations = userConversations.map((item: any) => ({
-          ...item.conversations,
-          access_code: item.conversations.access_code,
-          otherParticipant: null // Would be populated with other participant info
-        }))
+        
+        // Transform conversations with real participant data
+        const loadedConversations = await Promise.all(
+          userConversations.map(async (item: any) => {
+            const conversation = item.conversations
+            let otherParticipant: {
+              id: string
+              username: string
+              display_name: string | null
+              avatar_url: string | null
+              status: 'online' | 'offline' | 'away'
+            } | undefined = undefined
+            
+            // For direct messages, get the other participant
+            if (!conversation.is_group && item.conversations?.conversation_participants) {
+              const otherParticipantData = item.conversations.conversation_participants
+                .find((p: any) => p.user_id !== currentUser.id)
+              
+              if (otherParticipantData?.users) {
+                otherParticipant = {
+                  id: otherParticipantData.users.id,
+                  username: otherParticipantData.users.username,
+                  display_name: otherParticipantData.users.display_name,
+                  avatar_url: otherParticipantData.users.avatar_url,
+                  status: otherParticipantData.users.status || 'offline'
+                }
+              }
+            }
+            
+            return {
+              ...conversation,
+              otherParticipant
+            }
+          })
+        )
         
         setConversations(loadedConversations)
         
@@ -204,7 +234,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           conversation_id: dbMessage.conversation_id,
           sender_id: dbMessage.sender_id,
           senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
-          encrypted_content: dbMessage.encrypted_content,
+          encrypted_content: typeof dbMessage.encrypted_content === 'string' 
+            ? JSON.parse(dbMessage.encrypted_content) 
+            : dbMessage.encrypted_content,
           timestamp: new Date(dbMessage.sent_at).getTime(),
           status: 'delivered' as const,
           isEncrypted: true,
@@ -225,8 +257,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             id: newMessage.id,
             conversation_id: newMessage.conversation_id,
             sender_id: newMessage.sender_id,
-            senderName: 'User', // Would need to fetch from users table
-            encrypted_content: newMessage.encrypted_content,
+            senderName: 'New User', // Real name would be fetched via additional query
+            encrypted_content: typeof newMessage.encrypted_content === 'string' 
+              ? JSON.parse(newMessage.encrypted_content) 
+              : newMessage.encrypted_content,
             timestamp: new Date(newMessage.sent_at).getTime(),
             status: 'delivered',
             isEncrypted: true,
@@ -515,12 +549,18 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       
     setIsDecrypting(true)
     
+    // Show decryption progress toast
+    const toastId = `decrypt-${message.id}`
+    toast.loading(t.decrypting, { id: toastId })
+    
     try {
       const decryptedContent = await decryptMessage(
         message.encrypted_content as EncryptedMessage,
         keyPair,
         (progress) => {
-          // Handle decryption progress
+          // Update toast with progress
+          const progressMessage = `${t.decrypting} ${Math.round(progress.progress)}%`
+          toast.loading(progressMessage, { id: toastId })
         }
       )
 
@@ -532,9 +572,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         )
       )
 
-      toast.success(`${t.messageDecrypted}`, { id: `decrypt-${message.id}` })
+      toast.success(t.messageDecrypted, { id: toastId })
     } catch (error) {
-      toast.error(`${t.failedToDecrypt}`, { id: `decrypt-${message.id}` })
+      console.error('Decryption failed:', error)
+      toast.error(t.failedToDecrypt, { id: toastId })
     } finally {
       setIsDecrypting(false)
     }
@@ -936,14 +977,21 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="w-14 h-14 rounded-full facebook-avatar flex items-center justify-center text-white font-semibold text-lg">
-                      {(conversation.name || 'PC').substring(0, 2).toUpperCase()}
+                      {conversation.otherParticipant?.display_name?.substring(0, 2).toUpperCase() || 
+                       conversation.otherParticipant?.username?.substring(0, 2).toUpperCase() ||
+                       (conversation.name || 'PC').substring(0, 2).toUpperCase()}
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full facebook-online-indicator"></div>
+                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full facebook-online-indicator ${
+                      conversation.otherParticipant?.status === 'online' ? 'bg-green-500' :
+                      conversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                    }`}></div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold text-gray-900 text-sm truncate">
-                        {conversation.name || 'Private Conversation'}
+                        {conversation.otherParticipant?.display_name || 
+                         conversation.otherParticipant?.username ||
+                         conversation.name || 'Private Conversation'}
                       </h3>
                       <span className="text-xs text-gray-500">{getLastMessageTime(conversation.id)}</span>
                     </div>
@@ -991,13 +1039,20 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
               {/* Chat Header */}
               <div className="p-4 border-b border-gray-200 bg-white">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
-                    {(activeConversation.name || 'PC').substring(0, 2).toUpperCase()}
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm relative">
+                    {activeConversation.otherParticipant?.display_name?.substring(0, 2).toUpperCase() || 
+                     activeConversation.otherParticipant?.username?.substring(0, 2).toUpperCase() ||
+                     (activeConversation.name || 'PC').substring(0, 2).toUpperCase()}
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full ${
+                      activeConversation.otherParticipant?.status === 'online' ? 'bg-green-500' :
+                      activeConversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                    }`}></div>
                   </div>
                   <div className="flex-1">
                     <h2 className="font-semibold text-gray-900">
-                      {activeConversation.name || 'Private Conversation'}
+                      {activeConversation.otherParticipant?.display_name || 
+                       activeConversation.otherParticipant?.username ||
+                       activeConversation.name || 'Private Conversation'}
                     </h2>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
