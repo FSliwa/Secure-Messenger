@@ -59,6 +59,10 @@ CREATE TABLE IF NOT EXISTS public.password_history (
   CONSTRAINT password_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
+-- Dodaj kolumnę expires_at jeśli tabela istnieje ale kolumna nie
+ALTER TABLE public.password_history 
+ADD COLUMN IF NOT EXISTS expires_at timestamp with time zone DEFAULT (now() + INTERVAL '1 year');
+
 -- ============================================
 -- 4. CREATE CONVERSATION PASSWORDS TABLE
 -- ============================================
@@ -102,6 +106,10 @@ CREATE TABLE IF NOT EXISTS public.conversation_access_sessions (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   UNIQUE(conversation_id, user_id, device_fingerprint)
 );
+
+-- Dodaj kolumnę expires_at jeśli tabela istnieje ale kolumna nie
+ALTER TABLE public.conversation_access_sessions 
+ADD COLUMN IF NOT EXISTS expires_at timestamp with time zone DEFAULT (now() + INTERVAL '2 hours');
 
 -- ============================================
 -- 6. CREATE SECURITY AUDIT LOG
@@ -378,37 +386,21 @@ CREATE TRIGGER cleanup_expired_sessions_trigger
   EXECUTE FUNCTION public.cleanup_expired_sessions();
 
 -- Funkcja do dodawania historii haseł
+-- UWAGA: W Supabase nie mamy bezpośredniego dostępu do haseł
+-- Ta funkcja jest tylko placeholder - historię haseł należy implementować w aplikacji
 DROP FUNCTION IF EXISTS public.add_password_history();
 CREATE OR REPLACE FUNCTION public.add_password_history()
 RETURNS trigger AS $$
 BEGIN
-  -- Dodaj hasło do historii przy każdej zmianie
-  INSERT INTO public.password_history (user_id, password_hash)
-  SELECT NEW.id, NEW.encrypted_password
-  FROM auth.users
-  WHERE id = NEW.id;
-  
-  -- Usuń stare wpisy (zachowaj tylko ostatnie 10)
-  DELETE FROM public.password_history
-  WHERE user_id = NEW.id
-  AND id NOT IN (
-    SELECT id FROM public.password_history
-    WHERE user_id = NEW.id
-    ORDER BY created_at DESC
-    LIMIT 10
-  );
-  
+  -- W Supabase nie mamy dostępu do encrypted_password
+  -- Historię haseł należy implementować po stronie aplikacji
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger do automatycznego dodawania historii haseł
-DROP TRIGGER IF EXISTS trigger_password_history ON auth.users;
-CREATE TRIGGER trigger_password_history
-  AFTER UPDATE OF encrypted_password ON auth.users
-  FOR EACH ROW
-  WHEN (OLD.encrypted_password IS DISTINCT FROM NEW.encrypted_password)
-  EXECUTE FUNCTION public.add_password_history();
+-- UWAGA: Trigger dla password_history został wyłączony
+-- ponieważ w Supabase nie mamy dostępu do kolumny encrypted_password
+-- DROP TRIGGER IF EXISTS trigger_password_history ON auth.users;
 
 -- ============================================
 -- GRANT UPRAWNIEŃ
@@ -417,6 +409,35 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+
+-- ============================================
+-- WERYFIKACJA STRUKTUR TABEL
+-- ============================================
+-- Sprawdzenie czy wszystkie kolumny istnieją
+DO $$
+BEGIN
+  -- Sprawdź czy tabela password_history ma kolumnę expires_at
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'password_history' 
+    AND column_name = 'expires_at'
+  ) THEN
+    RAISE NOTICE 'UWAGA: Kolumna expires_at nie istnieje w tabeli password_history';
+  END IF;
+  
+  -- Sprawdź czy tabela conversation_access_sessions ma kolumnę expires_at
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'conversation_access_sessions' 
+    AND column_name = 'expires_at'
+  ) THEN
+    RAISE NOTICE 'UWAGA: Kolumna expires_at nie istnieje w tabeli conversation_access_sessions';
+  END IF;
+END $$;
 
 -- ============================================
 -- WERYFIKACJA
