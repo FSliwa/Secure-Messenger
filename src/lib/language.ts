@@ -96,6 +96,18 @@ export interface LanguageContent {
   profile: string
   security: string
   privacy: string
+  dashboard: string
+  accessDenied: string
+  mustBeLoggedIn: string
+  returnToLogin: string
+  securityInit: string
+  enhancedSecurityInitialization: string
+  signingOut: string
+  loggedOutSuccessfully: string
+  logoutFailed: string
+  profileUpdatedSuccessfully: string
+  secureChatMessenger: string
+  facebookStyleInterface: string
   
   // Database
   initializingDatabase: string
@@ -108,8 +120,54 @@ export interface LanguageContent {
   edit: string
   close: string
   back: string
-  next: string
+  next: string 
   finish: string
+  
+  // Profile Settings
+  profileSettings: string
+  displayName: string
+  bio: string
+  status: string
+  profileVisibility: string
+  privacySettings: string
+  notificationSettings: string
+  lastSeenVisibility: string
+  readReceipts: string
+  typingIndicators: string
+  messages: string
+  groupInvites: string
+  friendRequests: string
+  securityAlerts: string
+  public: string
+  friends: string
+  private: string
+  usernameAvailable: string
+  usernameNotAvailable: string
+  checkingUsername: string
+  failedToLoadProfile: string
+  profileSaved: string
+  failedToSaveProfile: string
+  changeAvatar: string
+  uploading: string
+  selectImageFile: string
+  fileSizeLimit: string
+  failedToUploadAvatar: string
+  usernameNotAvailableError: string
+  profileUpdated: string
+  failedToUpdateProfile: string
+  customizeProfileSettings: string
+  profilePicture: string
+  changePhoto: string
+  maxFileSize: string
+  basicInformation: string
+  enterUsername: string
+  usernameAlreadyTaken: string
+  failedToCreateConversation: string
+  startedConversation: string
+  copyCode: string
+  failedToStartConversation: string
+  successfullyJoinedConversation: string
+  failedToJoinConversation: string
   
   // Security Features
   biometricAuth: string
@@ -237,6 +295,18 @@ export const languages: Record<string, LanguageContent> = {
     profile: "Profile",
     security: "Security",
     privacy: "Privacy",
+    dashboard: "Dashboard",
+    accessDenied: "Access Denied",
+    mustBeLoggedIn: "You must be logged in to access the dashboard.",
+    returnToLogin: "Return to Login",
+    securityInit: "Security Init",
+    enhancedSecurityInitialization: "Enhanced Security Initialization",
+    signingOut: "Signing out...",
+    loggedOutSuccessfully: "Logged out successfully",
+    logoutFailed: "Logout failed, but you will be redirected",
+    profileUpdatedSuccessfully: "Profile updated successfully",
+    secureChatMessenger: "SecureChat Messenger",
+    facebookStyleInterface: "Facebook-style interface with military-grade encryption",
     
     // Database
     initializingDatabase: "Initializing database...",
@@ -251,6 +321,52 @@ export const languages: Record<string, LanguageContent> = {
     back: "Back",
     next: "Next",
     finish: "Finish",
+    
+    // Profile Settings
+    profileSettings: "Profile Settings",
+    displayName: "Display Name",
+    bio: "Bio",
+    status: "Status",
+    profileVisibility: "Profile Visibility",
+    privacySettings: "Privacy Settings",
+    notificationSettings: "Notification Settings",
+    lastSeenVisibility: "Last Seen Visibility",
+    readReceipts: "Read Receipts",
+    typingIndicators: "Typing Indicators",
+    messages: "Messages",
+    groupInvites: "Group Invites",
+    friendRequests: "Friend Requests",
+    securityAlerts: "Security Alerts",
+    public: "Public",
+    friends: "Friends",
+    private: "Private",
+    usernameAvailable: "Username is available",
+    usernameNotAvailable: "Username is not available",
+    checkingUsername: "Checking username...",
+    failedToLoadProfile: "Failed to load profile settings",
+    profileSaved: "Profile saved successfully",
+    failedToSaveProfile: "Failed to save profile",
+    changeAvatar: "Change Avatar",
+    uploading: "Uploading...",
+    selectImageFile: "Please select an image file",
+    fileSizeLimit: "File size must be less than 5MB",
+    failedToUploadAvatar: "Failed to upload avatar",
+    usernameNotAvailableError: "Username is not available",
+    profileUpdated: "Profile updated successfully",
+    failedToUpdateProfile: "Failed to update profile",
+    customizeProfileSettings: "Customize your profile and privacy settings",
+    profilePicture: "Profile Picture",
+    changePhoto: "Change Photo",
+    maxFileSize: "Max 5MB, JPG/PNG only",
+    basicInformation: "Basic Information",
+    enterUsername: "Enter username",
+    usernameAlreadyTaken: "Username is already taken",
+    failedToCreateConversation: "Failed to create conversation",
+    startedConversation: "Started conversation! Share access code",
+    copyCode: "Copy Code",
+    failedToStartConversation: "Failed to start conversation",
+    successfullyJoinedConversation: "Successfully joined conversation!",
+    failedToJoinConversation: "Failed to join conversation",
     
     // Security Features
     biometricAuth: "Biometric Authentication",
@@ -377,6 +493,18 @@ export const languages: Record<string, LanguageContent> = {
     profile: "Profil",
     security: "Bezpieczeństwo",
     privacy: "Prywatność",
+    dashboard: "Panel",
+    accessDenied: "Dostęp zabroniony",
+    mustBeLoggedIn: "Musisz być zalogowany, aby uzyskać dostęp do panelu.",
+    returnToLogin: "Powrót do logowania",
+    securityInit: "Inicjalizacja zabezpieczeń",
+    enhancedSecurityInitialization: "Inicjalizacja zaawansowanych zabezpieczeń",
+    signingOut: "Wylogowywanie...",
+    loggedOutSuccessfully: "Wylogowano pomyślnie",
+    logoutFailed: "Wylogowanie nie powiodło się, ale nastąpi przekierowanie",
+    profileUpdatedSuccessfully: "Profil zaktualizowany pomyślnie",
+    secureChatMessenger: "SecureChat Messenger",
+    facebookStyleInterface: "Interfejs w stylu Facebooka z szyfrowaniem wojskowym",
     
     // Database
     initializingDatabase: "Inicjalizacja bazy danych...",
@@ -391,6 +519,52 @@ export const languages: Record<string, LanguageContent> = {
     back: "Wstecz",
     next: "Dalej",
     finish: "Zakończ",
+    
+    // Profile Settings
+    profileSettings: "Ustawienia profilu",
+    displayName: "Nazwa wyświetlana",
+    bio: "Opis",
+    status: "Status",
+    profileVisibility: "Widoczność profilu",
+    privacySettings: "Ustawienia prywatności",
+    notificationSettings: "Ustawienia powiadomień",
+    lastSeenVisibility: "Widoczność ostatniej aktywności",
+    readReceipts: "Potwierdzenia odczytu",
+    typingIndicators: "Wskaźniki pisania",
+    messages: "Wiadomości",
+    groupInvites: "Zaproszenia do grup",
+    friendRequests: "Prośby o znajomość",
+    securityAlerts: "Alerty bezpieczeństwa",
+    public: "Publiczny",
+    friends: "Znajomi",
+    private: "Prywatny",
+    usernameAvailable: "Nazwa użytkownika jest dostępna",
+    usernameNotAvailable: "Nazwa użytkownika nie jest dostępna",
+    checkingUsername: "Sprawdzanie nazwy użytkownika...",
+    failedToLoadProfile: "Nie udało się załadować ustawień profilu",
+    profileSaved: "Profil zapisany pomyślnie",
+    failedToSaveProfile: "Nie udało się zapisać profilu",
+    changeAvatar: "Zmień awatar",
+    uploading: "Przesyłanie...",
+    selectImageFile: "Wybierz plik obrazu",
+    fileSizeLimit: "Rozmiar pliku musi być mniejszy niż 5MB",
+    failedToUploadAvatar: "Nie udało się przesłać awatara",
+    usernameNotAvailableError: "Nazwa użytkownika nie jest dostępna",
+    profileUpdated: "Profil zaktualizowany pomyślnie",  
+    failedToUpdateProfile: "Nie udało się zaktualizować profilu",
+    customizeProfileSettings: "Dostosuj swój profil i ustawienia prywatności",
+    profilePicture: "Zdjęcie profilowe", 
+    changePhoto: "Zmień zdjęcie",
+    maxFileSize: "Maks. 5MB, tylko JPG/PNG",
+    basicInformation: "Podstawowe informacje",
+    enterUsername: "Wprowadź nazwę użytkownika",
+    usernameAlreadyTaken: "Nazwa użytkownika jest już zajęta",
+    failedToCreateConversation: "Nie udało się utworzyć konwersacji", 
+    startedConversation: "Rozpoczęto konwersację! Udostępnij kod dostępu",
+    copyCode: "Kopiuj kod",
+    failedToStartConversation: "Nie udało się rozpocząć konwersacji",
+    successfullyJoinedConversation: "Pomyślnie dołączono do konwersacji!",
+    failedToJoinConversation: "Nie udało się dołączyć do konwersacji",
     
     // Security Features
     biometricAuth: "Uwierzytelnienie biometryczne",

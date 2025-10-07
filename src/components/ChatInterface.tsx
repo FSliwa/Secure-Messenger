@@ -402,7 +402,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       
     } catch (error) {
       console.error('Failed to create conversation:', error)
-      toast.error('Failed to create conversation')
+      toast.error(t.failedToCreateConversation)
     }
   }
 
@@ -434,10 +434,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       // Set as active conversation
       setActiveConversation(conversation)
       
-      toast.success(`Started conversation! Share access code "${accessCode}" with ${targetUser.display_name || targetUser.username} to connect`, {
+      toast.success(`${t.startedConversation} "${accessCode}" with ${targetUser.display_name || targetUser.username} to connect`, {
         duration: 8000,
         action: {
-          label: 'Copy Code',
+          label: t.copyCode,
           onClick: () => navigator.clipboard.writeText(accessCode)
         }
       })
@@ -449,7 +449,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       
     } catch (error) {
       console.error('Failed to start conversation:', error)
-      toast.error('Failed to start conversation')
+      toast.error(t.failedToStartConversation)
     }
   }
 
@@ -474,13 +474,13 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       // Add to local state
       setConversations((prev) => [...(prev || []), result.conversation])
       
-      toast.success('Successfully joined conversation!')
+      toast.success(t.successfullyJoinedConversation)
       setShowJoinConversation(false)
       setJoinAccessCode('')
       
     } catch (error) {
       console.error('Failed to join conversation:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to join conversation')
+      toast.error(error instanceof Error ? error.message : t.failedToJoinConversation)
     }
   }
 

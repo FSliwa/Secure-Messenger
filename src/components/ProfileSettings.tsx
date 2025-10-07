@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { 
   User, 
   Camera, 
@@ -58,6 +59,7 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate }: ProfileSettingsProps) {
+  const { t } = useLanguage()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -121,7 +123,7 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
       })
     } catch (error) {
       console.error('Error loading profile:', error)
-      toast.error('Failed to load profile settings')
+      toast.error(t.failedToLoadProfile)
     } finally {
       setIsLoading(false)
     }
@@ -156,12 +158,12 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
 
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
+      toast.error(t.selectImageFile)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast.error('File size must be less than 5MB')
+      toast.error(t.fileSizeLimit)
       return
     }
 
@@ -196,14 +198,14 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
       return data.publicUrl
     } catch (error) {
       console.error('Error uploading avatar:', error)
-      toast.error('Failed to upload avatar')
+      toast.error(t.failedToUploadAvatar)
       return null
     }
   }
 
   const handleSave = async () => {
     if (usernameAvailable === false) {
-      toast.error('Username is not available')
+      toast.error(t.usernameNotAvailableError)
       return
     }
 
@@ -237,13 +239,13 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
 
       if (error) throw error
 
-      toast.success('Profile updated successfully')
+      toast.success(t.profileUpdated)
       onProfileUpdate(updateData)
       onClose()
 
     } catch (error) {
       console.error('Error updating profile:', error)
-      toast.error('Failed to update profile')
+      toast.error(t.failedToUpdateProfile)
     } finally {
       setIsSaving(false)
     }
@@ -262,10 +264,10 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Profile Settings
+            {t.profileSettings}
           </DialogTitle>
           <DialogDescription>
-            Customize your profile and privacy settings
+            {t.customizeProfileSettings}
           </DialogDescription>
         </DialogHeader>
 
@@ -278,7 +280,7 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
             {/* Avatar Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Profile Picture</CardTitle>
+                <CardTitle className="text-sm">{t.profilePicture}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -293,7 +295,7 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
                       <Button variant="outline" size="sm" className="gap-2" asChild>
                         <span>
                           <Camera className="h-4 w-4" />
-                          Change Photo
+                          {t.changePhoto}
                         </span>
                       </Button>
                     </Label>
@@ -305,7 +307,7 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
                       onChange={handleAvatarChange}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Max 5MB, JPG/PNG only
+                      {t.maxFileSize}
                     </p>
                   </div>
                 </div>
@@ -315,11 +317,11 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
             {/* Basic Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Basic Information</CardTitle>
+                <CardTitle className="text-sm">{t.basicInformation}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">{t.username}</Label>
                   <div className="relative">
                     <Input
                       id="username"
@@ -328,7 +330,7 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
                         setFormData(prev => ({ ...prev, username: e.target.value }))
                         checkUsernameAvailability(e.target.value)
                       }}
-                      placeholder="Enter username"
+                      placeholder={t.enterUsername}
                     />
                     {checkingUsername && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -343,7 +345,7 @@ export function ProfileSettings({ currentUser, isOpen, onClose, onProfileUpdate 
                     )}
                   </div>
                   {usernameAvailable === false && (
-                    <p className="text-xs text-red-500">Username is already taken</p>
+                    <p className="text-xs text-red-500">{t.usernameAlreadyTaken}</p>
                   )}
                 </div>
 
