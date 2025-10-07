@@ -1,278 +1,280 @@
-# Supabase Database Setup Guide
+# 🔒 SecureChat - Supabase Configuration Guide
 
-This guide will help you set up the database schema required for SecureChat Pro to work properly.
+This comprehensive guide addresses all common Supabase authentication and email configuration issues based on real-world troubleshooting experience.
 
-## Prerequisites
+## 🚀 Quick Start
 
-1. A Supabase project (create one at [supabase.com](https://supabase.com))
-2. Your project's URL and anon key configured in the app
+### 1. Environment Setup
 
-## Database Schema Setup
+1. **Copy the environment template:**
+   ```bash
+   cp .env.example .env
+   ```
 
-### Step 1: Access SQL Editor
+2. **Get your Supabase credentials:**
+   - Go to [Supabase Dashboard](https://app.supabase.com)
+   - Select your project
+   - Go to Settings → API
+   - Copy your Project URL and anon/public key
 
-1. Go to your Supabase project dashboard
-2. Navigate to **SQL Editor** in the left sidebar
-3. Click **New Query**
+3. **Update your `.env` file:**
+   ```env
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   VITE_APP_URL=http://localhost:5173
+   VITE_REDIRECT_URL=http://localhost:5173
+   ```
 
-### Step 2: Run the Schema Script
+4. **Restart your development server:**
+   ```bash
+   npm run dev
+   ```
 
-Copy and paste the entire contents of `src/database/schema.sql` into the SQL editor and run it.
+## ⚙️ Supabase Dashboard Configuration
 
-Alternatively, you can copy the following SQL and run it:
+### 1. Authentication Providers
 
-```sql
--- Enable the necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+**Location:** `Dashboard → Authentication → Providers`
 
--- Create profiles table
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
-  display_name TEXT NOT NULL,
-  avatar_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
+1. ✅ **Enable Email Provider**
+2. ⚠️ **Email Confirmation Setting:**
+   - **If ENABLED:** Users must confirm email before logging in
+   - **If DISABLED:** Users can log in immediately
+   - Choose based on your security requirements
 
--- Create chat_rooms table
-CREATE TABLE chat_rooms (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT,
-  is_group BOOLEAN DEFAULT FALSE NOT NULL,
-  created_by UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
+### 2. URL Configuration
 
--- Create chat_room_participants table
-CREATE TABLE chat_room_participants (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  room_id UUID REFERENCES chat_rooms ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member')) NOT NULL,
-  joined_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  UNIQUE(room_id, user_id)
-);
+**Location:** `Dashboard → Authentication → URL Configuration`
 
--- Create messages table
-CREATE TABLE messages (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  room_id UUID REFERENCES chat_rooms ON DELETE CASCADE NOT NULL,
-  sender_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  content TEXT NOT NULL,
-  message_type TEXT DEFAULT 'text' CHECK (message_type IN ('text', 'image', 'file', 'voice')) NOT NULL,
-  encrypted BOOLEAN DEFAULT TRUE NOT NULL,
-  file_url TEXT,
-  file_name TEXT,
-  file_size BIGINT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
-
--- Create encryption_keys table for storing user encryption keys
-CREATE TABLE encryption_keys (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  public_key TEXT NOT NULL,
-  encrypted_private_key TEXT NOT NULL,
-  key_type TEXT DEFAULT 'post-quantum' NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  UNIQUE(user_id)
-);
-
--- Create indexes for better performance
-CREATE INDEX idx_messages_room_id ON messages(room_id);
-CREATE INDEX idx_messages_sender_id ON messages(sender_id);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
-CREATE INDEX idx_chat_room_participants_room_id ON chat_room_participants(room_id);
-CREATE INDEX idx_chat_room_participants_user_id ON chat_room_participants(user_id);
-CREATE INDEX idx_profiles_username ON profiles(username);
-
--- Set up Row Level Security (RLS)
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_room_participants ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE encryption_keys ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies for profiles
-CREATE POLICY "Public profiles are viewable by everyone." ON profiles
-  FOR SELECT USING (true);
-
-CREATE POLICY "Users can insert their own profile." ON profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Users can update their own profile." ON profiles
-  FOR UPDATE USING (auth.uid() = id);
-
--- RLS Policies for chat_rooms
-CREATE POLICY "Users can view chat rooms they participate in." ON chat_rooms
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = chat_rooms.id AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can create chat rooms." ON chat_rooms
-  FOR INSERT WITH CHECK (auth.uid() = created_by);
-
-CREATE POLICY "Room admins can update chat rooms." ON chat_rooms
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = chat_rooms.id AND user_id = auth.uid() AND role = 'admin'
-    )
-  );
-
--- RLS Policies for chat_room_participants
-CREATE POLICY "Users can view participants of rooms they're in." ON chat_room_participants
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants AS crp 
-      WHERE crp.room_id = chat_room_participants.room_id AND crp.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Room admins can manage participants." ON chat_room_participants
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants AS crp 
-      WHERE crp.room_id = chat_room_participants.room_id AND crp.user_id = auth.uid() AND crp.role = 'admin'
-    )
-  );
-
--- RLS Policies for messages
-CREATE POLICY "Users can view messages in rooms they participate in." ON messages
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = messages.room_id AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can send messages to rooms they participate in." ON messages
-  FOR INSERT WITH CHECK (
-    auth.uid() = sender_id AND
-    EXISTS (
-      SELECT 1 FROM chat_room_participants 
-      WHERE room_id = messages.room_id AND user_id = auth.uid()
-    )
-  );
-
--- RLS Policies for encryption_keys
-CREATE POLICY "Users can view their own encryption keys." ON encryption_keys
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own encryption keys." ON encryption_keys
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own encryption keys." ON encryption_keys
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- Functions to automatically update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = TIMEZONE('utc'::text, NOW());
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create triggers for updated_at
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_chat_rooms_updated_at BEFORE UPDATE ON chat_rooms
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Function to handle new user registration
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, username, display_name)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1))
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Trigger for new user registration
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+**Site URL:**
+```
+http://localhost:5173
 ```
 
-### Step 3: Verify Setup
-
-1. After running the SQL, you should see all tables created successfully
-2. Go to **Table Editor** in the left sidebar
-3. Verify you can see these tables:
-   - `profiles`
-   - `chat_rooms` 
-   - `chat_room_participants`
-   - `messages`
-   - `encryption_keys`
-
-### Step 4: Test the Application
-
-1. Refresh your SecureChat Pro application
-2. The connection banner should now show a success message
-3. Try creating a new account to test the setup
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"Permission denied" errors**: Make sure you're running the SQL as the project owner
-2. **"Function does not exist" errors**: Ensure the `uuid-ossp` extension is enabled
-3. **RLS policy errors**: The policies are set up to be secure by default - users can only see their own data
-
-### Manual Profile Creation
-
-If the automatic profile creation trigger doesn't work, you can manually create profiles for existing users:
-
-```sql
--- Replace USER_ID and details with actual values
-INSERT INTO profiles (id, username, display_name)
-VALUES ('USER_ID_HERE', 'username_here', 'Display Name Here');
+**Redirect URLs (Add ALL of these):**
+```
+http://localhost:5173/**
+http://localhost:5173/reset-password
+http://localhost:5173/auth/callback
+http://localhost:5173/dashboard
 ```
 
-### Reset Database
-
-If you need to start over, you can drop all tables:
-
-```sql
-DROP TABLE IF EXISTS encryption_keys CASCADE;
-DROP TABLE IF EXISTS messages CASCADE;
-DROP TABLE IF EXISTS chat_room_participants CASCADE;
-DROP TABLE IF EXISTS chat_rooms CASCADE;
-DROP TABLE IF EXISTS profiles CASCADE;
+**For Production, also add:**
+```
+https://your-domain.com/**
+https://your-domain.com/reset-password
+https://your-domain.com/auth/callback
+https://your-domain.com/dashboard
 ```
 
-Then re-run the setup script.
+### 3. Email Templates
 
-## Security Notes
+**Location:** `Dashboard → Authentication → Email Templates`
 
-- All tables have Row Level Security (RLS) enabled
-- Users can only access their own data and rooms they participate in
-- Encryption keys are stored securely with proper access controls
-- All user actions are logged with timestamps
+**Verify these templates contain the confirmation URL:**
 
-## Next Steps
+1. **Confirm Signup Template:**
+   ```html
+   <h2>Confirm your signup</h2>
+   <p>Follow this link to confirm your user:</p>
+   <p><a href="{{ .ConfirmationURL }}">Confirm your mail</a></p>
+   ```
 
-Once the database is set up:
+2. **Reset Password Template:**
+   ```html
+   <h2>Reset Password</h2>
+   <p>Follow this link to reset the password for your user:</p>
+   <p><a href="{{ .ConfirmationURL }}">Reset Password</a></p>
+   ```
 
-1. Test user registration and login
-2. Try creating chat rooms
-3. Send encrypted messages
-4. Explore the voice message and file sharing features
+## 🐛 Common Issues & Solutions
 
-For any issues, check the browser console for detailed error messages.
+### Issue 1: Emails Not Being Sent
+
+**Symptoms:**
+- Password reset doesn't send email
+- Signup confirmation doesn't arrive
+- No errors in browser console
+
+**Causes & Solutions:**
+
+1. **📧 Check Spam Folder**
+   - Add `noreply@mail.supabase.io` to contacts
+   - Check spam/junk folder
+
+2. **⏰ Rate Limiting**
+   - Supabase free tier: 3-4 emails per hour per user
+   - **Check:** Dashboard → Logs → Auth Logs for "rate_limit_exceeded"
+   - **Solution:** Wait 1 hour between email attempts
+
+3. **❌ Email Provider Not Enabled**
+   - **Check:** Dashboard → Authentication → Providers → Email
+   - **Solution:** Enable the Email provider
+
+4. **🔗 Wrong Redirect URLs**
+   - **Check:** Dashboard → Authentication → URL Configuration
+   - **Solution:** Ensure URLs match exactly (including http/https and port)
+
+### Issue 2: Registration/Login Failures
+
+**Symptoms:**
+- "Invalid login credentials" errors
+- "Email not confirmed" messages
+- Users can't access dashboard after signup
+
+**Causes & Solutions:**
+
+1. **✉️ Email Confirmation Required**
+   - **Check:** Authentication → Providers → Email → "Confirm email" setting
+   - **If Enabled:** Users MUST click email confirmation link before login
+   - **Solution:** Inform users to check email before attempting login
+
+2. **🔑 Environment Variables**
+   - **Check:** Browser Console → `console.log(import.meta.env.VITE_SUPABASE_URL)`
+   - **Should show:** Your Supabase URL, not `undefined`
+   - **Solution:** Verify `.env` file has correct values with `VITE_` prefix
+
+3. **🗄️ Database Connection Issues**
+   - **Check:** Use Admin Config Panel in dashboard
+   - **Solution:** Run database initialization if tables are missing
+
+### Issue 3: Redirect URL Mismatches
+
+**Symptoms:**
+- "Invalid redirect URL" errors
+- Users redirected to wrong pages after email clicks
+- Authentication callbacks fail
+
+**Causes & Solutions:**
+
+1. **🌐 URL Protocol Mismatch**
+   - **Issue:** Code uses `http://` but Supabase configured for `https://`
+   - **Solution:** Ensure consistent protocol in both places
+
+2. **🔢 Port Number Issues**
+   - **Issue:** Development server port changes
+   - **Solution:** Add wildcard URLs like `http://localhost:5173/**`
+
+3. **📍 Environment-Specific URLs**
+   - **Issue:** Hardcoded `window.location.origin` in production
+   - **Solution:** Use environment variables (`VITE_APP_URL`)
+
+## 🧪 Testing & Debugging
+
+### Built-in Diagnostic Tools
+
+1. **Admin Config Panel**
+   - Available in dashboard for authenticated users
+   - Tests email system, database connectivity
+   - Shows environment variable status
+
+2. **Supabase Config Checker**
+   - Automated diagnostics
+   - Verifies all configuration requirements
+   - Provides fix recommendations
+
+### Manual Testing
+
+1. **Environment Variables Check:**
+   ```javascript
+   // In browser console
+   console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
+   console.log('Environment:', import.meta.env.MODE)
+   ```
+
+2. **Database Connection Test:**
+   ```javascript
+   // In browser console
+   const { data, error } = await supabase.from('users').select('*').limit(1)
+   console.log('Database test:', { data, error })
+   ```
+
+3. **Email Test:**
+   ```javascript
+   // In browser console (replace with test email)
+   const { error } = await supabase.auth.resetPasswordForEmail('test@example.com')
+   console.log('Email test:', error)
+   ```
+
+### Supabase Dashboard Logs
+
+**Location:** `Dashboard → Logs → Auth Logs`
+
+**Look for:**
+- ✅ `sent confirmation email to: user@email.com`
+- ✅ `sent password recovery email to: user@email.com`
+- ❌ `failed to send email`
+- ❌ `rate limit exceeded`
+- ❌ `User not found`
+
+## 📋 Pre-Launch Checklist
+
+- [ ] `.env` file created with correct Supabase credentials
+- [ ] Environment variables start with `VITE_` prefix
+- [ ] Email provider enabled in Supabase Dashboard
+- [ ] Redirect URLs configured for all environments (dev + production)
+- [ ] Email templates contain `{{ .ConfirmationURL }}`
+- [ ] Database tables exist and are accessible
+- [ ] Authentication flow tested end-to-end
+- [ ] Password reset functionality tested
+- [ ] Error handling implemented for edge cases
+- [ ] Rate limiting considerations documented for users
+- [ ] Spam folder instructions provided to users
+- [ ] Auth logs monitored for errors
+
+## 🆘 Emergency Troubleshooting
+
+If everything seems broken:
+
+1. **Clear Everything:**
+   ```bash
+   # Clear browser data
+   # Go to Developer Tools → Application → Storage → Clear storage
+   
+   # Restart dev server
+   npm run dev
+   ```
+
+2. **Verify Basic Connection:**
+   ```javascript
+   // Browser console - test basic Supabase connection
+   console.log('Testing Supabase...')
+   const { data } = await supabase.from('users').select('count').limit(1)
+   console.log('Connection result:', data)
+   ```
+
+3. **Check Auth State:**
+   ```javascript
+   // Browser console
+   const { data: { session } } = await supabase.auth.getSession()
+   console.log('Current session:', session)
+   ```
+
+4. **Manual Email Test:**
+   - Use a real email address you control
+   - Try password reset from the UI
+   - Check both inbox and spam folder
+   - Look for emails from `noreply@mail.supabase.io`
+
+## 🔗 Helpful Links
+
+- [Supabase Dashboard](https://app.supabase.com)
+- [Supabase Auth Documentation](https://supabase.com/docs/guides/auth)
+- [Supabase Community Discord](https://discord.supabase.com)
+- [Email Provider Configuration](https://supabase.com/docs/guides/auth/auth-smtp)
+
+## 📞 Support
+
+If you're still experiencing issues:
+
+1. Check the Auth Logs in your Supabase Dashboard
+2. Use the built-in diagnostic tools in the application
+3. Review this troubleshooting guide step-by-step
+4. Join the Supabase Discord community for help
+
+---
+
+**Remember:** After making any configuration changes, always:
+1. Restart your development server
+2. Clear browser cache/cookies
+3. Test with a fresh browser tab/incognito mode

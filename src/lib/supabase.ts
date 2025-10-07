@@ -174,12 +174,17 @@ export const signUp = async (email: string, password: string, displayName: strin
     }
   }
 
-  // Fixed email configuration - ensure proper redirect URL for email confirmation
+  // Environment-aware email configuration for proper redirect handling
+  const redirectUrl = import.meta.env.VITE_REDIRECT_URL || import.meta.env.VITE_APP_URL || window.location.origin
+  const callbackUrl = `${redirectUrl}/auth/callback`
+  
+  console.log('🔹 Using callback URL for email confirmation:', callbackUrl)
+  
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
+      emailRedirectTo: callbackUrl,
       data: {
         display_name: displayName,
         username: username,

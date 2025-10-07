@@ -33,9 +33,15 @@ export function ForgotPasswordCard({ onBack }: ForgotPasswordProps) {
     setIsLoading(true)
 
     try {
-      // Enhanced password reset with better error handling and redirect URL
+      // Enhanced password reset with better error handling and environment-aware redirect URL
+      const redirectUrl = import.meta.env.VITE_REDIRECT_URL || import.meta.env.VITE_APP_URL || window.location.origin
+      const resetUrl = `${redirectUrl}/reset-password`
+      
+      console.log('🔹 Attempting password reset for:', email)
+      console.log('🔹 Using redirect URL:', resetUrl)
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: resetUrl
       })
 
       if (error) {
