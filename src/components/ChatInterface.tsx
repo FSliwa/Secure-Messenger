@@ -331,18 +331,6 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             type: 'text'
           }
 
-          // Only show notification for messages from other users
-          if (newMessage.sender_id !== currentUser.id) {
-            playNotificationSound('message')
-            showNotification(
-              `New message from ${transformedMessage.senderName}`,
-              'You have received a new encrypted message',
-              {
-                tag: `message-${newMessage.id}`
-              }
-            )
-          }
-
           setMessages((currentMessages) => [...(currentMessages || []), transformedMessage])
         })
 
@@ -852,84 +840,6 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         toast.error(`Failed to send ${attachment.name}`)
       }
     }
-  }
-
-  // Enhanced file upload handler for drag-and-drop
-  const handleFileUpload = async (file: File): Promise<{ url: string; thumbnail?: string }> => {
-    // Simulate file upload to storage service
-    // In a real implementation, this would upload to your storage service (Supabase Storage, AWS S3, etc.)
-    
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Simulate successful upload
-        const mockUrl = `https://storage.example.com/files/${Date.now()}-${file.name}`
-        
-        if (file.type.startsWith('image/')) {
-          // Generate thumbnail for images
-          const mockThumbnail = `https://storage.example.com/thumbnails/${Date.now()}-${file.name}`
-          resolve({ url: mockUrl, thumbnail: mockThumbnail })
-        } else {
-          resolve({ url: mockUrl })
-        }
-      }, 1000 + Math.random() * 2000) // 1-3 seconds simulation
-    })
-  }
-
-  // Enhanced file sharing handler for multiple files
-  const handleFilesShared = async (files: { url: string; name: string; size: number; type: string; thumbnail?: string }[]) => {
-    if (!activeConversation || !keyPair) {
-      toast.error('Please select a conversation and ensure encryption is ready')
-      return
-    }
-
-    const newMessages: Message[] = []
-
-    for (const fileInfo of files) {
-      try {
-        // Create message for file
-        const fileMessage: Message = {
-          id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
-          conversation_id: activeConversation.id,
-          sender_id: currentUser.id,
-          senderName: currentUser.displayName || currentUser.username,
-          encrypted_content: fileInfo.url,
-          timestamp: Date.now(),
-          status: 'sent',
-          isEncrypted: false, // URL is not encrypted for now, but could be
-          type: fileInfo.type.startsWith('image/') ? 'image' as const : 'file' as const,
-          attachmentUrl: fileInfo.url,
-          fileName: fileInfo.name,
-          fileSize: fileInfo.size,
-          fileType: fileInfo.type
-        }
-
-        newMessages.push(fileMessage)
-
-        // Send to database
-        try {
-          await sendMessage(
-            activeConversation.id,
-            currentUser.id,
-            fileInfo.url,
-            fileMessage.type
-          )
-        } catch (dbError) {
-          console.warn('Database send failed, message stored locally:', dbError)
-        }
-
-      } catch (error) {
-        console.error('Enhanced file sharing error:', error)
-        toast.error(`Failed to send ${fileInfo.name}`)
-      }
-    }
-
-    // Add all messages at once
-    if (newMessages.length > 0) {
-      setMessages(prev => [...(prev || []), ...newMessages])
-      playNotificationSound('message')
-    }
-
-    setShowEnhancedFileSharing(false)
   }
 
   // Handler for direct messages (Polish feature 1)
@@ -1486,15 +1396,6 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       <Paperclip className="w-5 h-5 text-gray-600" />
                     </button>
                     
-                    {/* Enhanced File Sharing Button */}
-                    <button
-                      onClick={() => setShowEnhancedFileSharing(true)}
-                      className="w-10 h-10 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-colors"
-                      title="Enhanced File Sharing"
-                    >
-                      <Plus className="w-5 h-5 text-blue-600" />
-                    </button>
-                    
                     {/* Voice Recording Button */}
                     <button
                       onClick={() => setShowVoiceRecorder(true)}
@@ -1623,31 +1524,6 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         maxFileSize={25}
         maxFiles={10}
       />
-
-      {/* Enhanced File Sharing Dialog */}
-      {showEnhancedFileSharing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Share Files</h2>
-              <Button
-                variant="ghost"
-                onClick={() => setShowEnhancedFileSharing(false)}
-              >
-                ✕
-              </Button>
-            </div>
-            <div className="p-6">
-              <EnhancedFileSharing
-                onFileUpload={handleFileUpload}
-                onSendFiles={handleFilesShared}
-                maxFileSize={50}
-                maxFiles={20}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Polish Feature 1: Direct Message Dialog */}
       <DirectMessageDialog
