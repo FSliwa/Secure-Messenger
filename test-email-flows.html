@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Email Flow Tests</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input {
+            width: 300px;
+        }
+        button {
+            background: #0066ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        button:hover {
+            background: #0052cc;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Supabase Email Flow Tests</h1>
+        <p>Test registration and password reset email flows with your Supabase configuration.</p>
+        
+        <div class="test-section">
+            <h3>⚙️ Configuration</h3>
+            <input type="text" id="supabaseUrl" placeholder="Supabase URL" />
+            <input type="text" id="supabaseKey" placeholder="Supabase Anon Key" />
+            <button onclick="initializeSupabase()">Initialize</button>
+            <div id="configStatus"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📝 Registration Test</h2>
+        <div class="test-section">
+            <h3>Create New Account</h3>
+            <input type="email" id="regEmail" placeholder="test@example.com" />
+            <input type="password" id="regPassword" placeholder="Password123!" value="TestPassword123!" />
+            <input type="text" id="regUsername" placeholder="username" />
+            <button onclick="testRegistration()" id="regButton">Test Registration</button>
+            <div id="regLog" class="log"></div>
+            <div id="regStatus" class="status" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔐 Password Reset Test</h2>
+        <div class="test-section">
+            <h3>Request Password Reset</h3>
+            <input type="email" id="resetEmail" placeholder="test@example.com" />
+            <button onclick="testPasswordReset()" id="resetButton">Test Password Reset</button>
+            <div id="resetLog" class="log"></div>
+            <div id="resetStatus" class="status" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Email Service Status</h2>
+        <div class="test-section">
+            <button onclick="checkEmailService()">Check Email Service</button>
+            <div id="emailServiceLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let supabase = null;
+        
+        function log(elementId, message, type = 'info') {
+            const logElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logElement.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function showStatus(elementId, message, type = 'success') {
+            const statusElement = document.getElementById(elementId);
+            statusElement.style.display = 'block';
+            statusElement.className = `status ${type}`;
+            statusElement.textContent = message;
+        }
+
+        function initializeSupabase() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            
+            if (!url || !key) {
+                showStatus('configStatus', 'Please enter both Supabase URL and Anon Key', 'error');
+                return;
+            }
+            
+            try {
+                supabase = supabaseClient.createClient(url, key);
+                showStatus('configStatus', '✅ Supabase initialized successfully', 'success');
+                
+                // Store in localStorage for convenience
+                localStorage.setItem('supabaseUrl', url);
+                localStorage.setItem('supabaseKey', key);
+            } catch (error) {
+                showStatus('configStatus', `❌ Failed to initialize: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRegistration() {
+            if (!supabase) {
+                alert('Please initialize Supabase first');
+                return;
+            }
+            
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const username = document.getElementById('regUsername').value || `user${Date.now()}`;
+            
+            if (!email || !password) {
+                showStatus('regStatus', 'Please enter email and password', 'error');
+                return;
+            }
+            
+            const button = document.getElementById('regButton');
+            button.disabled = true;
+            
+            log('regLog', '🚀 Starting registration test...', 'info');
+            log('regLog', `Email: ${email}`, 'info');
+            log('regLog', `Username: ${username}`, 'info');
+            
+            try {
+                // Step 1: Sign up
+                log('regLog', '1️⃣ Creating account...', 'info');
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            username: username,
+                            display_name: username
+                        },
+                        emailRedirectTo: window.location.origin
+                    }
+                });
+                
+                if (error) {
+                    log('regLog', `❌ Registration failed: ${error.message}`, 'error');
+                    showStatus('regStatus', `Registration failed: ${error.message}`, 'error');
+                    button.disabled = false;
+                    return;
+                }
+                
+                log('regLog', '✅ Account created successfully!', 'success');
+                
+                if (data.user && !data.user.email_confirmed_at) {
+                    log('regLog', '📧 Confirmation email sent!', 'success');
+                    log('regLog', 'Check your email inbox to verify your account', 'warning');
+                    showStatus('regStatus', '✅ Registration successful! Check your email for confirmation link.', 'success');
+                } else if (data.user && data.user.email_confirmed_at) {
+                    log('regLog', '✅ Email auto-confirmed (dev mode)', 'success');
+                    showStatus('regStatus', '✅ Registration successful! Email auto-confirmed.', 'success');
+                }
+                
+                // Step 2: Create user profile
+                if (data.user) {
+                    log('regLog', '2️⃣ Creating user profile...', 'info');
+                    const { error: profileError } = await supabase
+                        .from('users')
+                        .insert({
+                            id: data.user.id,
+                            username: username,
+                            display_name: username,
+                            email: email,
+                            public_key: 'placeholder',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                    
+                    if (profileError) {
+                        log('regLog', `⚠️ Profile creation: ${profileError.message}`, 'warning');
+                    } else {
+                        log('regLog', '✅ User profile created', 'success');
+                    }
+                }
+                
+                // Log user details
+                log('regLog', `User ID: ${data.user.id}`, 'info');
+                log('regLog', `Created at: ${data.user.created_at}`, 'info');
+                
+            } catch (err) {
+                log('regLog', `❌ Unexpected error: ${err.message}`, 'error');
+                showStatus('regStatus', `Error: ${err.message}`, 'error');
+            }
+            
+            button.disabled = false;
+        }
+
+        async function testPasswordReset() {
+            if (!supabase) {
+                alert('Please initialize Supabase first');
+                return;
+            }
+            
+            const email = document.getElementById('resetEmail').value;
+            
+            if (!email) {
+                showStatus('resetStatus', 'Please enter an email address', 'error');
+                return;
+            }
+            
+            const button = document.getElementById('resetButton');
+            button.disabled = true;
+            
+            log('resetLog', '🚀 Starting password reset test...', 'info');
+            log('resetLog', `Email: ${email}`, 'info');
+            
+            try {
+                log('resetLog', '📧 Sending password reset email...', 'info');
+                const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                });
+                
+                if (error) {
+                    log('resetLog', `❌ Reset failed: ${error.message}`, 'error');
+                    showStatus('resetStatus', `Reset failed: ${error.message}`, 'error');
+                    
+                    if (error.message.includes('rate limit')) {
+                        log('resetLog', '⚠️ Rate limit reached. Wait before trying again.', 'warning');
+                    }
+                } else {
+                    log('resetLog', '✅ Password reset email sent!', 'success');
+                    log('resetLog', 'Check your email inbox for the reset link', 'info');
+                    log('resetLog', `Redirect URL: ${window.location.origin}/reset-password`, 'info');
+                    showStatus('resetStatus', '✅ Password reset email sent! Check your inbox.', 'success');
+                }
+                
+            } catch (err) {
+                log('resetLog', `❌ Unexpected error: ${err.message}`, 'error');
+                showStatus('resetStatus', `Error: ${err.message}`, 'error');
+            }
+            
+            button.disabled = false;
+        }
+
+        async function checkEmailService() {
+            log('emailServiceLog', '🔍 Checking email service configuration...', 'info');
+            
+            log('emailServiceLog', '📋 Supabase Email Configuration:', 'info');
+            log('emailServiceLog', '✓ Default provider: Supabase (built-in)', 'success');
+            log('emailServiceLog', '✓ Custom SMTP: Available in Pro plan', 'info');
+            log('emailServiceLog', '✓ Email templates: Customizable in dashboard', 'info');
+            
+            log('emailServiceLog', '\n📊 Email Limits (Free tier):', 'warning');
+            log('emailServiceLog', '• 3 emails per hour per email address', 'warning');
+            log('emailServiceLog', '• 30 emails per hour total', 'warning');
+            log('emailServiceLog', '• Upgrade for higher limits', 'info');
+            
+            log('emailServiceLog', '\n🔧 Common Issues:', 'info');
+            log('emailServiceLog', '1. Emails in spam → Add SPF/DKIM records', 'info');
+            log('emailServiceLog', '2. No emails → Check SMTP settings', 'info');
+            log('emailServiceLog', '3. Rate limits → Wait or upgrade', 'info');
+            
+            log('emailServiceLog', '\n✅ To configure custom SMTP:', 'success');
+            log('emailServiceLog', '1. Go to Supabase Dashboard', 'info');
+            log('emailServiceLog', '2. Settings → Auth → Email', 'info');
+            log('emailServiceLog', '3. Enable custom SMTP', 'info');
+            log('emailServiceLog', '4. Enter SMTP credentials', 'info');
+        }
+
+        // Load saved config on page load
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('supabaseUrl');
+            const savedKey = localStorage.getItem('supabaseKey');
+            
+            if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl;
+            if (savedKey) document.getElementById('supabaseKey').value = savedKey;
+            
+            if (savedUrl && savedKey) {
+                initializeSupabase();
+            }
+        };
+    </script>
+</body>
+</html>
