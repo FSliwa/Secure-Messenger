@@ -12,6 +12,19 @@
 -- 7. Create Security Functions
 
 -- ============================================
+-- CZYSZCZENIE STARYCH OBIEKTÓW
+-- ============================================
+-- Usuń stare triggery i funkcje które mogą powodować konflikty
+DROP TRIGGER IF EXISTS trigger_password_history ON auth.users;
+DROP TRIGGER IF EXISTS cleanup_expired_sessions_trigger ON public.conversation_access_sessions;
+DROP FUNCTION IF EXISTS public.add_password_history() CASCADE;
+DROP FUNCTION IF EXISTS public.cleanup_expired_sessions() CASCADE;
+DROP FUNCTION IF EXISTS public.check_account_lockout(uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.lock_account(uuid, text, integer, boolean) CASCADE;
+DROP FUNCTION IF EXISTS public.unlock_account(uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.has_conversation_access(uuid, uuid) CASCADE;
+
+-- ============================================
 -- 1. CREATE ACCOUNT LOCKOUTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.account_lockouts (
@@ -388,7 +401,12 @@ CREATE TRIGGER cleanup_expired_sessions_trigger
 -- Funkcja do dodawania historii haseł
 -- UWAGA: W Supabase nie mamy bezpośredniego dostępu do haseł
 -- Ta funkcja jest tylko placeholder - historię haseł należy implementować w aplikacji
-DROP FUNCTION IF EXISTS public.add_password_history();
+
+-- Najpierw usuń trigger jeśli istnieje
+DROP TRIGGER IF EXISTS trigger_password_history ON auth.users;
+
+-- Teraz możemy bezpiecznie usunąć i utworzyć funkcję
+DROP FUNCTION IF EXISTS public.add_password_history() CASCADE;
 CREATE OR REPLACE FUNCTION public.add_password_history()
 RETURNS trigger AS $$
 BEGIN
@@ -400,7 +418,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- UWAGA: Trigger dla password_history został wyłączony
 -- ponieważ w Supabase nie mamy dostępu do kolumny encrypted_password
--- DROP TRIGGER IF EXISTS trigger_password_history ON auth.users;
 
 -- ============================================
 -- GRANT UPRAWNIEŃ
