@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -14,6 +14,9 @@ import { TwoFactorSetup } from './TwoFactorSetup'
 import { TrustedDevices } from './TrustedDevices'
 import { PrivacySettings } from './PrivacySettings'
 import { BiometricDemo } from './BiometricDemo'
+import { supabase } from '@/lib/supabase'
+import { getUserTrustedDevices } from '@/lib/auth-security'
+import { BiometricAuthService } from '@/lib/biometric-auth'
 
 interface SecuritySettingsProps {
   userId: string
@@ -25,8 +28,56 @@ interface SecuritySettingsProps {
   }
 }
 
+interface SecurityStatus {
+  twoFactorEnabled: boolean
+  biometricEnabled: boolean
+  trustedDevicesCount: number
+  privacyProtectionEnabled: boolean
+}
+
 export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps) {
   const [activeTab, setActiveTab] = useState('overview')
+  const [securityStatus, setSecurityStatus] = useState<SecurityStatus>({
+    twoFactorEnabled: false,
+    biometricEnabled: false,
+    trustedDevicesCount: 0,
+    privacyProtectionEnabled: true // Always enabled for privacy protection
+  })
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    loadSecurityStatus()
+  }, [userId])
+
+  const loadSecurityStatus = async () => {
+    try {
+      setIsLoading(true)
+      
+      // Check 2FA status
+      const { data: twoFactorData } = await supabase
+        .from('two_factor_auth')
+        .select('is_enabled')
+        .eq('user_id', userId)
+        .single()
+      
+      // Check trusted devices count
+      const trustedDevices = await getUserTrustedDevices(userId)
+      
+      // Check biometric auth availability
+      const biometricEnabled = await BiometricAuthService.isPlatformAuthenticatorAvailable()
+      
+      setSecurityStatus({
+        twoFactorEnabled: twoFactorData?.is_enabled || false,
+        biometricEnabled: biometricEnabled,
+        trustedDevicesCount: trustedDevices.length,
+        privacyProtectionEnabled: true
+      })
+    } catch (error) {
+      console.error('Failed to load security status:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -93,28 +144,28 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
                 <SecurityFeatureCard
                   title="2FA Authentication"
                   description="Two-factor authentication"
-                  status="enabled"
+                  status={securityStatus.twoFactorEnabled ? "enabled" : "setup"}
                   icon={<ShieldCheck className="h-5 w-5" />}
                   onClick={() => setActiveTab('2fa')}
                 />
                 <SecurityFeatureCard
                   title="Biometric Auth"
                   description="Fingerprint verification"
-                  status="enabled"
+                  status={securityStatus.biometricEnabled ? "enabled" : "disabled"}
                   icon={<Fingerprint className="h-5 w-5" />}
                   onClick={() => setActiveTab('biometric')}
                 />
                 <SecurityFeatureCard
                   title="Trusted Devices"
-                  description="Manage trusted devices"
-                  status="active"
+                  description={`${securityStatus.trustedDevicesCount} devices`}
+                  status={securityStatus.trustedDevicesCount > 0 ? "active" : "setup"}
                   icon={<Desktop className="h-5 w-5" />}
                   onClick={() => setActiveTab('devices')}
                 />
                 <SecurityFeatureCard
                   title="Privacy Protection"
                   description="Screenshot protection"
-                  status="enabled"
+                  status={securityStatus.privacyProtectionEnabled ? "enabled" : "disabled"}
                   icon={<Eye className="h-5 w-5" />}
                   onClick={() => setActiveTab('privacy')}
                 />

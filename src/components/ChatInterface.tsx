@@ -140,10 +140,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         const userConversations = await getUserConversations(currentUser.id)
         let loadedConversations = userConversations.map((item: any) => ({
           ...item.conversations,
+          access_code: item.conversations.access_code,
           otherParticipant: null // Would be populated with other participant info
         }))
-        
-
         
         setConversations(loadedConversations)
         
@@ -159,6 +158,67 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
     loadConversations()
   }, [currentUser.id, setConversations])
+
+  // Load messages when active conversation changes
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!activeConversation) {
+        setMessages([])
+        return
+      }
+
+      try {
+        const conversationMessages = await getConversationMessages(activeConversation.id, 50, 0)
+        
+        // Transform database messages to our Message interface
+        const transformedMessages: Message[] = conversationMessages.reverse().map((dbMessage: any) => ({
+          id: dbMessage.id,
+          conversation_id: dbMessage.conversation_id,
+          sender_id: dbMessage.sender_id,
+          senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
+          encrypted_content: dbMessage.encrypted_content,
+          timestamp: new Date(dbMessage.sent_at).getTime(),
+          status: 'delivered' as const,
+          isEncrypted: true,
+          type: 'text' as const
+        }))
+
+        // Replace messages for this conversation
+        setMessages((currentMessages) => {
+          const otherConversationMessages = (currentMessages || []).filter(
+            msg => msg.conversation_id !== activeConversation.id
+          )
+          return [...otherConversationMessages, ...transformedMessages]
+        })
+
+        // Set up real-time subscription
+        const subscription = subscribeToMessages(activeConversation.id, (newMessage) => {
+          const transformedMessage: Message = {
+            id: newMessage.id,
+            conversation_id: newMessage.conversation_id,
+            sender_id: newMessage.sender_id,
+            senderName: 'User', // Would need to fetch from users table
+            encrypted_content: newMessage.encrypted_content,
+            timestamp: new Date(newMessage.sent_at).getTime(),
+            status: 'delivered',
+            isEncrypted: true,
+            type: 'text'
+          }
+
+          setMessages((currentMessages) => [...(currentMessages || []), transformedMessage])
+        })
+
+        return () => {
+          subscription.unsubscribe()
+        }
+      } catch (error) {
+        console.error('Failed to load messages:', error)
+        toast.error('Failed to load messages')
+      }
+    }
+
+    loadMessages()
+  }, [activeConversation, setMessages])
 
   const handleSearchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -393,12 +453,13 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         { algorithm: 'PQC-AES-256-GCM-RSA2048', bitLength: 2048 }
       )
 
-      // Update message status
+      // Update message with real database ID and status
       setMessages((currentMessages) => 
         (currentMessages || []).map(msg => 
           msg.id === messageId 
             ? {
                 ...msg,
+                id: dbMessage.id, // Use real database ID
                 encrypted_content: encryptedContent, 
                 isEncrypted: true,
                 status: 'sent'

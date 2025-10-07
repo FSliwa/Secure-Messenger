@@ -76,7 +76,7 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   }
 
   const userName = currentUser?.displayName || currentUser?.username || currentUser?.email?.split('@')[0] || 'User'
-  const userEmail = currentUser?.email || 'demo@example.com'
+  const userEmail = currentUser?.email || 'user@example.com'
 
   return (
     <div className="min-h-screen bg-background">
