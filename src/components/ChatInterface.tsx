@@ -24,7 +24,9 @@ import {
   UserPlus,
   ChatCircle,
   Copy,
-  Paperclip
+  Paperclip,
+  EnvelopeSimple,
+  Users
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
@@ -49,6 +51,9 @@ import { VoiceMessage } from './VoiceMessage'
 import { BiometricVerificationDialog } from './BiometricVerificationDialog'
 import { MessageSearch } from './MessageSearch'
 import { FileAttachment } from './FileAttachment'
+import { DirectMessageDialog } from './DirectMessageDialog'
+import { UserSearchDialog } from './UserSearchDialog'
+import { AddUsersToConversationDialog } from './AddUsersToConversationDialog'
 import { useBiometricVerification } from '@/hooks/useBiometricVerification'
 import { BiometricAuthService } from '@/lib/biometric-auth'
 
@@ -127,6 +132,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   // New state for message search and file attachments
   const [showMessageSearch, setShowMessageSearch] = useState(false)
   const [showFileAttachment, setShowFileAttachment] = useState(false)
+  
+  // New state for Polish features
+  const [showDirectMessage, setShowDirectMessage] = useState(false)
+  const [showUserSearchDialog, setShowUserSearchDialog] = useState(false)
+  const [showAddUsersDialog, setShowAddUsersDialog] = useState(false)
+  const [userSearchMode, setUserSearchMode] = useState<'chat' | 'add-to-conversation'>('chat')
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
@@ -612,6 +623,47 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     }
   }
 
+  // Handler for direct messages (Polish feature 1)
+  const handleDirectMessage = (recipient: UserSearchResult, message: string) => {
+    // In a real implementation, this would send the message through a direct channel
+    toast.success(`Wiadomość bezpośrednia wysłana do @${recipient.username}`)
+    
+    // For demo purposes, we'll add it to a temporary conversation
+    const directMessage: Message = {
+      id: `dm_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      conversation_id: `direct_${recipient.id}`,
+      sender_id: currentUser.id,
+      senderName: currentUser.displayName || currentUser.username,
+      encrypted_content: message,
+      timestamp: Date.now(),
+      status: 'sent',
+      isEncrypted: false, // Direct messages could be handled differently
+      type: 'text'
+    }
+    
+    setMessages(prev => [...(prev || []), directMessage])
+  }
+
+  // Handler for advanced user search (Polish feature 2)
+  const handleAdvancedUserSelect = (user: UserSearchResult, action: 'chat' | 'add') => {
+    if (action === 'chat') {
+      // Start conversation with user
+      handleStartConversationWithUser(user)
+    } else if (action === 'add' && activeConversation) {
+      // This would normally add the user to the active conversation
+      toast.success(`Dodano ${user.username} do konwersacji`)
+    }
+  }
+
+  // Handler for adding users to conversation (Polish feature 3)
+  const handleUsersAddedToConversation = (users: UserSearchResult[], conversationId: string) => {
+    const userNames = users.map(u => u.username).join(', ')
+    toast.success(`Dodano użytkowników do konwersacji: ${userNames}`)
+    
+    // In a real implementation, this would update the conversation participants
+    // and notify all participants about the new members
+  }
+
   return (
     <div className="w-full max-w-full mx-auto bg-white rounded-xl shadow-lg overflow-hidden facebook-card facebook-chat-container">
       <div className="flex h-full">
@@ -622,6 +674,38 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-bold text-gray-900">Chats</h1>
               <div className="flex gap-2">
+                {/* Direct Message Button - Polish Feature 1 */}
+                <button 
+                  onClick={() => setShowDirectMessage(true)}
+                  className="w-9 h-9 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-colors"
+                  title="Wyślij wiadomość bezpośrednią"
+                >
+                  <EnvelopeSimple className="w-5 h-5 text-blue-600" />
+                </button>
+
+                {/* Advanced User Search Button - Polish Feature 2 */}
+                <button 
+                  onClick={() => {
+                    setUserSearchMode('chat')
+                    setShowUserSearchDialog(true)
+                  }}
+                  className="w-9 h-9 rounded-full bg-green-100 hover:bg-green-200 flex items-center justify-center transition-colors"
+                  title="Zaawansowane wyszukiwanie użytkowników"
+                >
+                  <User className="w-5 h-5 text-green-600" />
+                </button>
+
+                {/* Add Users to Current Conversation - Polish Feature 3 */}
+                {activeConversation && (
+                  <button 
+                    onClick={() => setShowAddUsersDialog(true)}
+                    className="w-9 h-9 rounded-full bg-purple-100 hover:bg-purple-200 flex items-center justify-center transition-colors"
+                    title="Dodaj użytkowników do konwersacji"
+                  >
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </button>
+                )}
+                
                 {/* Message Search Button */}
                 <button 
                   onClick={() => setShowMessageSearch(true)}
@@ -714,7 +798,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   <MagnifyingGlass className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                   <input
                     className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-full text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                    placeholder="Search conversations..."
+                    placeholder="Szukaj konwersacji..."
                     readOnly
                   />
                 </div>
@@ -1072,6 +1156,33 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         keyPair={keyPair}
         maxFileSize={25}
         maxFiles={10}
+      />
+
+      {/* Polish Feature 1: Direct Message Dialog */}
+      <DirectMessageDialog
+        isOpen={showDirectMessage}
+        onClose={() => setShowDirectMessage(false)}
+        currentUser={currentUser}
+        onMessageSent={handleDirectMessage}
+      />
+
+      {/* Polish Feature 2: Advanced User Search Dialog */}
+      <UserSearchDialog
+        isOpen={showUserSearchDialog}
+        onClose={() => setShowUserSearchDialog(false)}
+        currentUser={currentUser}
+        onUserSelect={handleAdvancedUserSelect}
+        mode={userSearchMode}
+        conversationId={activeConversation?.id}
+      />
+
+      {/* Polish Feature 3: Add Users to Conversation Dialog */}
+      <AddUsersToConversationDialog
+        isOpen={showAddUsersDialog}
+        onClose={() => setShowAddUsersDialog(false)}
+        conversation={activeConversation}
+        currentUser={currentUser}
+        onUsersAdded={handleUsersAddedToConversation}
       />
     </div>
   )

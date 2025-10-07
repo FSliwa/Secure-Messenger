@@ -127,15 +127,9 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       
       if (has2FA) {
         console.log('🔒 Checking device trust status...')
-        let trusted = false;
-        try {
-          const deviceFingerprint = generateDeviceFingerprint()
-          trusted = await isDeviceTrusted(user.id, deviceFingerprint)
-          console.log('🔒 Device trusted:', trusted)
-        } catch (error) {
-          console.warn('🔒 Device trust check failed, requiring 2FA:', error);
-          trusted = false;
-        }
+        const deviceFingerprint = generateDeviceFingerprint()
+        const trusted = await isDeviceTrusted(user.id, deviceFingerprint)
+        console.log('🔒 Device trusted:', trusted)
         
         if (trusted) {
           console.log('✅ Device trusted, completing login...')
@@ -245,7 +239,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       
       toast.success('Welcome back!')
       
-      console.log('🚀 Calling success callback...')
+      console.log('���� Calling success callback...')
       onSuccess?.(userObject)
       console.log('✅ Login completion successful')
       
