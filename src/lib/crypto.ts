@@ -94,14 +94,14 @@ export async function generatePostQuantumKeyPair(
   const startTime = Date.now();
   const keyId = generateSecureId();
   
-  // Phase 1: Key Derivation (45 seconds for 2048-bit)
+  // Phase 1: Key Derivation (8 seconds for 2048-bit)
   onProgress?.({
     phase: 'key-derivation',
     progress: 10,
     message: 'Deriving 2048-bit quantum-resistant key materials...'
   });
   
-  await simulateComplexComputation(45000, (progress) => {
+  await simulateComplexComputation(8000, (progress) => {
     onProgress?.({
       phase: 'key-derivation',
       progress: 10 + (progress * 0.4),
@@ -109,14 +109,14 @@ export async function generatePostQuantumKeyPair(
     });
   });
 
-  // Phase 2: Quantum Resistance Application (90 seconds for enhanced security)
+  // Phase 2: Quantum Resistance Application (12 seconds for enhanced security)
   onProgress?.({
     phase: 'quantum-resistance',
     progress: 50,
     message: 'Applying 2048-bit post-quantum cryptographic transformations...'
   });
   
-  await simulateComplexComputation(90000, (progress) => {
+  await simulateComplexComputation(12000, (progress) => {
     onProgress?.({
       phase: 'quantum-resistance',
       progress: 50 + (progress * 0.3),
@@ -124,14 +124,14 @@ export async function generatePostQuantumKeyPair(
     });
   });
 
-  // Phase 3: Integrity Hash Generation (45 seconds)
+  // Phase 3: Integrity Hash Generation (6 seconds)
   onProgress?.({
     phase: 'integrity-hash',
     progress: 80,
     message: 'Generating 2048-bit cryptographic integrity proofs...'
   });
   
-  await simulateComplexComputation(45000, (progress) => {
+  await simulateComplexComputation(6000, (progress) => {
     onProgress?.({
       phase: 'integrity-hash',
       progress: 80 + (progress * 0.15),
@@ -139,14 +139,14 @@ export async function generatePostQuantumKeyPair(
     });
   });
 
-  // Phase 4: Finalization (30 seconds)
+  // Phase 4: Finalization (4 seconds)
   onProgress?.({
     phase: 'finalization',
     progress: 95,
     message: 'Finalizing secure 2048-bit key pair...'
   });
   
-  await simulateComplexComputation(30000, (progress) => {
+  await simulateComplexComputation(4000, (progress) => {
     onProgress?.({
       phase: 'finalization',
       progress: 95 + (progress * 0.05),
@@ -197,14 +197,14 @@ export async function encryptMessage(
   const startTime = Date.now();
   const nonce = generateSecureId();
 
-  // Phase 1: Key Derivation for this message (45 seconds)
+  // Phase 1: Key Derivation for this message (6 seconds)
   onProgress?.({
     phase: 'key-derivation',
     progress: 5,
     message: 'Deriving ephemeral encryption keys...'
   });
   
-  await simulateComplexComputation(45000, (progress) => {
+  await simulateComplexComputation(6000, (progress) => {
     onProgress?.({
       phase: 'key-derivation',
       progress: 5 + (progress * 0.25),
@@ -212,14 +212,14 @@ export async function encryptMessage(
     });
   });
 
-  // Phase 2: Quantum-Resistant Encryption (90 seconds)
+  // Phase 2: Quantum-Resistant Encryption (8 seconds)
   onProgress?.({
     phase: 'quantum-resistance',
     progress: 30,
     message: 'Applying quantum-resistant encryption algorithms...'
   });
   
-  await simulateComplexComputation(90000, (progress) => {
+  await simulateComplexComputation(8000, (progress) => {
     onProgress?.({
       phase: 'quantum-resistance',
       progress: 30 + (progress * 0.5),
@@ -227,14 +227,14 @@ export async function encryptMessage(
     });
   });
 
-  // Phase 3: Integrity Protection (30 seconds)
+  // Phase 3: Integrity Protection (4 seconds)
   onProgress?.({
     phase: 'integrity-hash',
     progress: 80,
     message: 'Computing cryptographic integrity signatures...'
   });
   
-  await simulateComplexComputation(30000, (progress) => {
+  await simulateComplexComputation(4000, (progress) => {
     onProgress?.({
       phase: 'integrity-hash',
       progress: 80 + (progress * 0.15),
@@ -242,14 +242,14 @@ export async function encryptMessage(
     });
   });
 
-  // Phase 4: Finalization (15 seconds)
+  // Phase 4: Finalization (2 seconds)
   onProgress?.({
     phase: 'finalization',
     progress: 95,
     message: 'Securing encrypted message...'
   });
   
-  await simulateComplexComputation(15000, (progress) => {
+  await simulateComplexComputation(2000, (progress) => {
     onProgress?.({
       phase: 'finalization',
       progress: 95 + (progress * 0.05),

@@ -194,21 +194,29 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Form submission started');
     
     if (!validateForm()) {
+      console.log('❌ Form validation failed');
       toast.error('Please fix the errors in the form');
       return;
     }
 
+    console.log('✅ Form validation passed');
+
     // Final check for username availability
     try {
+      console.log('🔍 Checking username availability...');
       const { available } = await checkUsernameAvailability(formData.username);
       if (!available) {
+        console.log('❌ Username not available');
         setErrors(prev => ({ ...prev, username: 'Username is already taken' }));
         toast.error('Username is already taken');
         return;
       }
+      console.log('✅ Username is available');
     } catch (error) {
+      console.error('❌ Username check error:', error);
       toast.error('Failed to verify username availability');
       return;
     }
@@ -317,31 +325,31 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       <Card className="facebook-card">
         <CardContent className="p-8">
           {/* Network Status */}
-          <div className="mb-6">
+          <div className="mb-8">
             <NetworkStatusIndicator className="justify-center" />
           </div>
 
           {/* Retry Status Banner */}
           {(retryCount > 0 || lastError || isRetrying) && (
-            <div className="mb-6">
+            <div className="mb-8">
               <SimpleRetryIndicator
                 isRetrying={isRetrying}
                 retryCount={retryCount}
                 operation="signup"
                 error={lastError || undefined}
-                className="p-3 bg-muted/30 rounded-lg border"
+                className="p-4 bg-muted/30 rounded-lg border"
               />
             </div>
           )}
 
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Create a new account</h2>
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold text-foreground mb-3">Create a new account</h2>
             <p className="text-sm text-muted-foreground">It's quick and easy.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Input
                   placeholder="First name"
@@ -369,7 +377,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             </div>
 
             {/* Username */}
-            <div>
+            <div className="space-y-2">
               <div className="relative">
                 <Input
                   placeholder="Username"
@@ -385,15 +393,15 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 )}
               </div>
               {errors.username && (
-                <p className="text-xs text-destructive mt-2">{errors.username}</p>
+                <p className="text-xs text-destructive">{errors.username}</p>
               )}
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground">
                 Others will find you by this username to start conversations
               </p>
             </div>
 
             {/* Email */}
-            <div>
+            <div className="space-y-2">
               <Input
                 type="email"
                 placeholder="Email"
@@ -403,12 +411,12 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 disabled={isSubmitting}
               />
               {errors.email && (
-                <p className="text-xs text-destructive mt-2">{errors.email}</p>
+                <p className="text-xs text-destructive">{errors.email}</p>
               )}
             </div>
 
             {/* Password */}
-            <div>
+            <div className="space-y-2">
               <Input
                 type="password"
                 placeholder="New password"
@@ -418,33 +426,35 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 disabled={isSubmitting}
               />
               {errors.password && (
-                <p className="text-xs text-destructive mt-2">{errors.password}</p>
+                <p className="text-xs text-destructive">{errors.password}</p>
               )}
             </div>
 
             {/* Terms and Conditions */}
-            <div className="flex items-start space-x-3 pt-3">
-              <Checkbox
-                id="accept-terms"
-                checked={formData.acceptTerms}
-                onCheckedChange={(checked) => handleInputChange('acceptTerms', checked)}
-                disabled={isSubmitting}
-                className="mt-0.5"
-              />
-              <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed">
-                By clicking Sign Up, you agree to our Terms, Data Policy and Cookies Policy.
-                You may receive SMS Notifications from us and can opt out any time.
-              </Label>
+            <div className="pt-2">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="accept-terms"
+                  checked={formData.acceptTerms}
+                  onCheckedChange={(checked) => handleInputChange('acceptTerms', checked)}
+                  disabled={isSubmitting}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed">
+                  By clicking Sign Up, you agree to our Terms, Data Policy and Cookies Policy.
+                  You may receive SMS Notifications from us and can opt out any time.
+                </Label>
+              </div>
+              {errors.acceptTerms && (
+                <p className="text-xs text-destructive mt-2">{errors.acceptTerms}</p>
+              )}
             </div>
-            {errors.acceptTerms && (
-              <p className="text-xs text-destructive mt-2">{errors.acceptTerms}</p>
-            )}
 
             {/* Submit Button */}
-            <div className="pt-2">
+            <div className="pt-4">
               <Button
                 type="submit"
-                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-3 text-lg"
+                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-4 text-lg h-12"
                 disabled={isSubmitting || isRetrying}
               >
                 {isSubmitting || isRetrying ? (
@@ -478,8 +488,8 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
           </form>
 
           {/* Footer */}
-          <div className="mt-8 text-center">
-            <Separator className="mb-6" />
+          <div className="mt-10 text-center">
+            <Separator className="mb-8" />
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
             </p>

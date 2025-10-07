@@ -116,14 +116,26 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       setPendingUserId(user.id)
 
       console.log('🔒 Checking 2FA status...')
-      const has2FA = await getUserTwoFactorStatus(user.id)
-      console.log('🔒 2FA enabled:', has2FA)
+      let has2FA = false;
+      try {
+        has2FA = await getUserTwoFactorStatus(user.id);
+        console.log('🔒 2FA enabled:', has2FA);
+      } catch (error) {
+        console.warn('🔒 2FA check failed, assuming no 2FA:', error);
+        has2FA = false;
+      }
       
       if (has2FA) {
         console.log('🔒 Checking device trust status...')
-        const deviceFingerprint = generateDeviceFingerprint()
-        const trusted = await isDeviceTrusted(user.id, deviceFingerprint)
-        console.log('🔒 Device trusted:', trusted)
+        let trusted = false;
+        try {
+          const deviceFingerprint = generateDeviceFingerprint()
+          trusted = await isDeviceTrusted(user.id, deviceFingerprint)
+          console.log('🔒 Device trusted:', trusted)
+        } catch (error) {
+          console.warn('🔒 Device trust check failed, requiring 2FA:', error);
+          trusted = false;
+        }
         
         if (trusted) {
           console.log('✅ Device trusted, completing login...')
@@ -340,8 +352,8 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
           {/* Main Login Card */}
           <Card className="bg-card border border-border shadow-lg">
             <CardContent className="p-8">
-              <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-foreground mb-2">
+              <div className="text-center mb-10">
+                <h1 className="text-2xl font-bold text-foreground mb-3">
                   {loginStep === 'credentials' && 'Log in to SecureChat'}
                   {loginStep === '2fa' && 'Two-Factor Authentication'}
                   {loginStep === 'biometric' && 'Biometric Verification'}
@@ -355,9 +367,9 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
               {/* Credentials Step */}
               {loginStep === 'credentials' && (
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Email */}
-                  <div>
+                  <div className="space-y-2">
                     <Input
                       id="email"
                       type="email"
@@ -368,59 +380,63 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       aria-invalid={!!errors.email}
                     />
                     {errors.email && (
-                      <p className="mt-2 text-xs text-destructive">
+                      <p className="text-xs text-destructive">
                         {errors.email}
                       </p>
                     )}
                   </div>
 
                   {/* Password */}
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      className={`h-12 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
-                      aria-invalid={!!errors.password}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeSlash className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        className={`h-12 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
+                        aria-invalid={!!errors.password}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeSlash className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                     {errors.password && (
-                      <p className="mt-2 text-xs text-destructive">
+                      <p className="text-xs text-destructive">
                         {errors.password}
                       </p>
                     )}
                   </div>
 
                   {/* Login Button */}
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Spinner className="mr-2 h-5 w-5 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      'Log In'
-                    )}
-                  </Button>
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner className="mr-2 h-5 w-5 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        'Log In'
+                      )}
+                    </Button>
+                  </div>
 
                   {/* Forgot Password */}
-                  <div className="text-center">
+                  <div className="text-center pt-2">
                     <button
                       type="button"
                       className="text-sm text-primary hover:underline"
@@ -431,7 +447,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   </div>
 
                   {/* Biometric Login Option */}
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-6 pt-4">
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
                         <Separator className="w-full" />
@@ -451,12 +467,12 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
               {/* 2FA Step */}
               {loginStep === '2fa' && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-4" />
+                <div className="space-y-8">
+                  <div className="text-center mb-8">
+                    <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-6" />
                   </div>
                   
-                  <div>
+                  <div className="space-y-2">
                     <Input
                       type="text"
                       placeholder="000000"
@@ -467,22 +483,24 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                     />
                   </div>
 
-                  <Button
-                    onClick={handleTwoFactorSubmit}
-                    disabled={isLoading || twoFactorCode.length !== 6}
-                    className="w-full h-12"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Spinner className="mr-2 h-5 w-5 animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      'Verify Code'
-                    )}
-                  </Button>
+                  <div className="pt-2">
+                    <Button
+                      onClick={handleTwoFactorSubmit}
+                      disabled={isLoading || twoFactorCode.length !== 6}
+                      className="w-full h-12"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner className="mr-2 h-5 w-5 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        'Verify Code'
+                      )}
+                    </Button>
+                  </div>
 
-                  <div className="text-center">
+                  <div className="text-center pt-4">
                     <button
                       type="button"
                       className="text-sm text-muted-foreground hover:text-foreground"
@@ -498,7 +516,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
               {loginStep === 'credentials' && (
                 <>
                   {/* Separator */}
-                  <div className="my-8">
+                  <div className="my-10">
                     <Separator />
                   </div>
 
@@ -520,7 +538,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
           {/* Footer Links - only on credentials step */}
           {loginStep === 'credentials' && (
-            <div className="text-center">
+            <div className="text-center mt-8">
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
               </p>

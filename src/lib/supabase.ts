@@ -178,7 +178,7 @@ export const signUp = async (email: string, password: string, displayName: strin
     email,
     password,
     options: {
-      emailRedirectTo: `${window.location.origin}/verify-email`,
+      emailRedirectTo: `${window.location.origin}`,
       data: {
         display_name: displayName,
         username: username,

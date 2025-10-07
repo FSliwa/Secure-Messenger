@@ -321,13 +321,13 @@ function App() {
         </div>
         
         {/* Hero and Registration/Login Section */}
-        <section className="py-12 sm:py-16 lg:py-20">
+        <section className="py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto max-w-screen-xl px-6">
-            <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-start">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-start">
               {/* Left Column - Hero */}
               <div className="order-2 lg:order-1">
                 <Hero />
-                <div className="mt-10">
+                <div className="mt-12">
                   <SecurityCallout />
                 </div>
               </div>
@@ -348,7 +348,7 @@ function App() {
 
                 {/* Switch between login and signup */}
                 {appState === 'landing' && (
-                  <div className="mt-6 text-center w-full max-w-md">
+                  <div className="mt-8 text-center w-full max-w-md">
                     <p className="text-sm text-muted-foreground">
                       Already have an account?{' '}
                       <button
