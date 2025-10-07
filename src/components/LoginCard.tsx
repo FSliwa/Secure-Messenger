@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { Spinner, Eye, EyeSlash, ShieldCheck, Fingerprint, ArrowClockwise } from '@phosphor-icons/react'
+import { Spinner, Eye, EyeSlash, ShieldCheck, Fingerprint } from '@phosphor-icons/react'
 import { signIn, getCurrentUser } from '@/lib/supabase'
 import { getStoredKeys } from '@/lib/crypto'
 import { 
@@ -15,20 +15,6 @@ import {
   addTrustedDevice
 } from '@/lib/auth-security'
 import { BiometricLoginButton } from './BiometricLoginButton'
-import { SimpleRetryIndicator } from './RetryStatusDisplay'
-import { NetworkStatusIndicator } from './NetworkStatusIndicator'
-import { NetworkTestControls } from './NetworkTestControls'
-import { RetryTestRunner } from './RetryTestRunner'
-import { 
-  executeWithNetworkAwareRetry, 
-  isRetryableError,
-  RetryResult
-} from '@/lib/auth-retry'
-import { 
-  AUTH_RETRY_CONFIG, 
-  getErrorMessage, 
-  shouldRetryError 
-} from '@/lib/auth-config'
 
 interface User {
   id: string;
@@ -53,9 +39,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [retryCount, setRetryCount] = useState(0)
   const [lastError, setLastError] = useState<string | null>(null)
-  const [isRetrying, setIsRetrying] = useState(false)
   
   // 2FA and biometric states
   const [loginStep, setLoginStep] = useState<'credentials' | '2fa' | 'biometric'>('credentials')
@@ -89,7 +73,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
     console.log('🔐 Login attempt started')
 
     // Prevent multiple concurrent login attempts
-    if (isLoading || isRetrying) {
+    if (isLoading) {
       console.log('⚠️ Login already in progress, ignoring duplicate attempt')
       return
     }
@@ -109,121 +93,67 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       return
     }
 
-    console.log('✅ Form validation passed, starting login process with retry mechanism')
+    console.log('✅ Form validation passed, starting login process')
     setIsLoading(true)
     setLastError(null)
-    setRetryCount(0)
 
     try {
-      // Create the login operation that will be retried
-      const loginOperation = async () => {
-        console.log('🔑 Getting stored encryption keys...')
-        // Get stored encryption keys
-        const storedKeys = await getStoredKeys()
-        console.log('🔑 Encryption keys retrieved:', !!storedKeys?.publicKey)
-        
-        console.log('🔐 Attempting Supabase sign in...')
-        // Sign in with Supabase
-        const result = await signIn(formData.email, formData.password, storedKeys?.publicKey)
-        console.log('🔐 Supabase sign in completed:', !!result.user)
-        
-        if (!result.user) {
-          throw new Error('No user returned from sign in')
-        }
-
-        return result.user
+      console.log('🔑 Getting stored encryption keys...')
+      const storedKeys = await getStoredKeys()
+      console.log('🔑 Encryption keys retrieved:', !!storedKeys?.publicKey)
+      
+      console.log('🔐 Attempting Supabase sign in...')
+      const result = await signIn(formData.email, formData.password, storedKeys?.publicKey)
+      console.log('🔐 Supabase sign in completed:', !!result.user)
+      
+      if (!result.user) {
+        throw new Error('No user returned from sign in')
       }
 
-      // Execute login with network-aware retry mechanism
-      const result: RetryResult<any> = await executeWithNetworkAwareRetry(
-        loginOperation,
-        AUTH_RETRY_CONFIG.AUTHENTICATION, // Use authentication retry config
-        'Authentication'
-      )
-
-      if (!result.success || !result.data) {
-        console.log('❌ Login failed after all retries')
-        setLastError(result.error?.message || 'Login failed after multiple attempts')
-        setRetryCount(result.attempts.length)
-        
-        // Handle specific error types
-        if (result.error?.message.includes('verify your email')) {
-          toast.error('Please verify your email address before signing in.', {
-            description: 'Check your inbox for the verification link.',
-            duration: 8000
-          })
-        } else if (shouldRetryError(result.error!)) {
-          const userMessage = getErrorMessage(result.error!)
-          toast.error('Connection issues prevented login', {
-            description: `${userMessage} (${result.attempts.length} attempts)`,
-            duration: 10000
-          })
-        } else {
-          const userMessage = getErrorMessage(result.error!)
-          toast.error(userMessage)
-        }
-        setIsLoading(false)
-        setIsRetrying(false)
-        return
-      }
-
-      const user = result.data
+      const user = result.user
       console.log('👤 User ID:', user.id)
       setPendingUserId(user.id)
 
-      // Show success message if retries were needed
-      if (result.attempts.length > 0) {
-        toast.success(`Login successful after ${result.attempts.length + 1} attempts`)
-      }
-
       console.log('🔒 Checking 2FA status...')
-      // Check if 2FA is enabled for this user
       const has2FA = await getUserTwoFactorStatus(user.id)
       console.log('🔒 2FA enabled:', has2FA)
       
       if (has2FA) {
         console.log('🔒 Checking device trust status...')
-        // Check if current device is trusted
         const deviceFingerprint = generateDeviceFingerprint()
         const trusted = await isDeviceTrusted(user.id, deviceFingerprint)
         console.log('🔒 Device trusted:', trusted)
         
         if (trusted) {
           console.log('✅ Device trusted, completing login...')
-          // Device is trusted, skip 2FA - keep loading state until completion
           await completeLogin(user.id)
         } else {
           console.log('🔒 Device not trusted, requesting 2FA...')
-          // Require 2FA verification - reset loading since we're switching to 2FA step
           setLoginStep('2fa')
           setIsLoading(false)
-          setIsRetrying(false)
           toast.info('Please enter your 2FA code to continue')
         }
       } else {
         console.log('✅ No 2FA required, completing login...')
-        // No 2FA, complete login - keep loading state until completion
         await completeLogin(user.id)
       }
       
     } catch (error: any) {
-      console.error('❌ Unexpected login error:', error)
+      console.error('❌ Login error:', error)
       setLastError(error.message)
-      
-      const userMessage = getErrorMessage(error)
       
       if (error.message.includes('verify your email')) {
         toast.error('Please verify your email address before signing in.', {
           description: 'Check your inbox for the verification link.',
           duration: 8000
         })
+      } else if (error.message.includes('Invalid login credentials')) {
+        toast.error('Invalid email or password. Please try again.')
       } else {
-        toast.error(userMessage)
+        toast.error(error.message || 'Login failed. Please try again.')
       }
       
-      // Always reset loading on error
       setIsLoading(false)
-      setIsRetrying(false)
     }
   }
 
@@ -233,73 +163,34 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       return
     }
 
-    // Prevent multiple concurrent attempts
-    if (isLoading || isRetrying) {
+    if (isLoading) {
       return
     }
 
     setIsLoading(true)
-    setIsRetrying(false)
     
     try {
-      // Create 2FA verification operation with retry
-      const twoFactorOperation = async () => {
-        return await verifyTwoFactorLogin(pendingUserId, twoFactorCode)
-      }
-
-      // Execute with retry mechanism
-      const result: RetryResult<any> = await executeWithNetworkAwareRetry(
-        twoFactorOperation,
-        AUTH_RETRY_CONFIG.TWO_FACTOR,
-        '2FA Verification'
-      )
-
-      if (!result.success || !result.data) {
-        console.log('❌ 2FA verification failed after all retries')
-        setLastError(result.error?.message || '2FA verification failed')
-        setRetryCount(result.attempts.length)
-        
-        if (shouldRetryError(result.error!)) {
-          const userMessage = getErrorMessage(result.error!)
-          toast.error('Connection issues during 2FA verification', {
-            description: `${userMessage} (${result.attempts.length} attempts)`,
-            duration: 8000
-          })
-        } else {
-          const userMessage = getErrorMessage(result.error!)
-          toast.error(userMessage)
-        }
-        return
-      }
-
-      const verificationResult = result.data
+      const verificationResult = await verifyTwoFactorLogin(pendingUserId, twoFactorCode)
       
       if (verificationResult.verified) {
         if (verificationResult.usedBackupCode) {
           toast.warning('You used a backup code. Please generate new backup codes.')
         }
         
-        // Show success message if retries were needed
-        if (result.attempts.length > 0) {
-          toast.success(`2FA verified after ${result.attempts.length + 1} attempts`)
-        }
-        
         // Ask if user wants to trust this device
         setDeviceTrustPrompt(true)
         
-        // Complete login (loading will be reset in completeLogin)
+        // Complete login
         await completeLogin(pendingUserId)
       } else {
         toast.error('Invalid 2FA code. Please try again.')
+        setIsLoading(false)
       }
     } catch (error: any) {
       console.error('2FA verification error:', error)
       setLastError(error.message)
-      const userMessage = getErrorMessage(error)
-      toast.error(userMessage)
-    } finally {
+      toast.error(error.message || '2FA verification failed')
       setIsLoading(false)
-      setIsRetrying(false)
     }
   }
 
@@ -321,43 +212,13 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
     console.log('🎯 Complete login started for user:', userId)
     
     try {
-      // Create login completion operation with retry
-      const completionOperation = async () => {
-        console.log('👤 Getting current user profile...')
-        const currentUser = await getCurrentUser()
-        console.log('👤 Current user retrieved:', !!currentUser)
-        
-        if (!currentUser) {
-          throw new Error('Failed to load user profile')
-        }
-
-        return currentUser
+      console.log('👤 Getting current user profile...')
+      const currentUser = await getCurrentUser()
+      console.log('👤 Current user retrieved:', !!currentUser)
+      
+      if (!currentUser) {
+        throw new Error('Failed to load user profile')
       }
-
-      // Execute with retry mechanism
-      const result: RetryResult<any> = await executeWithNetworkAwareRetry(
-        completionOperation,
-        AUTH_RETRY_CONFIG.PROFILE_OPERATIONS,
-        'Profile Loading'
-      )
-
-      if (!result.success || !result.data) {
-        console.log('❌ Failed to complete login after all retries')
-        setLastError(result.error?.message || 'Failed to complete login')
-        setRetryCount(result.attempts.length)
-        
-        toast.error('Failed to load user profile', {
-          description: shouldRetryError(result.error!) 
-            ? `${getErrorMessage(result.error!)} (${result.attempts.length} attempts)`
-            : getErrorMessage(result.error!)
-        })
-        
-        // Reset login state on error
-        resetLogin()
-        return
-      }
-
-      const currentUser = result.data
 
       // Create user object for callback
       const userObject: User = {
@@ -369,32 +230,23 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
       console.log('👤 User object created:', userObject.username)
       
-      // Show success message if retries were needed
-      if (result.attempts.length > 0) {
-        toast.success(`Profile loaded successfully after ${result.attempts.length + 1} attempts`)
-      } else {
-        toast.success('Welcome back!')
-      }
+      toast.success('Welcome back!')
       
       console.log('🚀 Calling success callback...')
-      // Call success callback first to trigger navigation
       onSuccess?.(userObject)
       console.log('✅ Login completion successful')
       
     } catch (error: any) {
       console.error('❌ Login completion error:', error)
       setLastError(error.message)
-      const userMessage = getErrorMessage(error)
-      toast.error(userMessage)
+      toast.error(error.message || 'Failed to complete login')
       
       // Reset login state on error
       resetLogin()
       
     } finally {
       console.log('🏁 Complete login finished, clearing loading state')
-      // Always ensure loading state is cleared
       setIsLoading(false)
-      setIsRetrying(false)
     }
   }
 
@@ -432,8 +284,6 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
     setPendingUserId(null)
     setDeviceTrustPrompt(false)
     setIsLoading(false)
-    setIsRetrying(false)
-    setRetryCount(0)
     setLastError(null)
     // Also clear any validation errors
     setErrors({
@@ -444,14 +294,6 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
   return (
     <div className="w-full max-w-md animate-fade-in-up space-y-4">
-      {/* Network Testing Controls - Only show in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <>
-          <NetworkTestControls />
-          <RetryTestRunner className="border-dashed" />
-        </>
-      )}
-      
       {/* Device Trust Prompt */}
       {deviceTrustPrompt && (
         <Card className="bg-card border border-border shadow-lg mb-4">
@@ -487,24 +329,6 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
       {/* Main Login Card */}
       <Card className="bg-card border border-border shadow-lg">
         <CardContent className="p-6">
-          {/* Network Status */}
-          <div className="mb-4">
-            <NetworkStatusIndicator className="justify-center" />
-          </div>
-
-          {/* Retry Status Banner */}
-          {(retryCount > 0 || lastError || isRetrying) && loginStep === 'credentials' && (
-            <div className="mb-4">
-              <SimpleRetryIndicator
-                isRetrying={isRetrying}
-                retryCount={retryCount}
-                operation="login"
-                error={lastError || undefined}
-                className="p-3 bg-muted/30 rounded-lg border"
-              />
-            </div>
-          )}
-
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-foreground mb-1">
               {loginStep === 'credentials' && 'Log in to SecureChat'}
@@ -572,17 +396,12 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
               <Button
                 type="submit"
                 className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
-                disabled={isLoading || isRetrying}
+                disabled={isLoading}
               >
-                {isLoading || isRetrying ? (
+                {isLoading ? (
                   <>
                     <Spinner className="mr-2 h-5 w-5 animate-spin" />
-                    {isRetrying ? 'Reconnecting...' : 'Signing in...'}
-                  </>
-                ) : retryCount > 0 ? (
-                  <>
-                    <ArrowClockwise className="mr-2 h-5 w-5" />
-                    Try Again
+                    Signing in...
                   </>
                 ) : (
                   'Log In'
@@ -622,19 +441,6 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
           {/* 2FA Step */}
           {loginStep === '2fa' && (
             <div className="space-y-4">
-              {/* Retry Status for 2FA */}
-              {(retryCount > 0 || lastError || isRetrying) && (
-                <div className="mb-4">
-                  <SimpleRetryIndicator
-                    isRetrying={isRetrying}
-                    retryCount={retryCount}
-                    operation="2FA verification"
-                    error={lastError || undefined}
-                    className="p-3 bg-muted/30 rounded-lg border"
-                  />
-                </div>
-              )}
-
               <div className="text-center mb-4">
                 <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
               </div>
@@ -652,13 +458,13 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
               <Button
                 onClick={handleTwoFactorSubmit}
-                disabled={isLoading || isRetrying || twoFactorCode.length !== 6}
+                disabled={isLoading || twoFactorCode.length !== 6}
                 className="w-full h-12"
               >
-                {isLoading || isRetrying ? (
+                {isLoading ? (
                   <>
                     <Spinner className="mr-2 h-5 w-5 animate-spin" />
-                    {isRetrying ? 'Reconnecting...' : 'Verifying...'}
+                    Verifying...
                   </>
                 ) : (
                   'Verify Code'

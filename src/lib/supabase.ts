@@ -221,64 +221,43 @@ export const createUserProfileAfterVerification = async (user: any) => {
 }
 
 export const signIn = async (email: string, password: string, publicKey?: string) => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
 
-    if (error) {
-      // Track failed login attempt without throwing
-      try {
-        await trackLoginAttempt(null, false, error.message)
-      } catch (trackError) {
-        console.error('Failed to track login attempt:', trackError)
-      }
-      throw error
-    }
-
-    if (!data.user) {
-      throw new Error('No user data returned from login')
-    }
-
-    // Check if user email is verified
-    if (!data.user.email_confirmed_at) {
-      await supabase.auth.signOut()
-      throw new Error('Please verify your email address before signing in. Check your inbox for the verification link.')
-    }
-
-    // Track successful login and create/update profile
-    try {
-      await trackLoginAttempt(data.user.id, true)
-      
-      // Check if user profile exists, if not create it (for newly verified users)
-      const { data: existingProfile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single()
-
-      if (profileError && profileError.code === 'PGRST116') {
-        // Profile doesn't exist, create it for newly verified user
-        await createUserProfileAfterVerification(data.user)
-      } else if (!profileError && existingProfile) {
-        // Update existing profile
-        await createOrUpdateUserProfile(data.user, publicKey || existingProfile.public_key || '')
-      } else if (profileError) {
-        console.error('Error checking user profile:', profileError)
-        // Continue with login even if profile check fails
-      }
-    } catch (trackError) {
-      console.error('Failed to track login or create profile:', trackError)
-      // Don't block login for tracking/profile errors
-    }
-
-    return data
-    
-  } catch (error) {
-    console.error('Sign in error:', error)
+  if (error) {
     throw error
   }
+
+  if (!data.user) {
+    throw new Error('No user data returned from login')
+  }
+
+  // Check if user email is verified
+  if (!data.user.email_confirmed_at) {
+    await supabase.auth.signOut()
+    throw new Error('Please verify your email address before signing in. Check your inbox for the verification link.')
+  }
+
+  // Ensure user profile exists (simplified)
+  try {
+    const { data: existingProfile } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', data.user.id)
+      .single()
+
+    if (!existingProfile) {
+      // Create profile for newly verified user
+      await createUserProfileAfterVerification(data.user)
+    }
+  } catch (profileError) {
+    console.warn('Profile check failed, continuing with login:', profileError)
+    // Don't block login for profile issues
+  }
+
+  return data
 }
 
 export const signOut = async () => {

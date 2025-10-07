@@ -12,8 +12,7 @@ import { DatabaseInit } from "@/components/DatabaseInit";
 import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
-import { requireAuthentication, validateDashboardAccess, startSecurityMonitoring } from "@/lib/auth-guards";
-import { initializeNetworkTestInterceptor } from "@/lib/network-testing";
+import { requireAuthentication, validateDashboardAccess } from "@/lib/auth-guards";
 
 type AppState = 'database-init' | 'landing' | 'login' | 'dashboard';
 
@@ -32,27 +31,10 @@ function App() {
   const [authState, setAuthState] = useState<AuthState>('checking');
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [securityCleanup, setSecurityCleanup] = useState<(() => void) | null>(null);
 
   useEffect(() => {
-    // Initialize network test interceptor in development
-    let cleanupNetworkTest: (() => void) | undefined
-    if (process.env.NODE_ENV === 'development') {
-      cleanupNetworkTest = initializeNetworkTestInterceptor()
-    }
-    
     initializeApp();
-    
-    // Cleanup security monitoring on unmount
-    return () => {
-      if (securityCleanup) {
-        securityCleanup();
-      }
-      if (cleanupNetworkTest) {
-        cleanupNetworkTest();
-      }
-    };
-  }, [securityCleanup]);
+  }, []);
 
   const initializeApp = async () => {
     try {
@@ -129,12 +111,6 @@ function App() {
       setAuthState('authenticated');
       setAppState('dashboard');
       
-      // Start security monitoring for authenticated users
-      if (!securityCleanup) {
-        const cleanup = startSecurityMonitoring();
-        setSecurityCleanup(() => cleanup);
-      }
-      
     } catch (error) {
       console.error('Error checking auth state:', error);
       setCurrentUser(null);
@@ -151,12 +127,6 @@ function App() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
-        // Stop security monitoring
-        if (securityCleanup) {
-          securityCleanup();
-          setSecurityCleanup(null);
-        }
-        
         setCurrentUser(null);
         setAuthState('unauthenticated');
         setAppState('login');
@@ -203,12 +173,6 @@ function App() {
           setAuthState('authenticated');
           setAppState('dashboard');
           
-          // Start security monitoring
-          if (!securityCleanup) {
-            const cleanup = startSecurityMonitoring();
-            setSecurityCleanup(() => cleanup);
-          }
-          
         } catch (error) {
           console.error('Error handling auth state change:', error);
           setCurrentUser(null);
@@ -231,12 +195,6 @@ function App() {
     try {
       setIsLoading(true);
       setAuthState('checking');
-      
-      // Stop security monitoring
-      if (securityCleanup) {
-        securityCleanup();
-        setSecurityCleanup(null);
-      }
       
       // Sign out from Supabase (includes database cleanup)
       await signOut();
@@ -262,12 +220,6 @@ function App() {
       setCurrentUser(null);
       setAuthState('unauthenticated');
       setAppState('login');
-      
-      // Stop security monitoring on error
-      if (securityCleanup) {
-        securityCleanup();
-        setSecurityCleanup(null);
-      }
     } finally {
       setIsLoading(false);
     }
