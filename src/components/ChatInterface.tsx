@@ -290,6 +290,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     }
   };
 
+  const handlePasswordSuccess = () => {
+    if (passwordProtectedConversation) {
+      const conversation = conversations?.find(c => c.id === passwordProtectedConversation);
+      if (conversation) {
+        setActiveConversation(conversation);
+        setConversationAccess(prev => ({ ...prev, [passwordProtectedConversation]: true }));
+      }
+      setPasswordProtectedConversation(null);
+    }
+  };
+
   const showSetPasswordDialog = async (conversationId: string) => {
     setPasswordProtectedConversation(conversationId);
     setPasswordDialogMode('set');

@@ -377,7 +377,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
           )}
 
           <div className="text-center mb-6 sm:mb-8 md:mb-10">
-            <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 sm:mb-3">{t.createNewAccount}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">{t.createNewAccount}</h2>
             <p className="text-xs sm:text-sm text-muted-foreground">{t.quickAndEasy}</p>
           </div>
 
