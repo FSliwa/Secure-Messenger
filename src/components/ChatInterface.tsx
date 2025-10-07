@@ -33,6 +33,7 @@ import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useNotifications } from '@/contexts/NotificationContext'
+import { useNotificationHandler } from '@/hooks/useNotificationHandler'
 import { VoiceRecorder } from '@/components/VoiceRecorder'
 import { VoiceMessage } from '@/components/VoiceMessage'
 import { EnhancedFileSharing } from '@/components/EnhancedFileSharing'
@@ -122,6 +123,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const { t } = useLanguage()
   const { playNotificationSound, showNotification } = useNotifications()
+  const { notifyMessage, notifyMention, notifyUserJoined, notifyUserLeft } = useNotificationHandler()
   const [messages, setMessages] = useKV<Message[]>('chat-messages', [])
   const [conversations, setConversations] = useKV<Conversation[]>('user-conversations', [])
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
@@ -369,7 +371,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       });
 
       // Set up real-time subscription
-      const subscription = subscribeToMessages(conversation.id, (newMessage) => {
+      const subscription = subscribeToMessages(conversation.id, async (newMessage) => {
         const transformedMessage: Message = {
           id: newMessage.id,
           conversation_id: newMessage.conversation_id,
@@ -385,6 +387,44 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         };
 
         setMessages((currentMessages) => [...(currentMessages || []), transformedMessage]);
+
+        // Show notification for messages from other users
+        if (newMessage.sender_id !== currentUser.id) {
+          try {
+            // Decrypt message for notification preview (if possible)
+            const keys = await getStoredKeys()
+            let messagePreview = 'New message'
+            
+            if (keys) {
+              try {
+                // Ensure we have EncryptedMessage object
+                const encryptedContent = typeof transformedMessage.encrypted_content === 'string' 
+                  ? JSON.parse(transformedMessage.encrypted_content)
+                  : transformedMessage.encrypted_content
+                  
+                const decrypted = await decryptMessage(encryptedContent, keys)
+                messagePreview = decrypted.length > 50 ? decrypted.substring(0, 50) + '...' : decrypted
+              } catch (decryptError) {
+                messagePreview = 'New encrypted message'
+              }
+            }
+
+            // Check if message contains mention
+            const hasMention = messagePreview.toLowerCase().includes(`@${currentUser.username.toLowerCase()}`) ||
+                             messagePreview.toLowerCase().includes(`@${currentUser.displayName?.toLowerCase() || ''}`)
+
+            const senderName = transformedMessage.senderName
+            const conversationName = conversation.name || (conversation.is_group ? 'Group Chat' : 'Direct Message')
+
+            if (hasMention) {
+              await notifyMention(senderName, messagePreview, conversationName)
+            } else {
+              await notifyMessage(senderName, messagePreview, conversation.is_group ? conversationName : undefined)
+            }
+          } catch (error) {
+            console.warn('Failed to show notification:', error)
+          }
+        }
       });
 
       return () => {

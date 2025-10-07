@@ -1,276 +1,304 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Slider } from '@/components/ui/slider'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
-import { Bell, SpeakerHigh, Phone, Warning, CheckCircle } from '@phosphor-icons/react'
-import { toast } from 'sonner'
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Slider } from "@/components/ui/slider"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { useNotifications } from '@/contexts/NotificationContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { 
+  Bell, 
+  Volume2, 
+  VolumeX, 
+  Monitor, 
+  Smartphone, 
+  TestTube2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle
+} from 'lucide-react'
+import { toast } from 'sonner'
 
 export function NotificationSettings() {
   const { t } = useLanguage()
-  const { 
-    settings, 
-    updateSettings, 
-    playNotificationSound, 
-    requestPermission, 
-    isSupported 
+  const {
+    settings,
+    updateSettings,
+    requestPermission,
+    isSupported,
+    getSupportedSoundTypes,
+    testSound,
+    playNotificationSound
   } = useNotifications()
-  const [isRequesting, setIsRequesting] = useState(false)
 
-  const handlePermissionRequest = async () => {
-    setIsRequesting(true)
+  const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default')
+  const [testingSound, setTestingSound] = useState<string | null>(null)
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPermissionStatus(Notification.permission)
+    }
+  }, [])
+
+  const handleRequestPermission = async () => {
+    const granted = await requestPermission()
+    if (granted) {
+      setPermissionStatus('granted')
+      toast.success('Notifications enabled successfully!')
+    } else {
+      toast.error('Please enable notifications in your browser settings')
+    }
+  }
+
+  const handleTestSound = async (soundType: string) => {
+    setTestingSound(soundType)
     try {
-      const granted = await requestPermission()
-      if (granted) {
-        toast.success('Notifications enabled successfully!')
-        updateSettings({ desktopEnabled: true })
-      } else {
-        toast.error('Notification permission denied')
-      }
+      await testSound(soundType)
+      toast.success(`${soundType} sound played`, {
+        duration: 2000
+      })
     } catch (error) {
-      toast.error('Failed to request notification permission')
+      toast.error('Failed to play sound')
     } finally {
-      setIsRequesting(false)
+      setTimeout(() => setTestingSound(null), 1000)
     }
   }
 
-  const testSound = (type: 'message' | 'mention' | 'join' | 'error') => {
-    playNotificationSound(type)
-    toast.info(`Playing ${type} sound`)
+  const handleVolumeChange = (value: number[]) => {
+    updateSettings({ volume: value[0] })
   }
 
-  const testNotification = () => {
-    if (Notification.permission !== 'granted') {
-      toast.error('Please enable notifications first')
-      return
+  const getPermissionIcon = () => {
+    switch (permissionStatus) {
+      case 'granted':
+        return <CheckCircle2 className="w-4 h-4 text-green-500" />
+      case 'denied':
+        return <XCircle className="w-4 h-4 text-red-500" />
+      default:
+        return <AlertCircle className="w-4 h-4 text-yellow-500" />
     }
-
-    // Create a test notification
-    const notification = new Notification('Test Notification', {
-      body: 'This is a test notification from SecureChat',
-      icon: '/favicon.ico',
-      tag: 'test-notification'
-    })
-
-    setTimeout(() => {
-      notification.close()
-    }, 3000)
-
-    toast.success('Test notification sent!')
   }
+
+  const getPermissionText = () => {
+    switch (permissionStatus) {
+      case 'granted':
+        return 'Granted'
+      case 'denied':
+        return 'Denied'
+      default:
+        return 'Not requested'
+    }
+  }
+
+  const supportedSounds = getSupportedSoundTypes()
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Bell className="h-5 w-5" />
-            <span>Notification Settings</span>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            Notification Settings
           </CardTitle>
           <CardDescription>
-            Customize how you receive notifications for messages and events
+            Configure how you receive notifications for messages and app events
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Permission Status */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label>Desktop Notifications</Label>
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-3">
+              {getPermissionIcon()}
+              <div>
+                <h4 className="font-medium">Browser Notifications</h4>
                 <p className="text-sm text-muted-foreground">
-                  Show system notifications when new messages arrive
+                  Status: {getPermissionText()}
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
-                {Notification.permission === 'granted' ? (
-                  <Badge variant="default" className="bg-green-500">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Enabled
-                  </Badge>
-                ) : Notification.permission === 'denied' ? (
-                  <Badge variant="destructive">
-                    <Warning className="h-3 w-3 mr-1" />
-                    Blocked
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">
-                    Not enabled
-                  </Badge>
-                )}
-              </div>
             </div>
-
-            {Notification.permission !== 'granted' && isSupported && (
+            {permissionStatus !== 'granted' && (
               <Button 
-                onClick={handlePermissionRequest}
-                disabled={isRequesting || Notification.permission === 'denied'}
-                variant="outline"
-                className="w-full"
+                onClick={handleRequestPermission}
+                size="sm"
+                disabled={!isSupported}
               >
-                {isRequesting ? 'Requesting...' : 'Enable Desktop Notifications'}
+                Enable Notifications
               </Button>
-            )}
-
-            {Notification.permission === 'denied' && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <Warning className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium text-amber-800 dark:text-amber-200">
-                      Notifications Blocked
-                    </p>
-                    <p className="text-amber-700 dark:text-amber-300 mt-1">
-                      To enable notifications, please allow them in your browser settings and refresh the page.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {!isSupported && (
-              <div className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <Warning className="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium text-gray-800 dark:text-gray-200">
-                      Notifications Not Supported
-                    </p>
-                    <p className="text-gray-700 dark:text-gray-300 mt-1">
-                      Your browser doesn't support desktop notifications.
-                    </p>
-                  </div>
-                </div>
-              </div>
             )}
           </div>
 
           <Separator />
 
-          {/* Notification Settings */}
+          {/* Sound Settings */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label htmlFor="desktop-notifications">Desktop Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Show notifications when the app is in the background
-                </p>
+              <div className="flex items-center gap-3">
+                {settings.soundEnabled ? (
+                  <Volume2 className="w-5 h-5 text-primary" />
+                ) : (
+                  <VolumeX className="w-5 h-5 text-muted-foreground" />
+                )}
+                <div>
+                  <h4 className="font-medium">Sound Notifications</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Play sounds for incoming messages and events
+                  </p>
+                </div>
               </div>
               <Switch
-                id="desktop-notifications"
-                checked={settings.desktopEnabled}
-                onCheckedChange={(checked) => updateSettings({ desktopEnabled: checked })}
-                disabled={Notification.permission !== 'granted'}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label htmlFor="sound-notifications">Sound Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Play sounds when receiving messages
-                </p>
-              </div>
-              <Switch
-                id="sound-notifications"
                 checked={settings.soundEnabled}
                 onCheckedChange={(checked) => updateSettings({ soundEnabled: checked })}
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label htmlFor="vibration-notifications">Vibration</Label>
+            {settings.soundEnabled && (
+              <div className="ml-8 space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium">Volume</label>
+                    <span className="text-sm text-muted-foreground">
+                      {Math.round(settings.volume * 100)}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[settings.volume]}
+                    onValueChange={handleVolumeChange}
+                    max={1}
+                    min={0}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Sound Test Panel */}
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <h5 className="font-medium mb-3 flex items-center gap-2">
+                    <TestTube2 className="w-4 h-4" />
+                    Test Sounds
+                  </h5>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {supportedSounds.map((soundType) => (
+                      <Button
+                        key={soundType}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleTestSound(soundType)}
+                        disabled={testingSound === soundType}
+                        className="text-xs"
+                      >
+                        {testingSound === soundType ? 'Playing...' : soundType}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Desktop Notifications */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Monitor className="w-5 h-5 text-primary" />
+              <div>
+                <h4 className="font-medium">Desktop Notifications</h4>
                 <p className="text-sm text-muted-foreground">
-                  Vibrate device for notifications (mobile)
+                  Show system notifications when the app is in background
                 </p>
               </div>
-              <Switch
-                id="vibration-notifications"
-                checked={settings.vibrationEnabled}
-                onCheckedChange={(checked) => updateSettings({ vibrationEnabled: checked })}
-                disabled={!('vibrate' in navigator)}
-              />
             </div>
+            <Switch
+              checked={settings.desktopEnabled}
+              onCheckedChange={(checked) => updateSettings({ desktopEnabled: checked })}
+              disabled={permissionStatus !== 'granted'}
+            />
           </div>
 
-          <Separator />
-
-          {/* Volume Control */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Notification Volume</Label>
-              <div className="flex items-center space-x-4">
-                <SpeakerHigh className="h-4 w-4 text-muted-foreground" />
-                <Slider
-                  value={[settings.volume * 100]}
-                  onValueChange={(value) => updateSettings({ volume: value[0] / 100 })}
-                  max={100}
-                  step={10}
-                  className="flex-1"
-                  disabled={!settings.soundEnabled}
-                />
-                <span className="text-sm text-muted-foreground w-8">
-                  {Math.round(settings.volume * 100)}%
-                </span>
+          {/* Vibration (Mobile) */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Smartphone className="w-5 h-5 text-primary" />
+              <div>
+                <h4 className="font-medium">Vibration</h4>
+                <p className="text-sm text-muted-foreground">
+                  Vibrate device for notifications (mobile devices)
+                </p>
               </div>
             </div>
+            <Switch
+              checked={settings.vibrationEnabled}
+              onCheckedChange={(checked) => updateSettings({ vibrationEnabled: checked })}
+              disabled={!('vibrate' in navigator)}
+            />
           </div>
+        </CardContent>
+      </Card>
 
-          <Separator />
+      {/* Notification Types */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notification Types</CardTitle>
+          <CardDescription>
+            Quick test different notification sounds and their intended use
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3">
+            {[
+              { type: 'message', description: 'New message received', color: 'blue' },
+              { type: 'mention', description: 'You were mentioned in a conversation', color: 'orange' },
+              { type: 'join', description: 'Someone joined a conversation', color: 'green' },
+              { type: 'leave', description: 'Someone left a conversation', color: 'gray' },
+              { type: 'success', description: 'Action completed successfully', color: 'green' },
+              { type: 'error', description: 'Error or warning notification', color: 'red' },
+              { type: 'call', description: 'Incoming call or urgent notification', color: 'purple' }
+            ].map(({ type, description, color }) => (
+              <div
+                key={type}
+                className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className={`bg-${color}-50 text-${color}-700 border-${color}-200`}>
+                    {type}
+                  </Badge>
+                  <span className="text-sm">{description}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => playNotificationSound(type as any)}
+                  disabled={!settings.soundEnabled}
+                >
+                  <TestTube2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Test Controls */}
-          <div className="space-y-4">
-            <Label>Test Notifications</Label>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => testSound('message')}
-                disabled={!settings.soundEnabled}
-                size="sm"
-              >
-                Message Sound
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => testSound('mention')}
-                disabled={!settings.soundEnabled}
-                size="sm"
-              >
-                Mention Sound
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => testSound('join')}
-                disabled={!settings.soundEnabled}
-                size="sm"
-              >
-                Join Sound
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => testSound('error')}
-                disabled={!settings.soundEnabled}
-                size="sm"
-              >
-                Error Sound
-              </Button>
-            </div>
-
-            <Button
-              variant="outline"
-              onClick={testNotification}
-              disabled={!settings.desktopEnabled || Notification.permission !== 'granted'}
-              className="w-full"
-            >
-              <Bell className="h-4 w-4 mr-2" />
-              Test Desktop Notification
-            </Button>
+      {/* Browser Support Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Browser Support</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <div className="flex items-center gap-2">
+            <Badge variant={isSupported ? "default" : "secondary"}>
+              {isSupported ? 'Notifications Supported' : 'Notifications Not Supported'}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={'vibrate' in navigator ? "default" : "secondary"}>
+              {'vibrate' in navigator ? 'Vibration Supported' : 'Vibration Not Supported'}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={'audioContext' in window || 'webkitAudioContext' in window ? "default" : "secondary"}>
+              {('AudioContext' in window || 'webkitAudioContext' in window) ? 'Web Audio Supported' : 'Web Audio Not Supported'}
+            </Badge>
           </div>
         </CardContent>
       </Card>

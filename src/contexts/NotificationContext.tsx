@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { useLanguage } from './LanguageContext'
+import { AdvancedAudioGenerator } from '@/lib/notifications/audio-generator'
 
 interface NotificationSettings {
   soundEnabled: boolean
@@ -13,10 +14,12 @@ interface NotificationSettings {
 interface NotificationContextType {
   settings: NotificationSettings
   updateSettings: (newSettings: Partial<NotificationSettings>) => void
-  playNotificationSound: (type?: 'message' | 'mention' | 'join' | 'error') => void
+  playNotificationSound: (type?: 'message' | 'mention' | 'join' | 'leave' | 'error' | 'success' | 'call') => void
   showNotification: (title: string, body: string, options?: NotificationOptions) => void
   requestPermission: () => Promise<boolean>
   isSupported: boolean
+  getSupportedSoundTypes: () => string[]
+  testSound: (type: string) => void
 }
 
 const defaultSettings: NotificationSettings = {
@@ -32,8 +35,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { t } = useLanguage()
   const [storedSettings, setStoredSettings] = useKV<NotificationSettings>('notification-settings', defaultSettings)
   const [settings, setSettings] = useState<NotificationSettings>(storedSettings || defaultSettings)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const soundBuffersRef = useRef<Map<string, AudioBuffer>>(new Map())
+  const audioGeneratorRef = useRef<AdvancedAudioGenerator | null>(null)
+  const [soundsLoaded, setSoundsLoaded] = useState(false)
 
   // Sync with stored settings
   useEffect(() => {
@@ -42,86 +45,54 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [storedSettings])
 
-  // Initialize audio context and load sounds
+  // Initialize audio generator and load sounds
   useEffect(() => {
     if (!settings.soundEnabled) return
 
     const initAudio = async () => {
       try {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-        await loadNotificationSounds()
+        audioGeneratorRef.current = new AdvancedAudioGenerator()
+        await audioGeneratorRef.current.generateNotificationSounds()
+        setSoundsLoaded(true)
       } catch (error) {
-        console.warn('Failed to initialize audio context:', error)
+        console.warn('Failed to initialize audio generator:', error)
+        setSoundsLoaded(false)
       }
     }
 
     initAudio()
 
     return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
+      if (audioGeneratorRef.current) {
+        audioGeneratorRef.current.dispose()
+        audioGeneratorRef.current = null
       }
+      setSoundsLoaded(false)
     }
   }, [settings.soundEnabled])
 
-  const loadNotificationSounds = async () => {
-    const sounds = {
-      message: generateTone(800, 0.1, 'sine'),
-      mention: generateTone([800, 1000], 0.2, 'sine'),
-      join: generateTone(600, 0.15, 'triangle'),
-      error: generateTone(400, 0.3, 'sawtooth')
-    }
-
-    for (const [name, buffer] of Object.entries(sounds)) {
-      soundBuffersRef.current.set(name, buffer)
-    }
-  }
-
-  const generateTone = (frequency: number | number[], duration: number, waveType: OscillatorType): AudioBuffer => {
-    if (!audioContextRef.current) throw new Error('No audio context')
-
-    const sampleRate = audioContextRef.current.sampleRate
-    const buffer = audioContextRef.current.createBuffer(1, sampleRate * duration, sampleRate)
-    const data = buffer.getChannelData(0)
-
-    const frequencies = Array.isArray(frequency) ? frequency : [frequency]
-
-    for (let i = 0; i < data.length; i++) {
-      let sample = 0
-      for (const freq of frequencies) {
-        const t = i / sampleRate
-        sample += Math.sin(2 * Math.PI * freq * t) / frequencies.length
-      }
-      
-      // Apply envelope (fade in/out)
-      const envelope = Math.min(i / (sampleRate * 0.01), 1) * 
-                      Math.min((data.length - i) / (sampleRate * 0.01), 1)
-      data[i] = sample * envelope * 0.3 // Reduce volume
-    }
-
-    return buffer
-  }
-
-  const playNotificationSound = (type: 'message' | 'mention' | 'join' | 'error' = 'message') => {
-    if (!settings.soundEnabled || !audioContextRef.current) return
+  const playNotificationSound = async (type: 'message' | 'mention' | 'join' | 'leave' | 'error' | 'success' | 'call' = 'message') => {
+    if (!settings.soundEnabled || !audioGeneratorRef.current || !soundsLoaded) return
 
     try {
-      const buffer = soundBuffersRef.current.get(type)
-      if (!buffer) return
-
-      const source = audioContextRef.current.createBufferSource()
-      const gainNode = audioContextRef.current.createGain()
-      
-      source.buffer = buffer
-      gainNode.gain.value = settings.volume
-      
-      source.connect(gainNode)
-      gainNode.connect(audioContextRef.current.destination)
-      
-      source.start()
+      await audioGeneratorRef.current.playSound(type, settings.volume)
     } catch (error) {
       console.warn('Failed to play notification sound:', error)
     }
+  }
+
+  const testSound = async (type: string) => {
+    if (!audioGeneratorRef.current || !soundsLoaded) return
+    
+    try {
+      await audioGeneratorRef.current.playSound(type, settings.volume)
+    } catch (error) {
+      console.warn('Failed to test sound:', error)
+    }
+  }
+
+  const getSupportedSoundTypes = (): string[] => {
+    return audioGeneratorRef.current?.getSupportedSoundTypes() || []
   }
 
   const requestPermission = async (): Promise<boolean> => {
@@ -211,7 +182,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       playNotificationSound,
       showNotification,
       requestPermission,
-      isSupported
+      isSupported,
+      getSupportedSoundTypes,
+      testSound
     }}>
       {children}
     </NotificationContext.Provider>

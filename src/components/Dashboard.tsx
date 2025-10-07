@@ -7,6 +7,7 @@ import { EnhancedSecurityInitializer } from './EnhancedSecurityInitializer'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { NotificationSettings } from './NotificationSettings'
+import { NotificationDemo } from './NotificationDemo'
 import { FeatureShowcase } from './FeatureShowcase'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useNotifications } from '@/contexts/NotificationContext'
@@ -39,6 +40,7 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [showSecurityInitializer, setShowSecurityInitializer] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
+  const [showNotificationDemo, setShowNotificationDemo] = useState(false)
 
   useEffect(() => {
     const loadCryptoKeys = async () => {
@@ -130,6 +132,18 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
                 <span className="hidden sm:inline">Notifications</span>
               </Button>
               
+              {/* Notification Demo Button - Development/Testing */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotificationDemo(true)}
+                className="gap-2"
+                title="Test notification system"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">🧪 Demo</span>
+              </Button>
+              
               {/* Profile Settings Button */}
               <Button
                 variant="ghost"
@@ -207,6 +221,27 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
             </div>
             <div className="p-6">
               <NotificationSettings />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Demo Dialog */}
+      {showNotificationDemo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h2 className="text-lg font-semibold">🧪 Notification Testing</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotificationDemo(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="p-6">
+              <NotificationDemo />
             </div>
           </div>
         </div>
