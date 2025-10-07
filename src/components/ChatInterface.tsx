@@ -60,8 +60,10 @@ import { FileAttachment } from './FileAttachment'
 import { DirectMessageDialog } from './DirectMessageDialog'
 import { UserSearchDialog } from './UserSearchDialog'
 import { AddUsersToConversationDialog } from './AddUsersToConversationDialog'
+import { ConversationPasswordDialog } from './ConversationPasswordDialog'
 import { useBiometricVerification } from '@/hooks/useBiometricVerification'
 import { BiometricAuthService } from '@/lib/biometric-auth'
+import { ConversationPasswordManager } from '@/lib/enhanced-security'
 
 interface Message {
   id: string
@@ -147,6 +149,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const [showAddUsersDialog, setShowAddUsersDialog] = useState(false)
   const [userSearchMode, setUserSearchMode] = useState<'chat' | 'add-to-conversation'>('chat')
   
+  // Conversation password protection state
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
+  const [passwordDialogMode, setPasswordDialogMode] = useState<'set' | 'verify'>('verify')
+  const [passwordProtectedConversation, setPasswordProtectedConversation] = useState<string | null>(null)
+  const [conversationAccess, setConversationAccess] = useState<Record<string, boolean>>({})
+  
   // Voice recording state
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
   const [isRecordingVoice, setIsRecordingVoice] = useState(false)
@@ -223,6 +231,51 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
     loadConversations()
   }, [currentUser.id, setConversations])
+
+  const selectConversation = async (conversation: Conversation) => {
+    try {
+      // Check if conversation has password protection
+      const passwordInfo = await ConversationPasswordManager.getConversationPasswordInfo(conversation.id);
+      
+      if (passwordInfo.hasPassword) {
+        // Check if user already has access
+        const hasAccess = await ConversationPasswordManager.hasConversationAccess(conversation.id);
+        
+        if (!hasAccess) {
+          // Show password dialog
+          setPasswordProtectedConversation(conversation.id);
+          setPasswordDialogMode('verify');
+          setShowPasswordDialog(true);
+          return;
+        }
+      }
+      
+      // Set as active conversation
+      setActiveConversation(conversation);
+      setConversationAccess(prev => ({ ...prev, [conversation.id]: true }));
+      
+    } catch (error) {
+      console.error('Error selecting conversation:', error);
+      toast.error('Failed to access conversation');
+    }
+  };
+
+  const handlePasswordSuccess = () => {
+    if (passwordProtectedConversation) {
+      const conversation = conversations?.find(c => c.id === passwordProtectedConversation);
+      if (conversation) {
+        setActiveConversation(conversation);
+        setConversationAccess(prev => ({ ...prev, [passwordProtectedConversation]: true }));
+      }
+      setPasswordProtectedConversation(null);
+    }
+  };
+
+  const showSetPasswordDialog = async (conversationId: string) => {
+    setPasswordProtectedConversation(conversationId);
+    setPasswordDialogMode('set');
+    setShowPasswordDialog(true);
+  };
 
   // Load messages when active conversation changes
   useEffect(() => {
@@ -1088,7 +1141,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 className={`p-3 hover:bg-gray-50 cursor-pointer facebook-conversation-item ${
                   activeConversation?.id === conversation.id ? 'facebook-conversation-active' : ''
                 }`}
-                onClick={() => setActiveConversation(conversation)}
+                onClick={() => selectConversation(conversation)}
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -1199,6 +1252,19 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                     🛡️ Encrypted
                   </Badge>
+                  
+                  {/* Password Protection Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => showSetPasswordDialog(activeConversation.id)}
+                    className="text-xs gap-1 h-6 px-2"
+                    title="Set Conversation Password"
+                  >
+                    <Shield className="w-3 h-3" />
+                    <span className="hidden sm:inline">Password</span>
+                  </Button>
+                  
                   {/* Generate Access Code Button */}
                   <Button
                     variant="outline"
@@ -1480,6 +1546,25 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         conversation={activeConversation}
         currentUser={currentUser}
         onUsersAdded={handleUsersAddedToConversation}
+      />
+
+      {/* Conversation Password Dialog */}
+      <ConversationPasswordDialog
+        isOpen={showPasswordDialog}
+        onClose={() => {
+          setShowPasswordDialog(false);
+          setPasswordProtectedConversation(null);
+        }}
+        mode={passwordDialogMode}
+        conversationId={passwordProtectedConversation || ''}
+        conversationName={
+          passwordProtectedConversation 
+            ? conversations?.find(c => c.id === passwordProtectedConversation)?.name || 
+              conversations?.find(c => c.id === passwordProtectedConversation)?.otherParticipant?.display_name ||
+              undefined
+            : undefined
+        }
+        onSuccess={handlePasswordSuccess}
       />
     </div>
   )

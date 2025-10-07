@@ -349,10 +349,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
           {/* Main Login Card */}
           <Card className="bg-card border border-border shadow-lg">
             <CardContent className="p-8">
-              {/* Language Switcher */}
-              <div className="flex justify-end mb-4">
-                <LanguageSwitcher />
-              </div>
+
               
               <div className="text-center mb-10">
                 <h1 className="text-2xl font-bold text-foreground mb-3">

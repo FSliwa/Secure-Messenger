@@ -8,12 +8,15 @@ import {
   Fingerprint, 
   Desktop, 
   Eye,
-  Gear
+  Gear,
+  Shield,
+  Lock
 } from '@phosphor-icons/react'
 import { TwoFactorSetup } from './TwoFactorSetup'
 import { TrustedDevices } from './TrustedDevices'
 import { PrivacySettings } from './PrivacySettings'
 import { BiometricDemo } from './BiometricDemo'
+import { EnhancedSecuritySettings } from './EnhancedSecuritySettings'
 import { supabase } from '@/lib/supabase'
 import { getUserTrustedDevices } from '@/lib/auth-security'
 import { BiometricAuthService } from '@/lib/biometric-auth'
@@ -92,7 +95,7 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Gear className="h-4 w-4" />
             Overview
@@ -112,6 +115,10 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
           <TabsTrigger value="privacy" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
             Privacy
+          </TabsTrigger>
+          <TabsTrigger value="enhanced" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Enhanced
           </TabsTrigger>
         </TabsList>
 
@@ -265,6 +272,10 @@ export function SecuritySettings({ userId, currentUser }: SecuritySettingsProps)
 
         <TabsContent value="privacy">
           <PrivacySettings userId={userId} />
+        </TabsContent>
+
+        <TabsContent value="enhanced">
+          <EnhancedSecuritySettings userId={userId} />
         </TabsContent>
       </Tabs>
     </div>

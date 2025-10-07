@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ChatInterface } from './ChatInterface'
 import { ProfileSettings } from './ProfileSettings'
+import { EnhancedSecurityInitializer } from './EnhancedSecurityInitializer'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { 
   SignOut, 
@@ -28,6 +29,7 @@ interface DashboardProps {
 export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const [keyInfo, setKeyInfo] = useState<KeyPair | null>(null)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const [showSecurityInitializer, setShowSecurityInitializer] = useState(false)
 
   useEffect(() => {
     const loadCryptoKeys = async () => {
@@ -113,6 +115,18 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
                 <span className="hidden sm:inline">Profile</span>
               </Button>
               
+              {/* Enhanced Security Initializer Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSecurityInitializer(true)}
+                className="gap-2"
+                title="Initialize Enhanced Security Features"
+              >
+                <Shield className="h-4 w-4" />
+                <span className="hidden sm:inline">Security Init</span>
+              </Button>
+              
               <Button
                 variant="outline"
                 size="sm"
@@ -147,6 +161,27 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
         onClose={() => setShowProfileSettings(false)}
         onProfileUpdate={handleProfileUpdate}
       />
+
+      {/* Enhanced Security Initializer Dialog */}
+      {showSecurityInitializer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Enhanced Security Initialization</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSecurityInitializer(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="p-6">
+              <EnhancedSecurityInitializer />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -356,10 +356,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
     <div className="w-full max-w-md mx-auto">
       <Card className="facebook-card">
         <CardContent className="p-8">
-          {/* Language Switcher */}
-          <div className="flex justify-end mb-4">
-            <LanguageSwitcher />
-          </div>
+
 
           {/* Network Status */}
           <div className="mb-8">
