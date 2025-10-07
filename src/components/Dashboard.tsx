@@ -97,86 +97,122 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">SecureChat</h1>
-              <Badge variant="secondary" className="text-xs">
-                {t.dashboard}
-              </Badge>
+      {/* Header - Facebook Style */}
+      <header className="sticky top-0 z-50 w-full bg-background border-b border-border/40 shadow-sm">
+        <div className="facebook-container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
+          {/* Left side - Logo and branding */}
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground facebook-button">
+                <Shield className="h-5 w-5" weight="fill" />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-primary">SecureChat</h1>
+                <Badge variant="secondary" className="text-xs mt-0.5">
+                  {t.dashboard}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Center - Main navigation actions */}
+          <div className="hidden lg:flex items-center justify-center space-x-1 flex-1">
+            <Button
+              variant="ghost"
+              size="lg"
+              className="relative w-24 h-12 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-primary transition-all duration-200 facebook-button"
+              onClick={() => setShowNotificationSettings(true)}
+              title="Notifications"
+            >
+              <div className="flex flex-col items-center">
+                <Bell className="h-5 w-5" />
+                <span className="text-xs mt-0.5">Notifications</span>
+              </div>
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              className="relative w-24 h-12 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-primary transition-all duration-200 facebook-button"
+              onClick={() => setShowProfileSettings(true)}
+              title={t.profile}
+            >
+              <div className="flex flex-col items-center">
+                <User className="h-5 w-5" />
+                <span className="text-xs mt-0.5">{t.profile}</span>
+              </div>
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              className="relative w-24 h-12 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-primary transition-all duration-200 facebook-button"
+              onClick={() => setShowSecurityInitializer(true)}
+              title={t.enhancedSecurityInitialization}
+            >
+              <div className="flex flex-col items-center">
+                <Shield className="h-5 w-5" />
+                <span className="text-xs mt-0.5">Security</span>
+              </div>
+            </Button>
+          </div>
+          
+          {/* Right side - User info and controls */}
+          <div className="flex items-center gap-2 justify-end flex-1">
+            {/* User info - visible on larger screens */}
+            <div className="text-right hidden md:block mr-2">
+              <p className="text-sm font-medium text-foreground">{userName}</p>
+              <p className="text-xs text-muted-foreground">{userEmail}</p>
             </div>
             
-            <div className="flex items-center gap-2">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium">{userName}</p>
-                <p className="text-xs text-muted-foreground">{userEmail}</p>
-              </div>
-              
-              {/* Theme Switcher */}
-              <ThemeSwitcher />
-              
-              {/* Language Switcher */}
-              <LanguageSwitcher />
-              
-              {/* Notification Settings Button */}
+            {/* Mobile menu buttons */}
+            <div className="lg:hidden flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowNotificationSettings(true)}
-                className="gap-2"
+                className="w-10 h-10 rounded-full facebook-button"
+                title="Notifications"
               >
                 <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">Notifications</span>
               </Button>
-              
-              {/* Notification Demo Button - Development/Testing */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowNotificationDemo(true)}
-                className="gap-2"
-                title="Test notification system"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">🧪 Demo</span>
-              </Button>
-              
-              {/* Profile Settings Button */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowProfileSettings(true)}
-                className="gap-2"
+                className="w-10 h-10 rounded-full facebook-button"
+                title={t.profile}
               >
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{t.profile}</span>
-              </Button>
-              
-              {/* Enhanced Security Initializer Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowSecurityInitializer(true)}
-                className="gap-2"
-                title={t.enhancedSecurityInitialization}
-              >
-                <Shield className="h-4 w-4" />
-                <span className="hidden sm:inline">{t.securityInit}</span>
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="gap-2"
-              >
-                <SignOut className="h-4 w-4" />
-                {t.logout}
               </Button>
             </div>
+            
+            {/* Theme and Language switchers */}
+            <div className="hidden sm:flex items-center gap-1">
+              <ThemeSwitcher />
+              <LanguageSwitcher />
+            </div>
+            
+            {/* Demo button - subtle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowNotificationDemo(true)}
+              className="hidden md:flex gap-1 facebook-button text-xs text-muted-foreground hover:text-foreground"
+              title="Test notification system"
+            >
+              <Bell className="h-3 w-3" />
+              Demo
+            </Button>
+              
+            {/* Logout Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="gap-2 facebook-button border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <SignOut className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.logout}</span>
+            </Button>
           </div>
         </div>
       </header>

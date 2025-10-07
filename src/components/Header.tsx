@@ -13,76 +13,88 @@ export function Header({ onLoginClick }: HeaderProps) {
   const { t } = useLanguage()
   
   return (
-    <header className="sticky top-0 z-50 w-full bg-card border-b border-border/40 shadow-sm safe-area-top">
-      <div className="container mx-auto flex h-14 sm:h-16 max-w-screen-xl items-center justify-between px-4 sm:px-6 safe-area-left safe-area-right">
-        {/* Left side - Logo and Navigation */}
-        <div className="flex items-center space-x-4 sm:space-x-6 flex-1">
+    <header className="sticky top-0 z-50 w-full bg-background border-b border-border/40 shadow-sm">
+      <div className="facebook-container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
+        {/* Left side - Logo and Search */}
+        <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
-              <ChatCircle className="h-4 w-4 sm:h-5 sm:w-5" weight="fill" />
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground facebook-button">
+              <ChatCircle className="h-5 w-5" weight="fill" />
             </div>
-            <span className="text-xl sm:text-2xl font-bold text-primary hidden xs:block">SecureChat</span>
+            <span className="text-xl font-bold text-primary hidden sm:block">SecureChat</span>
           </div>
           
-          {/* Search Bar - Hidden on mobile */}
-          <div className="hidden md:flex flex-1 max-w-md relative">
+          {/* Search Bar - Facebook style */}
+          <div className="hidden lg:flex flex-1 max-w-md">
             <div className="relative w-full">
               <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Search SecureChat"
-                className="w-full pl-10 pr-4 py-2 bg-muted/50 border-0 rounded-full text-sm placeholder:text-muted-foreground focus:bg-background focus:ring-2 focus:ring-primary/20"
+                className="w-full pl-10 pr-4 py-2 bg-muted/50 border-0 rounded-full text-sm placeholder:text-muted-foreground focus:bg-background focus:ring-2 focus:ring-primary/20 facebook-input"
               />
             </div>
           </div>
         </div>
 
-        {/* Center Navigation Icons - Hidden on mobile */}
-        <div className="hidden lg:flex items-center justify-center space-x-2 flex-1">
+        {/* Center Navigation Icons - Facebook style */}
+        <div className="hidden lg:flex items-center justify-center space-x-1 flex-1">
           <Button
             variant="ghost"
             size="lg"
-            className="w-12 h-12 rounded-xl hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-all duration-200"
+            className="relative w-28 h-12 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-primary transition-all duration-200 facebook-button"
+            title="Home"
           >
-            <Users className="h-6 w-6" />
+            <div className="flex flex-col items-center">
+              <Users className="h-6 w-6" />
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full opacity-0 group-hover:opacity-100"></div>
+            </div>
           </Button>
           <Button
             variant="ghost"
             size="lg"
-            className="w-12 h-12 rounded-xl hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-all duration-200"
+            className="relative w-28 h-12 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-primary transition-all duration-200 facebook-button"
+            title="Messages"
           >
-            <ChatCircle className="h-6 w-6" />
+            <div className="flex flex-col items-center">
+              <ChatCircle className="h-6 w-6" />
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full opacity-100"></div>
+            </div>
           </Button>
           <Button
             variant="ghost"
             size="lg"
-            className="w-12 h-12 rounded-xl hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-all duration-200"
+            className="relative w-28 h-12 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-primary transition-all duration-200 facebook-button"
+            title="Notifications"
           >
-            <Bell className="h-6 w-6" />
+            <div className="flex flex-col items-center">
+              <Bell className="h-6 w-6" />
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full opacity-0 group-hover:opacity-100"></div>
+            </div>
           </Button>
         </div>
         
         {/* Right side - User actions */}
-        <div className="flex items-center gap-2 sm:gap-3 justify-end flex-1">
+        <div className="flex items-center gap-2 justify-end flex-1">
           {/* Mobile search icon */}
           <Button
             variant="ghost"
             size="sm"
-            className="md:hidden w-10 h-10 rounded-full hover:bg-muted/70 text-muted-foreground hover:text-foreground"
+            className="lg:hidden w-10 h-10 rounded-full hover:bg-muted/70 text-muted-foreground hover:text-foreground facebook-button"
           >
             <MagnifyingGlass className="h-5 w-5" />
           </Button>
           
-          {/* Theme and Language switchers - Hidden on small screens */}
-          <div className="hidden sm:flex items-center gap-2">
+          {/* Theme and Language switchers */}
+          <div className="hidden sm:flex items-center gap-1">
             <ThemeSwitcher />
             <LanguageSwitcher />
           </div>
           
-          {/* Login Button */}
+          {/* Login Button - Facebook style */}
           <Button 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg px-4 sm:px-6 h-9 sm:h-10 text-sm sm:text-base shadow-md hover:shadow-lg transition-all duration-200"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg px-4 sm:px-6 h-9 sm:h-10 text-sm sm:text-base facebook-button transition-all duration-200 hover:shadow-lg"
             onClick={onLoginClick}
           >
             {t.signIn}

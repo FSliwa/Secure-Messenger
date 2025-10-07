@@ -278,7 +278,7 @@ function AppContent() {
   // Loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center safe-area-top safe-area-bottom px-4">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="text-center max-w-sm mx-auto">
           <div className="mb-4 sm:mb-6">
             <svg 
@@ -316,7 +316,7 @@ function AppContent() {
     // Force redirect to login
     setTimeout(() => setAppState('login'), 0);
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center safe-area-top safe-area-bottom px-4">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="text-center max-w-sm mx-auto">
           <p className="text-muted-foreground text-sm sm:text-base px-4">{t.redirectingToLogin}</p>
         </div>
@@ -326,18 +326,18 @@ function AppContent() {
 
   // Landing/Login screens
   return (
-    <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-background">
       <Header onLoginClick={handleSwitchToLogin} />
       
       <main>
         {/* Connection Status Banner */}
-        <div className="container mx-auto max-w-screen-xl px-4 sm:px-6 pt-2 sm:pt-4 safe-area-left safe-area-right">
+        <div className="container mx-auto max-w-screen-xl px-4 sm:px-6 pt-2 sm:pt-4">
           <ConnectionBanner />
         </div>
         
         {/* Hero and Registration/Login Section */}
         <section className="py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24">
-          <div className="container mx-auto max-w-screen-xl px-4 sm:px-6 safe-area-left safe-area-right">
+          <div className="container mx-auto max-w-screen-xl px-4 sm:px-6">
             <div className="grid gap-8 sm:gap-10 md:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20 items-start">
               {/* Left Column - Hero */}
               <div className="order-2 lg:order-1">

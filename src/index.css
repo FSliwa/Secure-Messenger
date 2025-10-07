@@ -293,6 +293,12 @@ body {
   transform: translateY(0);
 }
 
+/* Facebook-style container - full width without constraints */
+.facebook-container {
+  width: 100%;
+  max-width: none;
+}
+
 /* Card shadows similar to Facebook */
 .facebook-card {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
