@@ -5,12 +5,17 @@ import { ChatInterface } from './ChatInterface'
 import { ProfileSettings } from './ProfileSettings'
 import { EnhancedSecurityInitializer } from './EnhancedSecurityInitializer'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { ThemeSwitcher } from './ThemeSwitcher'
+import { NotificationSettings } from './NotificationSettings'
+import { FeatureShowcase } from './FeatureShowcase'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useNotifications } from '@/contexts/NotificationContext'
 import { 
   SignOut, 
   Shield,
   User,
-  Gear
+  Gear,
+  Bell
 } from '@phosphor-icons/react'
 import { getStoredKeys, KeyPair } from '@/lib/crypto'
 import { toast } from 'sonner'
@@ -29,9 +34,11 @@ interface DashboardProps {
 
 export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const { t } = useLanguage()
+  const { requestPermission } = useNotifications()
   const [keyInfo, setKeyInfo] = useState<KeyPair | null>(null)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [showSecurityInitializer, setShowSecurityInitializer] = useState(false)
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false)
 
   useEffect(() => {
     const loadCryptoKeys = async () => {
@@ -40,7 +47,10 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
     }
     
     loadCryptoKeys()
-  }, [])
+    
+    // Request notification permission on dashboard load
+    requestPermission()
+  }, [requestPermission])
 
   // Security guard - ensure user is properly authenticated
   if (!currentUser) {
@@ -97,14 +107,28 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
               </Badge>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium">{userName}</p>
                 <p className="text-xs text-muted-foreground">{userEmail}</p>
               </div>
               
+              {/* Theme Switcher */}
+              <ThemeSwitcher />
+              
               {/* Language Switcher */}
               <LanguageSwitcher />
+              
+              {/* Notification Settings Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotificationSettings(true)}
+                className="gap-2"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Notifications</span>
+              </Button>
               
               {/* Profile Settings Button */}
               <Button
@@ -156,6 +180,9 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
         </div>
       </main>
 
+      {/* Feature Showcase */}
+      <FeatureShowcase />
+
       {/* Profile Settings Dialog */}
       <ProfileSettings
         currentUser={currentUser}
@@ -164,10 +191,31 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
         onProfileUpdate={handleProfileUpdate}
       />
 
+      {/* Notification Settings Dialog */}
+      {showNotificationSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Notification Settings</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotificationSettings(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="p-6">
+              <NotificationSettings />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Security Initializer Dialog */}
       {showSecurityInitializer && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t.enhancedSecurityInitialization}</h2>
               <Button

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HeaderProps {
@@ -33,7 +34,8 @@ export function Header({ onLoginClick }: HeaderProps) {
           <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full font-medium">PRO</span>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <ThemeSwitcher />
           <LanguageSwitcher />
           <Button 
             variant="ghost" 
