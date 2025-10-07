@@ -2,18 +2,132 @@
 <html lang="en">
 
 <head>
+    <!-- Essential meta tags -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Primary Meta Tags -->
     <title>SecureChat Pro - Commercial Grade Encrypted Messaging</title>
+    <meta name="title" content="SecureChat Pro - Commercial Grade Encrypted Messaging" />
     <meta name="description" content="Enterprise-grade encrypted messaging platform with post-quantum cryptography. Secure your communications with military-level encryption taking 3 minutes to ensure maximum security." />
-    <meta property="og:title" content="SecureChat - End-to-End Encrypted Messaging" />
-    <meta property="og:description" content="Connect with friends and the world around you with end-to-end encrypted messaging." />
+    <meta name="keywords" content="encrypted messaging, secure chat, end-to-end encryption, privacy, secure communication, post-quantum cryptography" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="author" content="SecureChat Pro" />
+    
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta property="og:url" content="https://securechat.pro/" />
+    <meta property="og:title" content="SecureChat Pro - End-to-End Encrypted Messaging" />
+    <meta property="og:description" content="Connect with friends and the world around you with end-to-end encrypted messaging. Enterprise-grade security with post-quantum cryptography." />
+    <meta property="og:image" content="/favicon-512x512.png" />
+    <meta property="og:site_name" content="SecureChat Pro" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://securechat.pro/" />
+    <meta property="twitter:title" content="SecureChat Pro - End-to-End Encrypted Messaging" />
+    <meta property="twitter:description" content="Connect with friends and the world around you with end-to-end encrypted messaging. Enterprise-grade security with post-quantum cryptography." />
+    <meta property="twitter:image" content="/favicon-512x512.png" />
+    
+    <!-- Favicons and Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Theme and Browser Configuration -->
+    <meta name="theme-color" content="#1877F2" />
+    <meta name="msapplication-TileColor" content="#1877F2" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SecureChat" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:;" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    
+    <!-- Performance optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
+    <!-- Font loading with fallbacks -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheets -->
     <link href="/src/main.css" rel="stylesheet" />
+    
+    <!-- Browser polyfills and compatibility -->
     <script>
+        // Feature detection and polyfills
+        (function() {
+            // Check for modern JavaScript support
+            var supportsES6 = (function() {
+                try {
+                    new Function("(a = 0) => a");
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            })();
+            
+            // Polyfill for older browsers
+            if (!supportsES6) {
+                console.warn('This browser may not support all features. Please update to a modern browser.');
+            }
+            
+            // Viewport height fix for mobile browsers
+            function setVH() {
+                var vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', vh + 'px');
+            }
+            setVH();
+            window.addEventListener('resize', setVH);
+            window.addEventListener('orientationchange', setVH);
+            
+            // Safe area insets support
+            if (CSS.supports && CSS.supports('padding: env(safe-area-inset-top)')) {
+                document.documentElement.classList.add('safe-area-supported');
+            }
+            
+            // Dark mode support detection
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('prefers-dark');
+            }
+            
+            // Reduced motion support
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.documentElement.classList.add('prefers-reduced-motion');
+            }
+            
+            // High contrast support
+            if (window.matchMedia && window.matchMedia('(prefers-contrast: high)').matches) {
+                document.documentElement.classList.add('prefers-high-contrast');
+            }
+            
+            // Touch support detection
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.documentElement.classList.add('touch-enabled');
+            }
+            
+            // Internet connection detection
+            function updateOnlineStatus() {
+                document.documentElement.classList.toggle('offline', !navigator.onLine);
+            }
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            updateOnlineStatus();
+            
+        })();
+        
         // Simple SPA routing for authentication callbacks and password reset
         (function() {
             // Check if we're on a route that should be handled by the app

@@ -1,0 +1,23 @@
+{
+  "name": "SecureChat Pro",
+  "short_name": "SecureChat",
+  "description": "Enterprise-grade encrypted messaging platform with post-quantum cryptography",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1877F2",
+  "theme_color": "#1877F2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "social", "communication"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}

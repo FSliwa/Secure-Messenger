@@ -1,18 +1,65 @@
 @import 'tailwindcss';
 @import "tw-animate-css";
 
+/* CSS Reset and Browser Compatibility */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Viewport height fix for mobile browsers */
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* High contrast mode support */
+.prefers-high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #0066ff;
+  --secondary: #333333;
+  --border: #666666;
+}
+
+/* Offline mode styling */
+.offline {
+  filter: grayscale(50%);
+}
+
+/* Safe area support for devices with notches */
+.safe-area-supported {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 @layer base {
   * {
     @apply border-border;
   }
 }
 
+/* Ensure proper foreground text color in light mode */
 :root {
   /* SecureChat Facebook-inspired Theme Colors - Light Mode */
   --background: oklch(0.97 0.005 220);  /* Very light blue-gray background */
-  --foreground: oklch(0.15 0.02 240);  /* Dark blue-gray text */
+  --foreground: oklch(0.12 0.02 240);  /* Darker text for better contrast */
   --card: oklch(1.0 0 0);  /* Pure white cards */
-  --card-foreground: oklch(0.15 0.02 240);
+  --card-foreground: oklch(0.12 0.02 240);  /* Ensure card text is dark */
   --popover: oklch(1.0 0 0);
   --popover-foreground: oklch(0.15 0.02 240);
   
@@ -624,4 +671,298 @@ body {
   .safe-area-right {
     padding-right: max(0.5rem, env(safe-area-inset-right));
   }
+}
+
+/* Advanced Browser Compatibility Enhancements */
+
+/* Flexbox fallbacks for older browsers */
+.flex-fallback {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.flex-center-fallback {
+  -webkit-box-align: center;
+  -moz-box-align: center;
+  -ms-flex-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -moz-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+}
+
+/* Grid fallbacks for older browsers */
+@supports not (display: grid) {
+  .grid-fallback {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    -moz-box-orient: horizontal;
+    -moz-box-direction: normal;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .grid-fallback > * {
+    -webkit-box-flex: 1;
+    -moz-box-flex: 1;
+    -ms-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    min-width: 300px;
+  }
+}
+
+/* Transform fallbacks */
+.transform-fallback {
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  -o-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Transition fallbacks */
+.transition-fallback {
+  -webkit-transition: all 0.3s ease;
+  -moz-transition: all 0.3s ease;
+  -ms-transition: all 0.3s ease;
+  -o-transition: all 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+/* Border radius fallbacks */
+.border-radius-fallback {
+  -webkit-border-radius: var(--radius);
+  -moz-border-radius: var(--radius);
+  border-radius: var(--radius);
+}
+
+/* Box shadow fallbacks */
+.box-shadow-fallback {
+  -webkit-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  -moz-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Backdrop filter fallbacks */
+@supports not (backdrop-filter: blur(20px)) {
+  .backdrop-blur-fallback {
+    background: rgba(255, 255, 255, 0.95);
+  }
+  
+  .dark .backdrop-blur-fallback {
+    background: rgba(0, 0, 0, 0.95);
+  }
+}
+
+/* CSS Variables fallbacks for older browsers */
+.css-vars-fallback {
+  background-color: #f8fafc; /* fallback for var(--background) */
+  color: #1e293b; /* fallback for var(--foreground) */
+}
+
+.dark .css-vars-fallback {
+  background-color: #0f172a; /* fallback for dark var(--background) */
+  color: #f1f5f9; /* fallback for dark var(--foreground) */
+}
+
+/* Internet Explorer specific fixes */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+  /* IE10+ specific styles */
+  .ie-fix {
+    display: block;
+    width: 100%;
+  }
+  
+  .facebook-input {
+    border: 1px solid #d1d5db;
+  }
+  
+  .facebook-button {
+    border: none;
+    background-color: #1877F2;
+    color: white;
+  }
+}
+
+/* Edge Legacy specific fixes */
+@supports (-ms-accelerator: true) {
+  .edge-legacy-fix {
+    display: block;
+  }
+}
+
+/* Firefox specific fixes */
+@-moz-document url-prefix() {
+  .firefox-fix {
+    /* Firefox-specific styles */
+  }
+  
+  .facebook-input {
+    -moz-appearance: none;
+  }
+  
+  .facebook-button {
+    -moz-appearance: none;
+  }
+}
+
+/* Safari specific fixes */
+@media not all and (min-resolution:.001dpcm) {
+  @supports (-webkit-appearance: none) {
+    .safari-fix {
+      /* Safari-specific styles */
+    }
+    
+    .facebook-input {
+      -webkit-appearance: none;
+    }
+    
+    .facebook-button {
+      -webkit-appearance: none;
+    }
+  }
+}
+
+/* Chrome specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  .chrome-fix {
+    /* Chrome-specific styles */
+  }
+}
+
+/* Print styles */
+@media print {
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  .facebook-card {
+    border: 1px solid black;
+    page-break-inside: avoid;
+  }
+  
+  @page {
+    margin: 1in;
+  }
+}
+
+/* Screen reader and accessibility improvements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 8px;
+  text-decoration: none;
+  z-index: 1000;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Focus improvements for keyboard navigation */
+.focus-visible:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  .facebook-button {
+    border: 2px solid;
+  }
+  
+  .facebook-input {
+    border: 2px solid;
+  }
+  
+  .facebook-card {
+    border: 2px solid;
+  }
+}
+
+/* Battery optimization for low power mode */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Network optimization for slow connections */
+@media (prefers-reduced-data: reduce) {
+  .facebook-card {
+    box-shadow: none;
+  }
+  
+  .glass-card {
+    backdrop-filter: none;
+    background: var(--card);
+  }
+}
+
+/* Large text support */
+@media (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+  .facebook-button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .facebook-input {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .facebook-conversation-item {
+    transition: background-color 0.15s ease;
+  }
+}
+
+/* Ensure proper text contrast - Light mode fixes */
+.text-foreground {
+  color: oklch(0.12 0.02 240) !important;
+}
+
+.dark .text-foreground {
+  color: oklch(0.95 0.005 240) !important;
+}
+
+/* Additional text contrast utilities */
+.text-primary-contrast {
+  color: oklch(0.10 0.02 240);
+}
+
+.dark .text-primary-contrast {
+  color: oklch(0.98 0.005 240);
 }

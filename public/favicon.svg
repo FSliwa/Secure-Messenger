@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1877F2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#42A5F5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.7" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="url(#bg)" stroke="#0D47A1" stroke-width="2"/>
+  
+  <!-- Security shield -->
+  <path d="M16 4L12 6v6c0 6 4 10 4 10s4-4 4-10V6L16 4z" fill="url(#shield)" stroke="#0D47A1" stroke-width="0.5"/>
+  
+  <!-- Chat bubble -->
+  <ellipse cx="16" cy="18" rx="8" ry="6" fill="none" stroke="url(#shield)" stroke-width="1.5" opacity="0.8"/>
+  
+  <!-- Lock icon in center -->
+  <rect x="13" y="14" width="6" height="4" rx="1" fill="url(#shield)" stroke="#0D47A1" stroke-width="0.5"/>
+  <path d="M14.5 14v-1.5c0-0.8 0.7-1.5 1.5-1.5s1.5 0.7 1.5 1.5V14" fill="none" stroke="#0D47A1" stroke-width="1"/>
+</svg>
