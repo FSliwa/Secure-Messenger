@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ChatInterface } from './ChatInterface'
 import { ProfileSettings } from './ProfileSettings'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import { 
   SignOut, 
   Shield,
@@ -97,6 +98,9 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
                 <p className="text-sm font-medium">{userName}</p>
                 <p className="text-xs text-muted-foreground">{userEmail}</p>
               </div>
+              
+              {/* Language Switcher */}
+              <LanguageSwitcher />
               
               {/* Profile Settings Button */}
               <Button

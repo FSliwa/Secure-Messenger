@@ -10,6 +10,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { DatabaseInit } from "@/components/DatabaseInit";
 import { PasswordResetHandler } from "@/components/PasswordResetHandler";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
@@ -131,13 +132,15 @@ function App() {
   useEffect(() => {
     if (appState === 'database-init') return;
 
-    // Listen for auth changes
+    // Listen for auth changes - but only logout when explicitly signed out, not on network issues
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      // Only handle explicit sign outs, not session expiry or network issues  
+      if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setAuthState('unauthenticated');
         setAppState('login');
-      } else if (event === 'SIGNED_IN' && session) {
+      } else if (event === 'SIGNED_IN' && session && authState === 'unauthenticated') {
+        // Only process sign-in if we're currently unauthenticated
         try {
           setAuthState('checking');
           
@@ -145,28 +148,18 @@ function App() {
           const isAuthenticated = await requireAuthentication(false);
           
           if (!isAuthenticated) {
-            setCurrentUser(null);
-            setAuthState('unauthenticated');
-            setAppState('login');
-            return;
+            return; // Don't change state, keep existing session
           }
           
           const user = await safeGetCurrentUser();
           if (!user) {
-            setCurrentUser(null);
-            setAuthState('unauthenticated');
-            setAppState('login');
-            return;
+            return; // Don't change state, keep existing session
           }
 
           // Check dashboard access
           const hasAccess = await validateDashboardAccess(user.id);
           if (!hasAccess) {
-            await signOut();
-            setCurrentUser(null);
-            setAuthState('unauthenticated');
-            setAppState('login');
-            return;
+            return; // Don't change state, keep existing session
           }
 
           const userObject: User = {
@@ -182,15 +175,13 @@ function App() {
           
         } catch (error) {
           console.error('Error handling auth state change:', error);
-          setCurrentUser(null);
-          setAuthState('unauthenticated');
-          setAppState('login');
+          // Don't force logout on errors, keep existing state
         }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [appState]);
+  }, [appState, authState]);
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
@@ -243,20 +234,20 @@ function App() {
   // Database initialization screen
   if (appState === 'database-init') {
     return (
-      <>
+      <LanguageProvider>
         <DatabaseInit onComplete={handleDatabaseReady} />
         <Toaster position="top-center" />
-      </>
+      </LanguageProvider>
     );
   }
 
   // Password reset screen
   if (appState === 'reset-password') {
     return (
-      <>
+      <LanguageProvider>
         <PasswordResetHandler />
         <Toaster position="top-center" />
-      </>
+      </LanguageProvider>
     );
   }
 
@@ -289,10 +280,10 @@ function App() {
   // Dashboard screen - Only accessible when authenticated
   if (appState === 'dashboard' && authState === 'authenticated' && currentUser) {
     return (
-      <>
+      <LanguageProvider>
         <Dashboard onLogout={handleLogout} currentUser={currentUser} />
         <Toaster position="top-center" />
-      </>
+      </LanguageProvider>
     );
   }
 
@@ -311,65 +302,67 @@ function App() {
 
   // Landing/Login screens
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main>
-        {/* Connection Status Banner */}
-        <div className="container mx-auto max-w-screen-xl px-6 pt-4">
-          <ConnectionBanner />
-        </div>
+    <LanguageProvider>
+      <div className="min-h-screen bg-background">
+        <Header />
         
-        {/* Hero and Registration/Login Section */}
-        <section className="py-16 sm:py-20 lg:py-24">
-          <div className="container mx-auto max-w-screen-xl px-6">
-            <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-start">
-              {/* Left Column - Hero */}
-              <div className="order-2 lg:order-1">
-                <Hero />
-                <div className="mt-12">
-                  <SecurityCallout />
+        <main>
+          {/* Connection Status Banner */}
+          <div className="container mx-auto max-w-screen-xl px-6 pt-4">
+            <ConnectionBanner />
+          </div>
+          
+          {/* Hero and Registration/Login Section */}
+          <section className="py-16 sm:py-20 lg:py-24">
+            <div className="container mx-auto max-w-screen-xl px-6">
+              <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-start">
+                {/* Left Column - Hero */}
+                <div className="order-2 lg:order-1">
+                  <Hero />
+                  <div className="mt-12">
+                    <SecurityCallout />
+                  </div>
+                </div>
+                
+                {/* Right Column - Authentication Forms */}
+                <div className="order-1 lg:order-2 flex flex-col items-center lg:items-end">
+                  {appState === 'login' ? (
+                    <LoginCard 
+                      onSuccess={handleLoginSuccess}
+                      onSwitchToSignUp={handleSwitchToSignUp}
+                    />
+                  ) : (
+                    <SignUpCard 
+                      onSuccess={handleLoginSuccess}
+                      onSwitchToLogin={handleSwitchToLogin}
+                    />
+                  )}
+
+                  {/* Switch between login and signup */}
+                  {appState === 'landing' && (
+                    <div className="mt-8 text-center w-full max-w-md">
+                      <p className="text-sm text-muted-foreground">
+                        Already have an account?{' '}
+                        <button
+                          type="button"
+                          className="text-primary hover:underline font-medium"
+                          onClick={handleSwitchToLogin}
+                        >
+                          Sign in here
+                        </button>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-              
-              {/* Right Column - Authentication Forms */}
-              <div className="order-1 lg:order-2 flex flex-col items-center lg:items-end">
-                {appState === 'login' ? (
-                  <LoginCard 
-                    onSuccess={handleLoginSuccess}
-                    onSwitchToSignUp={handleSwitchToSignUp}
-                  />
-                ) : (
-                  <SignUpCard 
-                    onSuccess={handleLoginSuccess}
-                    onSwitchToLogin={handleSwitchToLogin}
-                  />
-                )}
-
-                {/* Switch between login and signup */}
-                {appState === 'landing' && (
-                  <div className="mt-8 text-center w-full max-w-md">
-                    <p className="text-sm text-muted-foreground">
-                      Already have an account?{' '}
-                      <button
-                        type="button"
-                        className="text-primary hover:underline font-medium"
-                        onClick={handleSwitchToLogin}
-                      >
-                        Sign in here
-                      </button>
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
-          </div>
-        </section>
-      </main>
-      
-      <Footer />
-      <Toaster position="top-center" />
-    </div>
+          </section>
+        </main>
+        
+        <Footer />
+        <Toaster position="top-center" />
+      </div>
+    </LanguageProvider>
   );
 }
 

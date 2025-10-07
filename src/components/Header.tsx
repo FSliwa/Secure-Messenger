@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export function Header() {
   return (
@@ -25,16 +26,19 @@ export function Header() {
           <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full font-medium">PRO</span>
         </div>
         
-        <Button 
-          variant="ghost" 
-          className="text-primary hover:text-primary hover:bg-primary/10"
-          onClick={() => {
-            // In a real app, this would navigate to login
-            console.log('Navigate to login');
-          }}
-        >
-          Log in
-        </Button>
+        <div className="flex items-center gap-4">
+          <LanguageSwitcher />
+          <Button 
+            variant="ghost" 
+            className="text-primary hover:text-primary hover:bg-primary/10"
+            onClick={() => {
+              // In a real app, this would navigate to login
+              console.log('Navigate to login');
+            }}
+          >
+            Log in
+          </Button>
+        </div>
       </div>
     </header>
   );

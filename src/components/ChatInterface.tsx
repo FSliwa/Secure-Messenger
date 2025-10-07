@@ -30,6 +30,7 @@ import {
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { 
   getStoredKeys, 
   encryptMessage, 
@@ -110,6 +111,7 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ currentUser }: ChatInterfaceProps) {
+  const { t } = useLanguage()
   const [messages, setMessages] = useKV<Message[]>('chat-messages', [])
   const [conversations, setConversations] = useKV<Conversation[]>('user-conversations', [])
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
@@ -263,7 +265,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
   const handleCreateConversation = async () => {
     if (!conversationPassword.trim()) {
-      toast.error('Please set a password for this conversation')
+      toast.error(t.setPassword)
       return
     }
 
@@ -289,7 +291,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       setConversations((prev) => [...(prev || []), conversation])
       
       // Show access code to user
-      toast.success(`Conversation created! Access code: ${accessCode}`, {
+      toast.success(`${t.conversationCreated} ${accessCode}`, {
         duration: 10000,
         action: {
           label: 'Copy',
@@ -356,7 +358,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
   const handleJoinConversation = async () => {
     if (!joinAccessCode.trim()) {
-      toast.error('Please enter an access code')
+      toast.error(t.enterAccessCode)
       return
     }
 
@@ -527,9 +529,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         )
       )
 
-      toast.success('Message decrypted successfully!', { id: `decrypt-${message.id}` })
+      toast.success(`${t.messageDecrypted}`, { id: `decrypt-${message.id}` })
     } catch (error) {
-      toast.error('Failed to decrypt message', { id: `decrypt-${message.id}` })
+      toast.error(`${t.failedToDecrypt}`, { id: `decrypt-${message.id}` })
     } finally {
       setIsDecrypting(false)
     }
@@ -626,7 +628,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   // Handler for direct messages (Polish feature 1)
   const handleDirectMessage = (recipient: UserSearchResult, message: string) => {
     // In a real implementation, this would send the message through a direct channel
-    toast.success(`Wiadomość bezpośrednia wysłana do @${recipient.username}`)
+    toast.success(`${t.directMessageSent} @${recipient.username}`)
     
     // For demo purposes, we'll add it to a temporary conversation
     const directMessage: Message = {
@@ -651,14 +653,14 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       handleStartConversationWithUser(user)
     } else if (action === 'add' && activeConversation) {
       // This would normally add the user to the active conversation
-      toast.success(`Dodano ${user.username} do konwersacji`)
+      toast.success(`${t.userAdded} ${user.username} ${t.usersAddedToConversation}`)
     }
   }
 
   // Handler for adding users to conversation (Polish feature 3)
   const handleUsersAddedToConversation = (users: UserSearchResult[], conversationId: string) => {
     const userNames = users.map(u => u.username).join(', ')
-    toast.success(`Dodano użytkowników do konwersacji: ${userNames}`)
+    toast.success(`${t.usersAddedToConversation} ${userNames}`)
     
     // In a real implementation, this would update the conversation participants
     // and notify all participants about the new members
@@ -672,13 +674,13 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           {/* Header */}
           <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold text-gray-900">Chats</h1>
+              <h1 className="text-xl font-bold text-gray-900">{t.chats}</h1>
               <div className="flex gap-2">
                 {/* Direct Message Button - Polish Feature 1 */}
                 <button 
                   onClick={() => setShowDirectMessage(true)}
                   className="w-9 h-9 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-colors"
-                  title="Wyślij wiadomość bezpośrednią"
+                  title={t.sendDirectMessage}
                 >
                   <EnvelopeSimple className="w-5 h-5 text-blue-600" />
                 </button>
@@ -690,7 +692,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     setShowUserSearchDialog(true)
                   }}
                   className="w-9 h-9 rounded-full bg-green-100 hover:bg-green-200 flex items-center justify-center transition-colors"
-                  title="Zaawansowane wyszukiwanie użytkowników"
+                  title={t.advancedUserSearch}
                 >
                   <User className="w-5 h-5 text-green-600" />
                 </button>
@@ -700,7 +702,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   <button 
                     onClick={() => setShowAddUsersDialog(true)}
                     className="w-9 h-9 rounded-full bg-purple-100 hover:bg-purple-200 flex items-center justify-center transition-colors"
-                    title="Dodaj użytkowników do konwersacji"
+                    title={t.addUsersToConversation}
                   >
                     <Users className="w-5 h-5 text-purple-600" />
                   </button>
@@ -710,7 +712,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 <button 
                   onClick={() => setShowMessageSearch(true)}
                   className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title="Search Messages"
+                  title={t.searchMessages}
                 >
                   <MagnifyingGlass className="w-5 h-5 text-gray-600" />
                 </button>
@@ -723,14 +725,14 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Create New Conversation</DialogTitle>
+                      <DialogTitle>{t.createNewConversation}</DialogTitle>
                       <DialogDescription>
                         Create a secure conversation with a 2048-bit encrypted access code
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="conversation-name">Conversation Name (Optional)</Label>
+                        <Label htmlFor="conversation-name">{t.conversationName}</Label>
                         <Input
                           id="conversation-name"
                           placeholder="e.g., Project Discussion"
@@ -739,7 +741,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="conversation-password">Conversation Password</Label>
+                        <Label htmlFor="conversation-password">{t.conversationPassword}</Label>
                         <Input
                           id="conversation-password"
                           type="password"
@@ -753,7 +755,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       </div>
                       <Button onClick={handleCreateConversation} className="w-full">
                         <Shield className="w-4 h-4 mr-2" />
-                        Create Conversation
+                        {t.create} Conversation
                       </Button>
                     </div>
                   </DialogContent>
@@ -767,14 +769,14 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Join Conversation</DialogTitle>
+                      <DialogTitle>{t.joinConversation}</DialogTitle>
                       <DialogDescription>
                         Enter an access code to join an existing secure conversation
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="access-code">Access Code</Label>
+                        <Label htmlFor="access-code">{t.accessCode}</Label>
                         <Input
                           id="access-code"
                           placeholder="Enter conversation access code"
@@ -784,7 +786,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       </div>
                       <Button onClick={handleJoinConversation} className="w-full">
                         <Key className="w-4 h-4 mr-2" />
-                        Join Conversation
+                        {t.join} Conversation
                       </Button>
                     </div>
                   </DialogContent>
@@ -798,7 +800,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   <MagnifyingGlass className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                   <input
                     className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-full text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                    placeholder="Szukaj konwersacji..."
+                    placeholder={t.searchConversations}
                     readOnly
                   />
                 </div>
@@ -900,7 +902,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                           onClick={(e) => {
                             e.stopPropagation()
                             navigator.clipboard.writeText(conversation.access_code!)
-                            toast.success('Access code copied!')
+                            toast.success(t.accessCodeCopied)
                           }}
                         >
                           <Copy className="w-3 h-3" />
@@ -913,14 +915,14 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             ))}
             {(!conversations || conversations.length === 0) && (
               <div className="p-4 text-center">
-                <p className="text-sm text-muted-foreground">No conversations yet</p>
+                <p className="text-sm text-muted-foreground">{t.noConversationsYet}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-2"
                   onClick={() => setShowNewConversation(true)}
                 >
-                  Start a conversation
+                  {t.startConversation}
                 </Button>
               </div>
             )}
@@ -944,7 +946,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                     </h2>
                     <div className="flex items-center gap-1 text-sm text-gray-600">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>Active now</span>
+                      <span>{t.activeNow}</span>
                       <Lock className="w-3 h-3 ml-2" />
                     </div>
                   </div>
@@ -987,7 +989,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                               <div className="space-y-2">
                                 <div className={`flex items-center gap-2 text-xs ${isOwn ? 'text-blue-100' : 'text-gray-500'}`}>
                                   <Lock className="w-3 h-3" />
-                                  <span>Encrypted</span>
+                                  <span>{t.encrypted}</span>
                                 </div>
                                 {message.decryptedContent ? (
                                   <p className="text-sm leading-relaxed">{message.decryptedContent}</p>
@@ -1002,7 +1004,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                                       className={`text-xs underline ${isOwn ? 'text-blue-100 hover:text-white' : 'text-blue-600 hover:text-blue-800'}`}
                                     >
                                       <Eye className="w-3 h-3 inline mr-1" />
-                                      Decrypt
+                                      {t.decrypt}
                                     </button>
                                   </div>
                                 )}
@@ -1034,7 +1036,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   <button
                     onClick={() => setShowFileAttachment(true)}
                     className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                    title="Attach File"
+                    title={t.attachFile}
                   >
                     <Paperclip className="w-5 h-5 text-gray-600" />
                   </button>
@@ -1042,11 +1044,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   <div className="flex-1 relative">
                     <input
                       type="text"
-                      placeholder="Type a message..."
+                      placeholder={t.typeMessage}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && !isEncrypting && handleSendMessage()}
                       disabled={isEncrypting}
+                      className="w-full px-4 py-3 bg-gray-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                     />
                   </div>
                   <button
@@ -1067,7 +1070,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 </div>
                 <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
                   <Lock className="w-3 h-3" />
-                  <span>Messages are end-to-end encrypted</span>
+                  <span>{t.messagesEncrypted}</span>
                 </div>
               </div>
             </>
@@ -1077,12 +1080,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <ChatCircle className="w-10 h-10 text-blue-500" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Your Messages</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">{t.yourMessages}</h2>
                 <p className="text-gray-600 mb-6">
-                  Send private photos and messages to a friend or group
+                  {t.sendPrivatePhotos}
                 </p>
                 <Button onClick={() => setShowNewConversation(true)} className="facebook-button">
-                  Send message
+                  {t.sendMessage}
                 </Button>
               </div>
             </div>
@@ -1096,11 +1099,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-primary" />
-              Encrypting Message
+              {t.encryptingMessage}
             </DialogTitle>
             <DialogDescription>
-              Your message is being secured with 2048-bit post-quantum cryptography.
-              This process takes approximately 3 minutes to ensure maximum security.
+              {t.encryptionDescription}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1120,7 +1122,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             )}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Warning className="w-4 h-4" />
-              <span>Do not close this window during encryption</span>
+              <span>{t.doNotClose}</span>
             </div>
           </div>
         </DialogContent>
@@ -1132,8 +1134,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         onOpenChange={closeVerification}
         onSuccess={verificationState.onSuccess || (() => {})}
         onCancel={verificationState.onCancel || (() => {})}
-        title="Secure Conversation Access"
-        description="This conversation requires biometric verification for enhanced security."
+        title={t.secureConversation}
+        description={t.biometricRequired}
         action={verificationState.action}
         userId={currentUser.id}
       />
