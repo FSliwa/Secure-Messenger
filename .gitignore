@@ -7,10 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
-*-dist
 *.local
 
 # Editor directories and files
@@ -24,11 +24,67 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment files
 .env
-**/agent-eval-report*
-packages
-pids
-.file-manifest
-.devcontainer/
+.env.local
+.env.production
+.env.*.local
 
-.spark-workbench-id
+# Build files
+dist/
+build/
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+backups/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+ssl/
+
+# Docker
+*.pid
+
+# Deployment
+secure-messenger-deploy.tar.gz
+deployment/nginx/ssl/*
+!deployment/nginx/ssl/.gitkeep
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Reports
+supabase-config-report.json
+
+# Generated files
+public/generate-favicons.html
+public/favicon-*.png
+public/apple-touch-icon.png
+!public/favicon.svg
+!public/favicon.ico
