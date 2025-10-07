@@ -378,7 +378,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
 
           <div className="text-center mb-6 sm:mb-8 md:mb-10">
             <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">{t.createNewAccount}</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">{t.quickAndEasy}</p>
+            <p className="text-sm sm:text-base text-foreground/80">{t.quickAndEasy}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
@@ -393,7 +393,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   disabled={isSubmitting}
                 />
                 {errors.firstName && (
-                  <p className="text-xs text-destructive mt-2 px-2">{errors.firstName}</p>
+                  <p className="text-xs sm:text-sm text-destructive mt-2 px-2 font-medium">{errors.firstName}</p>
                 )}
               </div>
               <div>
@@ -405,7 +405,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   disabled={isSubmitting}
                 />
                 {errors.lastName && (
-                  <p className="text-xs text-destructive mt-2 px-2">{errors.lastName}</p>
+                  <p className="text-xs sm:text-sm text-destructive mt-2 px-2 font-medium">{errors.lastName}</p>
                 )}
               </div>
             </div>
@@ -427,9 +427,9 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 )}
               </div>
               {errors.username && (
-                <p className="text-xs text-destructive px-2">{errors.username}</p>
+                <p className="text-xs sm:text-sm text-destructive px-2 font-medium">{errors.username}</p>
               )}
-              <p className="text-xs text-muted-foreground px-2">
+              <p className="text-xs sm:text-sm text-foreground/70 px-2">
                 {t.usernameHelper}
               </p>
             </div>
@@ -445,7 +445,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 disabled={isSubmitting}
               />
               {errors.email && (
-                <p className="text-xs text-destructive px-2">{errors.email}</p>
+                <p className="text-xs sm:text-sm text-destructive px-2 font-medium">{errors.email}</p>
               )}
             </div>
 
@@ -460,7 +460,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 disabled={isSubmitting}
               />
               {errors.password && (
-                <p className="text-xs text-destructive px-2">{errors.password}</p>
+                <p className="text-xs sm:text-sm text-destructive px-2 font-medium">{errors.password}</p>
               )}
             </div>
 
@@ -474,12 +474,12 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   disabled={isSubmitting}
                   className="mt-0.5 min-h-[20px] min-w-[20px]"
                 />
-                <Label htmlFor="accept-terms" className="text-xs sm:text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                <Label htmlFor="accept-terms" className="text-sm sm:text-base text-foreground/90 leading-relaxed cursor-pointer">
                   {t.acceptTerms}
                 </Label>
               </div>
               {errors.acceptTerms && (
-                <p className="text-xs text-destructive mt-2 px-2">{errors.acceptTerms}</p>
+                <p className="text-xs sm:text-sm text-destructive mt-2 px-2 font-medium">{errors.acceptTerms}</p>
               )}
             </div>
 

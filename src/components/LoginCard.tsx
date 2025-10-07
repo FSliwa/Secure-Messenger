@@ -358,7 +358,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   {loginStep === 'biometric' && t.biometricAuth}
                 </h1>
                 {loginStep === '2fa' && (
-                  <p className="text-xs sm:text-sm text-muted-foreground px-2">
+                  <p className="text-sm sm:text-base text-foreground/80 px-2">
                     Enter the 6-digit code from your authenticator app
                   </p>
                 )}
@@ -379,7 +379,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       aria-invalid={!!errors.email}
                     />
                     {errors.email && (
-                      <p className="text-xs text-destructive px-2">
+                      <p className="text-xs sm:text-sm text-destructive px-2 font-medium">
                         {errors.email}
                       </p>
                     )}
@@ -399,28 +399,29 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/60 hover:text-foreground p-1 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
                         onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? (
-                          <EyeSlash className="h-5 w-5" />
+                          <EyeSlash className="h-5 w-5 opacity-90" />
                         ) : (
-                          <Eye className="h-5 w-5" />
+                          <Eye className="h-5 w-5 opacity-90" />
                         )}
                       </button>
                     </div>
                     {errors.password && (
-                      <p className="text-xs text-destructive px-2">
+                      <p className="text-xs sm:text-sm text-destructive px-2 font-medium">
                         {errors.password}
                       </p>
                     )}
                   </div>
 
-                  {/* Login Button */}
+                  {/* Login Button - Fixed functionality */}
                   <div className="pt-2">
                     <Button
                       type="submit"
-                      className="w-full facebook-button h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base sm:text-lg"
+                      className="w-full facebook-button h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base sm:text-lg shadow-sm"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -438,7 +439,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                   <div className="text-center pt-2">
                     <button
                       type="button"
-                      className="text-sm text-primary hover:underline min-h-[44px] inline-flex items-center px-2"
+                      className="text-sm sm:text-base text-primary hover:underline min-h-[44px] inline-flex items-center px-2 font-medium"
                       onClick={() => setLoginStep('forgot-password')}
                     >
                       {t.forgotPassword}

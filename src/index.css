@@ -53,48 +53,48 @@ body {
   }
 }
 
-/* Ensure proper foreground text color in light mode */
+/* Ensure proper foreground text color in light mode - Enhanced contrast */
 :root {
-  /* SecureChat Facebook-inspired Theme Colors - Light Mode */
-  --background: oklch(0.97 0.005 220);  /* Very light blue-gray background */
-  --foreground: oklch(0.12 0.02 240);  /* Darker text for better contrast */
+  /* SecureChat Facebook-inspired Theme Colors - Light Mode - Enhanced Readability */
+  --background: oklch(0.98 0.005 220);  /* Slightly brighter background */
+  --foreground: oklch(0.08 0.02 240);  /* Much darker text for better contrast */
   --card: oklch(1.0 0 0);  /* Pure white cards */
-  --card-foreground: oklch(0.12 0.02 240);  /* Ensure card text is dark */
+  --card-foreground: oklch(0.08 0.02 240);  /* Ensure card text is very dark */
   --popover: oklch(1.0 0 0);
-  --popover-foreground: oklch(0.15 0.02 240);
+  --popover-foreground: oklch(0.08 0.02 240);
   
-  /* Primary Blue - Facebook-style blue */
-  --primary: oklch(0.45 0.15 250);  /* Facebook blue */
+  /* Primary Blue - Facebook-style blue with better contrast */
+  --primary: oklch(0.42 0.16 250);  /* Slightly darker Facebook blue for better readability */
   --primary-foreground: oklch(0.98 0.01 240);
   
-  /* Secondary - Elegant grays */
-  --secondary: oklch(0.95 0.01 240);  /* Warm light gray */
-  --secondary-foreground: oklch(0.25 0.02 240);
+  /* Secondary - Elegant grays with better contrast */
+  --secondary: oklch(0.94 0.01 240);  /* Slightly darker gray */
+  --secondary-foreground: oklch(0.20 0.02 240);  /* Much darker text */
   
-  /* Muted - Sophisticated subtle tones */
-  --muted: oklch(0.96 0.005 240);  /* Very light background */
-  --muted-foreground: oklch(0.5 0.02 240);  /* Balanced gray text */
+  /* Muted - Sophisticated subtle tones with better readability */
+  --muted: oklch(0.95 0.005 240);  /* Slightly darker background */
+  --muted-foreground: oklch(0.35 0.02 240);  /* Much darker muted text */
   
   /* Accent Green - Facebook-style accent green */
-  --accent: oklch(0.48 0.12 145);  /* Facebook green for buttons */
+  --accent: oklch(0.45 0.12 145);  /* Slightly darker green for better contrast */
   --accent-foreground: oklch(0.98 0.01 240);
   
-  /* Destructive - Clear warning red */
-  --destructive: oklch(0.52 0.2 20);  /* Warm red for errors */
+  /* Destructive - Clear warning red with better contrast */
+  --destructive: oklch(0.48 0.2 20);  /* Darker red for better visibility */
   --destructive-foreground: oklch(0.98 0.01 240);
   
-  /* UI Element colors - Enhanced contrast */
-  --border: oklch(0.90 0.01 240);  /* Subtle but visible borders */
-  --input: oklch(0.90 0.01 240);   /* Input field borders */
-  --ring: oklch(0.45 0.15 250);    /* Focus ring matches primary */
+  /* UI Element colors - Enhanced contrast for better visibility */
+  --border: oklch(0.85 0.01 240);  /* More visible borders */
+  --input: oklch(0.85 0.01 240);   /* More visible input field borders */
+  --ring: oklch(0.42 0.16 250);    /* Focus ring matches primary */
   
   /* Success color for positive feedback */
-  --success: oklch(0.5 0.15 155);
+  --success: oklch(0.45 0.15 155);  /* Darker green for better contrast */
   --success-foreground: oklch(0.98 0.01 240);
   
   /* Warning color for caution states */
-  --warning: oklch(0.65 0.12 75);
-  --warning-foreground: oklch(0.12 0.02 240);
+  --warning: oklch(0.55 0.12 75);  /* Darker yellow for better contrast */
+  --warning-foreground: oklch(0.08 0.02 240);  /* Dark text for contrast */
   
   /* Border radius - Facebook-style rounded corners */
   --radius: 0.5rem;  /* 8px - Facebook standard */
@@ -102,45 +102,45 @@ body {
 
 /* Dark mode colors - Enhanced readability */
 .dark {
-  --background: oklch(0.06 0.015 240);  /* Deeper dark background */
-  --foreground: oklch(0.95 0.005 240);  /* Brighter white text */
-  --card: oklch(0.10 0.015 240);  /* Darker cards with better contrast */
-  --card-foreground: oklch(0.95 0.005 240);  /* High contrast card text */
-  --popover: oklch(0.08 0.015 240);
-  --popover-foreground: oklch(0.95 0.005 240);
+  --background: oklch(0.05 0.015 240);  /* Even deeper dark background */
+  --foreground: oklch(0.97 0.005 240);  /* Much brighter white text */
+  --card: oklch(0.08 0.015 240);  /* Darker cards with better contrast */
+  --card-foreground: oklch(0.97 0.005 240);  /* Very high contrast card text */
+  --popover: oklch(0.06 0.015 240);
+  --popover-foreground: oklch(0.97 0.005 240);
   
   /* Primary Blue - High contrast for dark mode */
-  --primary: oklch(0.60 0.18 250);  /* Brighter, more saturated Facebook blue */
+  --primary: oklch(0.65 0.18 250);  /* Even brighter, more saturated Facebook blue */
   --primary-foreground: oklch(1.0 0 0);  /* Pure white for maximum contrast */
   
   /* Secondary - Better contrast grays */
-  --secondary: oklch(0.18 0.015 240);  /* Slightly lighter dark gray */
-  --secondary-foreground: oklch(0.90 0.005 240);  /* Brighter text */
+  --secondary: oklch(0.15 0.015 240);  /* Lighter dark gray */
+  --secondary-foreground: oklch(0.92 0.005 240);  /* Much brighter text */
   
   /* Muted - Enhanced visibility */
-  --muted: oklch(0.12 0.015 240);  /* Slightly lighter muted background */
-  --muted-foreground: oklch(0.75 0.01 240);  /* Much brighter muted text */
+  --muted: oklch(0.10 0.015 240);  /* Lighter muted background */
+  --muted-foreground: oklch(0.80 0.01 240);  /* Much brighter muted text */
   
   /* Accent Green - High visibility */
-  --accent: oklch(0.58 0.15 145);  /* Brighter, more saturated green */
+  --accent: oklch(0.60 0.15 145);  /* Even brighter, more saturated green */
   --accent-foreground: oklch(1.0 0 0);  /* Pure white */
   
   /* Destructive - Clear visibility */
-  --destructive: oklch(0.62 0.22 20);  /* Brighter red for better visibility */
+  --destructive: oklch(0.65 0.22 20);  /* Even brighter red for better visibility */
   --destructive-foreground: oklch(1.0 0 0);  /* Pure white */
   
   /* UI Element colors - Enhanced visibility */
-  --border: oklch(0.25 0.015 240);  /* More visible borders */
-  --input: oklch(0.25 0.015 240);   /* More visible input borders */
-  --ring: oklch(0.60 0.18 250);    /* Bright focus ring */
+  --border: oklch(0.22 0.015 240);  /* Much more visible borders */
+  --input: oklch(0.22 0.015 240);   /* Much more visible input borders */
+  --ring: oklch(0.65 0.18 250);    /* Very bright focus ring */
   
   /* Success color - High visibility */
-  --success: oklch(0.58 0.18 155);  /* Brighter green */
+  --success: oklch(0.60 0.18 155);  /* Much brighter green */
   --success-foreground: oklch(1.0 0 0);  /* Pure white */
   
   /* Warning color - High visibility */
-  --warning: oklch(0.70 0.15 75);  /* Brighter yellow */
-  --warning-foreground: oklch(0.08 0.02 240);  /* Dark text for contrast */
+  --warning: oklch(0.72 0.15 75);  /* Much brighter yellow */
+  --warning-foreground: oklch(0.05 0.02 240);  /* Very dark text for contrast */
 }
 
 @theme {
@@ -955,20 +955,58 @@ body {
   }
 }
 
-/* Ensure proper text contrast - Light mode fixes */
+/* Ensure proper text contrast - Light mode fixes - Enhanced */
 .text-foreground {
-  color: oklch(0.12 0.02 240) !important;
+  color: oklch(0.08 0.02 240) !important;
 }
 
 .dark .text-foreground {
-  color: oklch(0.95 0.005 240) !important;
+  color: oklch(0.97 0.005 240) !important;
 }
 
-/* Additional text contrast utilities */
+/* Additional text contrast utilities - Enhanced readability */
 .text-primary-contrast {
-  color: oklch(0.10 0.02 240);
+  color: oklch(0.05 0.02 240);
 }
 
 .dark .text-primary-contrast {
   color: oklch(0.98 0.005 240);
+}
+
+/* Enhanced icon visibility utilities */
+.icon-enhanced {
+  opacity: 0.95;
+  transition: opacity 0.2s ease;
+}
+
+.icon-enhanced:hover {
+  opacity: 1;
+}
+
+/* High contrast text utilities */
+.text-high-contrast {
+  color: oklch(0.05 0.02 240);
+  font-weight: 500;
+}
+
+.dark .text-high-contrast {
+  color: oklch(0.98 0.005 240);
+  font-weight: 500;
+}
+
+/* Enhanced button text readability */
+.btn-text-enhanced {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Form field text enhancement */
+.form-text-enhanced {
+  color: oklch(0.08 0.02 240);
+  font-weight: 500;
+}
+
+.dark .form-text-enhanced {
+  color: oklch(0.97 0.005 240);
+  font-weight: 500;
 }

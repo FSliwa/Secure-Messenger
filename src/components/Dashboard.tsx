@@ -109,49 +109,49 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
             </div>
           </div>
 
-          {/* Center - User greeting and status */}
+          {/* Center - User greeting and status with better contrast */}
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <h2 className="text-sm sm:text-base font-semibold text-foreground">
                 Welcome back, {userName}
               </h2>
               <div className="flex items-center justify-center gap-2 mt-1">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span className="text-xs text-muted-foreground">Online</span>
+                <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm"></div>
+                <span className="text-xs sm:text-sm text-foreground/70 font-medium">Online</span>
               </div>
             </div>
           </div>
           
           {/* Right side - Controls and user actions */}
           <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end max-w-xs lg:max-w-sm">
-            {/* Action buttons */}
+            {/* Action buttons with better visibility */}
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowNotificationSettings(true)}
-                className="w-9 h-9 rounded-full facebook-button"
+                className="w-9 h-9 rounded-full facebook-button text-foreground/70 hover:text-foreground hover:bg-muted/70"
                 title="Notifications"
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4 opacity-90" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowProfileSettings(true)}
-                className="w-9 h-9 rounded-full facebook-button"
+                className="w-9 h-9 rounded-full facebook-button text-foreground/70 hover:text-foreground hover:bg-muted/70"
                 title={t.profile}
               >
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 opacity-90" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowSecurityInitializer(true)}
-                className="w-9 h-9 rounded-full facebook-button"
+                className="w-9 h-9 rounded-full facebook-button text-foreground/70 hover:text-foreground hover:bg-muted/70"
                 title={t.enhancedSecurityInitialization}
               >
-                <Shield className="h-4 w-4" />
+                <Shield className="h-4 w-4 opacity-90" />
               </Button>
             </div>
             
@@ -161,15 +161,15 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
               <LanguageSwitcher />
             </div>
               
-            {/* Logout Button */}
+            {/* Logout Button with better contrast */}
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="w-9 h-9 rounded-full text-destructive hover:bg-destructive/10 facebook-button"
+              className="w-9 h-9 rounded-full text-destructive hover:bg-destructive/10 facebook-button hover:text-destructive/90"
               title={t.logout}
             >
-              <SignOut className="h-4 w-4" />
+              <SignOut className="h-4 w-4 opacity-90" />
             </Button>
           </div>
         </div>

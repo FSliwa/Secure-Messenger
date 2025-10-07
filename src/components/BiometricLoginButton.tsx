@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { BiometricLogin } from '@/lib/biometric-login';
-import { Fingerprint, DeviceMobile } from '@phosphor-icons/react';
+import { Fingerprint, DeviceMobile, FaceMask, Eye } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 
 interface BiometricLoginButtonProps {
@@ -13,6 +13,7 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
   const [isLoading, setIsLoading] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
   const [biometricType, setBiometricType] = useState<string>('');
+  const [supportedTypes, setSupportedTypes] = useState<string[]>([]);
 
   useEffect(() => {
     checkBiometricAvailability();
@@ -23,6 +24,20 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
       const capabilities = await BiometricLogin.getCapabilityInfo();
       setIsAvailable(capabilities.isSupported && capabilities.isAvailable);
       setBiometricType(capabilities.type);
+      
+      // Check for multiple biometric types
+      const types: string[] = [];
+      if (capabilities.type.includes('fingerprint') || capabilities.type.includes('touch')) {
+        types.push('fingerprint');
+      }
+      if (capabilities.type.includes('face') || capabilities.type.includes('Face ID')) {
+        types.push('face');
+      }
+      if (capabilities.type.includes('iris') || capabilities.type.includes('eye')) {
+        types.push('iris');
+      }
+      
+      setSupportedTypes(types);
     } catch (error) {
       console.error('Error checking biometric availability:', error);
       setIsAvailable(false);
@@ -48,6 +63,7 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
           displayName: result.user.profile?.display_name || result.user.email?.split('@')[0] || 'User'
         };
         
+        toast.success('Biometric authentication successful!');
         onSuccess(userObject);
       } else {
         console.log('❌ Biometric login failed:', result.error);
@@ -59,6 +75,8 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
       
       if (error.message?.includes('cancelled')) {
         toast.error('Biometric authentication was cancelled');
+      } else if (error.message?.includes('not available')) {
+        toast.error('Biometric authentication is not available on this device');
       } else {
         toast.error(error.message || 'Biometric login failed');
       }
@@ -72,10 +90,39 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
   }
 
   const getBiometricIcon = () => {
-    if (biometricType.includes('Face ID') || biometricType.includes('face')) {
-      return <DeviceMobile className="w-5 h-5" />;
+    // Show multiple icons if multiple types are supported
+    if (supportedTypes.length > 1) {
+      return (
+        <div className="flex items-center gap-1">
+          {supportedTypes.includes('fingerprint') && <Fingerprint className="w-4 h-4" />}
+          {supportedTypes.includes('face') && <FaceMask className="w-4 h-4" />}
+          {supportedTypes.includes('iris') && <Eye className="w-4 h-4" />}
+        </div>
+      );
     }
-    return <Fingerprint className="w-5 h-5" />;
+    
+    // Single icon based on primary type
+    if (biometricType.includes('Face ID') || biometricType.includes('face')) {
+      return <FaceMask className="w-5 h-5 opacity-90" />;
+    }
+    if (biometricType.includes('iris') || biometricType.includes('eye')) {
+      return <Eye className="w-5 h-5 opacity-90" />;
+    }
+    return <Fingerprint className="w-5 h-5 opacity-90" />;
+  };
+
+  const getButtonText = () => {
+    if (supportedTypes.length > 1) {
+      return 'Sign in with Biometrics';
+    }
+    
+    if (biometricType.includes('Face ID') || biometricType.includes('face')) {
+      return 'Sign in with Face ID';
+    }
+    if (biometricType.includes('iris') || biometricType.includes('eye')) {
+      return 'Sign in with Iris';
+    }
+    return 'Sign in with Fingerprint';
   };
 
   return (
@@ -84,17 +131,17 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
       variant="outline"
       onClick={handleBiometricLogin}
       disabled={isLoading}
-      className={`w-full flex items-center gap-2 ${className || ''}`}
+      className={`w-full flex items-center gap-2 border-border hover:bg-muted/50 text-foreground facebook-button ${className || ''}`}
     >
       {isLoading ? (
         <>
           <div className="w-5 h-5 border-2 border-current border-r-transparent rounded-full animate-spin" />
-          Authenticating...
+          <span className="font-medium">Authenticating...</span>
         </>
       ) : (
         <>
           {getBiometricIcon()}
-          Sign in with Auth
+          <span className="font-medium">{getButtonText()}</span>
         </>
       )}
     </Button>
