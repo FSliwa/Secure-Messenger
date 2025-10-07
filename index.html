@@ -14,14 +14,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="/src/main.css" rel="stylesheet" />
     <script>
-        // Simple SPA routing for password reset
+        // Simple SPA routing for authentication callbacks and password reset
         (function() {
             // Check if we're on a route that should be handled by the app
             var path = window.location.pathname;
-            if (path === '/reset-password') {
-                // Let the React app handle this route
+            var hasAuthHash = window.location.hash.includes('access_token') || 
+                             window.location.hash.includes('error');
+            
+            // Routes that should be handled by React
+            if (path === '/reset-password' || 
+                path === '/auth/callback' || 
+                hasAuthHash) {
+                // Let the React app handle these routes
                 return;
             }
+            
             // For other paths, redirect to root if not already there
             if (path !== '/' && !path.startsWith('/src/')) {
                 window.history.replaceState({}, '', '/');

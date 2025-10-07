@@ -256,7 +256,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
         'Account Creation'
       );
 
-      if (!result.success || !result.data?.user) {
+      if (!result.success) {
         console.log('❌ Signup failed after all retries');
         setLastError(result.error?.message || 'Account creation failed');
         setRetryCount(result.attempts.length);
@@ -271,18 +271,47 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
         return;
       }
 
-      const user = result.data.user;
+      const user = result.data?.user;
+      const session = result.data?.session;
 
       // Show success message if retries were needed
       if (result.attempts.length > 0) {
         toast.success(`Account created after ${result.attempts.length + 1} attempts!`, { id: 'signup-process' });
       }
 
-      toast.success('Account created successfully! Please check your email to verify your account.', { 
-        id: 'signup-process',
-        description: 'You must verify your email before you can sign in.',
-        duration: 8000 
-      });
+      // Check if email confirmation is required
+      if (user && !user.email_confirmed_at) {
+        toast.success('Account created successfully! Please check your email to verify your account.', { 
+          id: 'signup-process',
+          description: 'You must verify your email before you can sign in. Check your inbox and spam folder.',
+          duration: 10000 
+        });
+
+        console.log('✅ Account created, email confirmation required:', {
+          userId: user.id,
+          email: user.email,
+          emailConfirmed: false
+        });
+      } else if (user && user.email_confirmed_at) {
+        // Email was automatically confirmed (e.g., in development)
+        toast.success('Account created and verified successfully!', { 
+          id: 'signup-process',
+          description: 'You can now sign in to your account.',
+          duration: 6000 
+        });
+
+        console.log('✅ Account created and automatically confirmed:', {
+          userId: user.id,
+          email: user.email,
+          emailConfirmed: true
+        });
+      } else {
+        toast.warning('Account created but verification status unclear.', {
+          id: 'signup-process',
+          description: 'Please check your email for verification instructions.',
+          duration: 8000
+        });
+      }
 
       // Reset form
       setFormData({

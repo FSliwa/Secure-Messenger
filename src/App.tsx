@@ -10,13 +10,14 @@ import { Dashboard } from "@/components/Dashboard";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { DatabaseInit } from "@/components/DatabaseInit";
 import { PasswordResetHandler } from "@/components/PasswordResetHandler";
+import { AuthCallback } from "@/components/AuthCallback";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
 import { requireAuthentication, validateDashboardAccess } from "@/lib/auth-guards";
 
-type AppState = 'database-init' | 'landing' | 'login' | 'dashboard' | 'reset-password';
+type AppState = 'database-init' | 'landing' | 'login' | 'dashboard' | 'reset-password' | 'auth-callback';
 
 interface User {
   id: string;
@@ -35,12 +36,22 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check if we're on the reset password page
-    if (window.location.pathname === '/reset-password') {
+    // Check for various callback routes
+    const currentPath = window.location.pathname;
+    const hasHashParams = window.location.hash.includes('access_token');
+    
+    if (currentPath === '/reset-password') {
       setAppState('reset-password');
       setIsLoading(false);
       return;
     }
+    
+    if (currentPath === '/auth/callback' || hasHashParams) {
+      setAppState('auth-callback');
+      setIsLoading(false);
+      return;
+    }
+    
     initializeApp();
   }, []);
 
@@ -236,6 +247,16 @@ function App() {
     return (
       <LanguageProvider>
         <DatabaseInit onComplete={handleDatabaseReady} />
+        <Toaster position="top-center" />
+      </LanguageProvider>
+    );
+  }
+
+  // Auth callback screen
+  if (appState === 'auth-callback') {
+    return (
+      <LanguageProvider>
+        <AuthCallback />
         <Toaster position="top-center" />
       </LanguageProvider>
     );

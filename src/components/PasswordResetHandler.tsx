@@ -21,21 +21,47 @@ export function PasswordResetHandler() {
   })
 
   useEffect(() => {
-    // Check if we have the proper hash fragments for password reset
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const accessToken = hashParams.get('access_token')
-    const refreshToken = hashParams.get('refresh_token')
-    const type = hashParams.get('type')
+    const handlePasswordResetSession = async () => {
+      // Check if we have the proper hash fragments for password reset
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      const type = hashParams.get('type')
 
-    if (type === 'recovery' && accessToken && refreshToken) {
-      // Set the session from the tokens
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      })
-    } else {
-      toast.error('Invalid reset link. Please request a new password reset.')
+      console.log('Password reset params:', { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken })
+
+      if (type === 'recovery' && accessToken && refreshToken) {
+        try {
+          // Set the session from the tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
+
+          if (error) {
+            console.error('Session error:', error)
+            toast.error('Invalid reset link. Please request a new password reset.')
+            return
+          }
+
+          if (data.user) {
+            console.log('Password reset session established for user:', data.user.id)
+            toast.success('Reset link confirmed. You can now set your new password.')
+          }
+        } catch (error) {
+          console.error('Error setting reset session:', error)
+          toast.error('Invalid reset link. Please request a new password reset.')
+        }
+      } else {
+        // Check if we already have a valid session (direct navigation)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          toast.error('Invalid reset link. Please request a new password reset.')
+        }
+      }
     }
+
+    handlePasswordResetSession()
   }, [])
 
   const validatePassword = (password: string) => {

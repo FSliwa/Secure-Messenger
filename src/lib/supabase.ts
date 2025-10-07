@@ -174,11 +174,12 @@ export const signUp = async (email: string, password: string, displayName: strin
     }
   }
 
+  // Fixed email configuration - ensure proper redirect URL for email confirmation
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${window.location.origin}`,
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
       data: {
         display_name: displayName,
         username: username,
@@ -187,9 +188,33 @@ export const signUp = async (email: string, password: string, displayName: strin
     },
   })
 
-  if (error) throw error
+  if (error) {
+    // Enhanced error handling for email/registration issues
+    console.error('Signup error details:', error)
+    
+    // Handle specific email-related errors
+    if (error.message?.includes('Invalid login credentials')) {
+      throw new Error('Registration failed. Please check your email and password.')
+    } else if (error.message?.includes('Email not confirmed')) {
+      throw new Error('Please check your email for a confirmation link before signing in.')
+    } else if (error.message?.includes('User already registered')) {
+      throw new Error('An account with this email already exists. Please sign in instead.')
+    } else if (error.message?.includes('signup_disabled')) {
+      throw new Error('New registrations are currently disabled. Please contact support.')
+    } else if (error.message?.includes('email_address_invalid')) {
+      throw new Error('Please enter a valid email address.')
+    }
+    
+    throw error
+  }
 
-  // Don't create profile until email is verified
+  // Log successful registration attempt for debugging
+  console.log('Registration successful, awaiting email confirmation:', { 
+    email, 
+    userId: data.user?.id,
+    emailConfirmed: data.user?.email_confirmed_at ? true : false 
+  })
+
   return data
 }
 

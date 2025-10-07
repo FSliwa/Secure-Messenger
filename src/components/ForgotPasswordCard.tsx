@@ -33,22 +33,44 @@ export function ForgotPasswordCard({ onBack }: ForgotPasswordProps) {
     setIsLoading(true)
 
     try {
+      // Enhanced password reset with better error handling and redirect URL
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`
       })
 
       if (error) {
+        console.error('Password reset error details:', error)
+        
+        // Handle specific error cases
+        if (error.message?.includes('User not found')) {
+          toast.error('No account found with this email address. Please check your email or create a new account.')
+          return
+        } else if (error.message?.includes('Email not confirmed')) {
+          toast.error('Please confirm your email address first by clicking the link in your registration email.')
+          return
+        } else if (error.message?.includes('too_many_requests')) {
+          toast.error('Too many reset attempts. Please wait a few minutes before trying again.')
+          return
+        } else if (error.message?.includes('Invalid email')) {
+          toast.error('Please enter a valid email address.')
+          return
+        }
+        
         throw error
       }
 
       setEmailSent(true)
       toast.success('Password reset email sent!', {
-        description: 'Check your inbox for instructions to reset your password.',
-        duration: 6000
+        description: 'Check your inbox and spam folder for instructions to reset your password.',
+        duration: 8000
       })
+      
+      // Log successful reset request for debugging
+      console.log('Password reset email requested for:', email)
+      
     } catch (error: any) {
       console.error('Password reset error:', error)
-      toast.error(error.message || 'Failed to send reset email. Please try again.')
+      toast.error(error.message || 'Failed to send reset email. Please try again later.')
     } finally {
       setIsLoading(false)
     }
