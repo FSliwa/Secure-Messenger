@@ -315,15 +315,15 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
   return (
     <div className="w-full max-w-md mx-auto">
       <Card className="facebook-card">
-        <CardContent className="p-6">
+        <CardContent className="p-8">
           {/* Network Status */}
-          <div className="mb-4">
+          <div className="mb-6">
             <NetworkStatusIndicator className="justify-center" />
           </div>
 
           {/* Retry Status Banner */}
           {(retryCount > 0 || lastError || isRetrying) && (
-            <div className="mb-4">
+            <div className="mb-6">
               <SimpleRetryIndicator
                 isRetrying={isRetrying}
                 retryCount={retryCount}
@@ -334,12 +334,12 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             </div>
           )}
 
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-black mb-2">Create a new account</h2>
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">Create a new account</h2>
             <p className="text-sm text-muted-foreground">It's quick and easy.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name Fields */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -351,7 +351,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   disabled={isSubmitting}
                 />
                 {errors.firstName && (
-                  <p className="text-xs text-destructive mt-1">{errors.firstName}</p>
+                  <p className="text-xs text-destructive mt-2">{errors.firstName}</p>
                 )}
               </div>
               <div>
@@ -363,7 +363,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                   disabled={isSubmitting}
                 />
                 {errors.lastName && (
-                  <p className="text-xs text-destructive mt-1">{errors.lastName}</p>
+                  <p className="text-xs text-destructive mt-2">{errors.lastName}</p>
                 )}
               </div>
             </div>
@@ -385,9 +385,9 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 )}
               </div>
               {errors.username && (
-                <p className="text-xs text-destructive mt-1">{errors.username}</p>
+                <p className="text-xs text-destructive mt-2">{errors.username}</p>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-2">
                 Others will find you by this username to start conversations
               </p>
             </div>
@@ -403,7 +403,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 disabled={isSubmitting}
               />
               {errors.email && (
-                <p className="text-xs text-destructive mt-1">{errors.email}</p>
+                <p className="text-xs text-destructive mt-2">{errors.email}</p>
               )}
             </div>
 
@@ -418,12 +418,12 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
                 disabled={isSubmitting}
               />
               {errors.password && (
-                <p className="text-xs text-destructive mt-1">{errors.password}</p>
+                <p className="text-xs text-destructive mt-2">{errors.password}</p>
               )}
             </div>
 
             {/* Terms and Conditions */}
-            <div className="flex items-start space-x-3 pt-2">
+            <div className="flex items-start space-x-3 pt-3">
               <Checkbox
                 id="accept-terms"
                 checked={formData.acceptTerms}
@@ -437,48 +437,50 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
               </Label>
             </div>
             {errors.acceptTerms && (
-              <p className="text-xs text-destructive">{errors.acceptTerms}</p>
+              <p className="text-xs text-destructive mt-2">{errors.acceptTerms}</p>
             )}
 
             {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-3 text-lg"
-              disabled={isSubmitting || isRetrying}
-            >
-              {isSubmitting || isRetrying ? (
-                <div className="flex items-center gap-2">
-                  <Spinner className="w-4 h-4 animate-spin" />
-                  {isRetrying ? (
-                    'Reconnecting...'
-                  ) : keyGenerationStep === 'generating' ? (
-                    <div className="flex flex-col">
-                      <span>Securing Account...</span>
-                      {encryptionProgress && (
-                        <span className="text-xs opacity-75">
-                          {encryptionProgress.message}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    'Creating Account...'
-                  )}
-                </div>
-              ) : retryCount > 0 ? (
-                <>
-                  <ArrowClockwise className="mr-2 h-5 w-5" />
-                  Try Again
-                </>
-              ) : (
-                'Sign Up'
-              )}
-            </Button>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-3 text-lg"
+                disabled={isSubmitting || isRetrying}
+              >
+                {isSubmitting || isRetrying ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner className="w-4 h-4 animate-spin" />
+                    {isRetrying ? (
+                      'Reconnecting...'
+                    ) : keyGenerationStep === 'generating' ? (
+                      <div className="flex flex-col">
+                        <span>Securing Account...</span>
+                        {encryptionProgress && (
+                          <span className="text-xs opacity-75">
+                            {encryptionProgress.message}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      'Creating Account...'
+                    )}
+                  </div>
+                ) : retryCount > 0 ? (
+                  <>
+                    <ArrowClockwise className="mr-2 h-5 w-5" />
+                    Try Again
+                  </>
+                ) : (
+                  'Sign Up'
+                )}
+              </Button>
+            </div>
           </form>
 
           {/* Footer */}
-          <div className="mt-6 text-center">
-            <Separator className="mb-4" />
-            <p className="text-sm text-muted-foreground mb-2">
+          <div className="mt-8 text-center">
+            <Separator className="mb-6" />
+            <p className="text-sm text-muted-foreground">
               <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
             </p>
           </div>

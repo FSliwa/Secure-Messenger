@@ -7,7 +7,7 @@ export function Hero() {
             SecureChat Pro
           </span>
         </h1>
-        <p className="mt-6 text-lg text-muted-foreground sm:text-xl lg:text-xl max-w-2xl leading-relaxed">
+        <p className="mt-8 text-lg text-muted-foreground sm:text-xl lg:text-xl max-w-2xl leading-relaxed">
           Enterprise-grade secure messaging with 
           <span className="font-semibold text-foreground"> post-quantum cryptography</span>.
           Your communications are protected by encryption so advanced, 
@@ -15,16 +15,16 @@ export function Hero() {
         </p>
         
         {/* Feature highlights */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 lg:grid-cols-1 lg:gap-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 lg:grid-cols-1 lg:gap-4">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-accent rounded-full" />
             <span>Post-quantum encryption</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-primary rounded-full" />
             <span>3-minute security process</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground lg:justify-start justify-center">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground lg:justify-start justify-center">
             <div className="w-2 h-2 bg-success rounded-full" />
             <span>Commercial-grade platform</span>
           </div>

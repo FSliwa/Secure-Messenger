@@ -15,6 +15,7 @@ import {
   addTrustedDevice
 } from '@/lib/auth-security'
 import { BiometricLoginButton } from './BiometricLoginButton'
+import { ForgotPasswordCard } from './ForgotPasswordCard'
 
 interface User {
   id: string;
@@ -42,7 +43,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
   const [lastError, setLastError] = useState<string | null>(null)
   
   // 2FA and biometric states
-  const [loginStep, setLoginStep] = useState<'credentials' | '2fa' | 'biometric'>('credentials')
+  const [loginStep, setLoginStep] = useState<'credentials' | '2fa' | 'biometric' | 'forgot-password'>('credentials')
   const [twoFactorCode, setTwoFactorCode] = useState('')
   const [pendingUserId, setPendingUserId] = useState<string | null>(null)
   const [deviceTrustPrompt, setDeviceTrustPrompt] = useState(false)
@@ -293,229 +294,239 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
   }
 
   return (
-    <div className="w-full max-w-md animate-fade-in-up space-y-4">
-      {/* Device Trust Prompt */}
-      {deviceTrustPrompt && (
-        <Card className="bg-card border border-border shadow-lg mb-4">
-          <CardContent className="p-4">
-            <div className="text-center space-y-3">
-              <ShieldCheck className="h-8 w-8 text-primary mx-auto" />
-              <div>
-                <h3 className="font-medium">Trust This Device?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Skip 2FA on this device for 30 days
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleTrustDevice(false)}
-                  className="flex-1"
-                >
-                  No
-                </Button>
-                <Button 
-                  onClick={() => handleTrustDevice(true)}
-                  className="flex-1"
-                >
-                  Trust Device
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="w-full max-w-md animate-fade-in-up space-y-6">
+      {/* Show forgot password component */}
+      {loginStep === 'forgot-password' && (
+        <ForgotPasswordCard 
+          onBack={() => setLoginStep('credentials')} 
+        />
       )}
 
-      {/* Main Login Card */}
-      <Card className="bg-card border border-border shadow-lg">
-        <CardContent className="p-6">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-foreground mb-1">
-              {loginStep === 'credentials' && 'Log in to SecureChat'}
-              {loginStep === '2fa' && 'Two-Factor Authentication'}
-              {loginStep === 'biometric' && 'Biometric Verification'}
-            </h1>
-            {loginStep === '2fa' && (
-              <p className="text-sm text-muted-foreground">
-                Enter the 6-digit code from your authenticator app
-              </p>
-            )}
-          </div>
-
-          {/* Credentials Step */}
-          {loginStep === 'credentials' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
-              <div>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Email or phone number"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`h-12 ${errors.email ? 'border-destructive focus:ring-destructive' : ''}`}
-                  aria-invalid={!!errors.email}
-                />
-                {errors.email && (
-                  <p className="mt-1 text-xs text-destructive">
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Password */}
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  className={`h-12 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
-                  aria-invalid={!!errors.password}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeSlash className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-                {errors.password && (
-                  <p className="mt-1 text-xs text-destructive">
-                    {errors.password}
-                  </p>
-                )}
-              </div>
-
-              {/* Login Button */}
-              <Button
-                type="submit"
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Spinner className="mr-2 h-5 w-5 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Log In'
-                )}
-              </Button>
-
-              {/* Biometric Login Option */}
-              <div className="flex flex-col gap-2">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
+      {/* Show login components only if not on forgot password step */}
+      {loginStep !== 'forgot-password' && (
+        <>
+          {/* Device Trust Prompt */}
+          {deviceTrustPrompt && (
+            <Card className="bg-card border border-border shadow-lg">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <ShieldCheck className="h-8 w-8 text-primary mx-auto" />
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Trust This Device?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Skip 2FA on this device for 30 days
+                    </p>
                   </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleTrustDevice(false)}
+                      className="flex-1"
+                    >
+                      No
+                    </Button>
+                    <Button 
+                      onClick={() => handleTrustDevice(true)}
+                      className="flex-1"
+                    >
+                      Trust Device
+                    </Button>
                   </div>
                 </div>
-                
-                <BiometricLoginButton 
-                  onSuccess={onSuccess || (() => {})}
-                  className="h-12"
-                />
-              </div>
-
-              {/* Forgot Password */}
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-primary hover:underline"
-                  onClick={() => toast.info('Password reset feature coming soon!')}
-                >
-                  Forgotten password?
-                </button>
-              </div>
-            </form>
+              </CardContent>
+            </Card>
           )}
 
-          {/* 2FA Step */}
-          {loginStep === '2fa' && (
-            <div className="space-y-4">
-              <div className="text-center mb-4">
-                <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
-              </div>
-              
-              <div>
-                <Input
-                  type="text"
-                  placeholder="000000"
-                  value={twoFactorCode}
-                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength={6}
-                  className="text-center text-lg font-mono h-12"
-                />
-              </div>
-
-              <Button
-                onClick={handleTwoFactorSubmit}
-                disabled={isLoading || twoFactorCode.length !== 6}
-                className="w-full h-12"
-              >
-                {isLoading ? (
-                  <>
-                    <Spinner className="mr-2 h-5 w-5 animate-spin" />
-                    Verifying...
-                  </>
-                ) : (
-                  'Verify Code'
+          {/* Main Login Card */}
+          <Card className="bg-card border border-border shadow-lg">
+            <CardContent className="p-8">
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-bold text-foreground mb-2">
+                  {loginStep === 'credentials' && 'Log in to SecureChat'}
+                  {loginStep === '2fa' && 'Two-Factor Authentication'}
+                  {loginStep === 'biometric' && 'Biometric Verification'}
+                </h1>
+                {loginStep === '2fa' && (
+                  <p className="text-sm text-muted-foreground">
+                    Enter the 6-digit code from your authenticator app
+                  </p>
                 )}
-              </Button>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                  onClick={resetLogin}
-                >
-                  Back to login
-                </button>
               </div>
+
+              {/* Credentials Step */}
+              {loginStep === 'credentials' && (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Email */}
+                  <div>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Email or phone number"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={`h-12 ${errors.email ? 'border-destructive focus:ring-destructive' : ''}`}
+                      aria-invalid={!!errors.email}
+                    />
+                    {errors.email && (
+                      <p className="mt-2 text-xs text-destructive">
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Password */}
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      className={`h-12 pr-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
+                      aria-invalid={!!errors.password}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeSlash className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                    {errors.password && (
+                      <p className="mt-2 text-xs text-destructive">
+                        {errors.password}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Login Button */}
+                  <Button
+                    type="submit"
+                    className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Spinner className="mr-2 h-5 w-5 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      'Log In'
+                    )}
+                  </Button>
+
+                  {/* Forgot Password */}
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => setLoginStep('forgot-password')}
+                    >
+                      Forgotten password?
+                    </button>
+                  </div>
+
+                  {/* Biometric Login Option */}
+                  <div className="flex flex-col gap-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <Separator className="w-full" />
+                      </div>
+                      <div className="relative flex justify-center text-xs">
+                        <span className="bg-card px-2 text-muted-foreground">or</span>
+                      </div>
+                    </div>
+                    
+                    <BiometricLoginButton 
+                      onSuccess={onSuccess || (() => {})}
+                      className="h-12"
+                    />
+                  </div>
+                </form>
+              )}
+
+              {/* 2FA Step */}
+              {loginStep === '2fa' && (
+                <div className="space-y-6">
+                  <div className="text-center mb-6">
+                    <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-4" />
+                  </div>
+                  
+                  <div>
+                    <Input
+                      type="text"
+                      placeholder="000000"
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                      className="text-center text-lg font-mono h-12"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleTwoFactorSubmit}
+                    disabled={isLoading || twoFactorCode.length !== 6}
+                    className="w-full h-12"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Spinner className="mr-2 h-5 w-5 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      'Verify Code'
+                    )}
+                  </Button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                      onClick={resetLogin}
+                    >
+                      Back to login
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Only show sign up section on credentials step */}
+              {loginStep === 'credentials' && (
+                <>
+                  {/* Separator */}
+                  <div className="my-8">
+                    <Separator />
+                  </div>
+
+                  {/* Create Account Button */}
+                  <div className="text-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="px-8 py-3 h-12 bg-accent hover:bg-accent/90 text-white font-semibold border-accent"
+                      onClick={onSwitchToSignUp}
+                    >
+                      Create new account
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Footer Links - only on credentials step */}
+          {loginStep === 'credentials' && (
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
+              </p>
             </div>
           )}
-
-          {/* Biometric Step - Removed, using direct BiometricLoginButton */}
-
-          {/* Only show sign up section on credentials step */}
-          {loginStep === 'credentials' && (
-            <>
-              {/* Separator */}
-              <div className="my-6">
-                <Separator />
-              </div>
-
-              {/* Create Account Button */}
-              <div className="text-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="px-8 py-3 h-12 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold border-accent"
-                  onClick={onSwitchToSignUp}
-                >
-                  Create new account
-                </Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Footer Links - only on credentials step */}
-      {loginStep === 'credentials' && (
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground mb-2">
-            <span className="font-semibold">Create a Page</span> for a celebrity, brand or business.
-          </p>
-        </div>
+        </>
       )}
     </div>
   )

@@ -9,12 +9,13 @@ import { Footer } from "@/components/Footer";
 import { Dashboard } from "@/components/Dashboard";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { DatabaseInit } from "@/components/DatabaseInit";
+import { PasswordResetHandler } from "@/components/PasswordResetHandler";
 import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
 import { requireAuthentication, validateDashboardAccess } from "@/lib/auth-guards";
 
-type AppState = 'database-init' | 'landing' | 'login' | 'dashboard';
+type AppState = 'database-init' | 'landing' | 'login' | 'dashboard' | 'reset-password';
 
 interface User {
   id: string;
@@ -33,6 +34,12 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
+    // Check if we're on the reset password page
+    if (window.location.pathname === '/reset-password') {
+      setAppState('reset-password');
+      setIsLoading(false);
+      return;
+    }
     initializeApp();
   }, []);
 
@@ -243,6 +250,16 @@ function App() {
     );
   }
 
+  // Password reset screen
+  if (appState === 'reset-password') {
+    return (
+      <>
+        <PasswordResetHandler />
+        <Toaster position="top-center" />
+      </>
+    );
+  }
+
   // Loading screen
   if (isLoading) {
     return (
@@ -304,13 +321,13 @@ function App() {
         </div>
         
         {/* Hero and Registration/Login Section */}
-        <section className="py-8 sm:py-12 lg:py-16">
+        <section className="py-12 sm:py-16 lg:py-20">
           <div className="container mx-auto max-w-screen-xl px-6">
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-start">
+            <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-start">
               {/* Left Column - Hero */}
               <div className="order-2 lg:order-1">
                 <Hero />
-                <div className="mt-8">
+                <div className="mt-10">
                   <SecurityCallout />
                 </div>
               </div>
@@ -331,7 +348,7 @@ function App() {
 
                 {/* Switch between login and signup */}
                 {appState === 'landing' && (
-                  <div className="mt-4 text-center w-full max-w-md">
+                  <div className="mt-6 text-center w-full max-w-md">
                     <p className="text-sm text-muted-foreground">
                       Already have an account?{' '}
                       <button
