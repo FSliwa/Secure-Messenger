@@ -37,10 +37,9 @@ export function Header({ onLoginClick }: HeaderProps) {
             </div>
           </div>
         </div>
-        
-        {/* Right side - User actions */}
+        {/* Right side - Actions */}
         <div className="flex items-center gap-2 justify-end">
-          {/* Mobile search icon */}
+          {/* Mobile Search Button */}
           <Button
             variant="ghost"
             size="sm"
@@ -49,16 +48,16 @@ export function Header({ onLoginClick }: HeaderProps) {
             <MagnifyingGlass className="h-4 w-4" />
           </Button>
           
-          {/* Theme and Language switchers */}
+          {/* Theme and Language Switchers */}
           <div className="hidden sm:flex items-center gap-1">
             <ThemeSwitcher />
             <LanguageSwitcher />
           </div>
           
-          {/* Login Button - Facebook style */}
-          <Button 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg px-4 sm:px-6 h-9 sm:h-10 text-sm sm:text-base facebook-button transition-all duration-200 hover:shadow-lg"
+          {/* Login Button */}
+          <Button
             onClick={onLoginClick}
+            className="facebook-button bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base font-medium rounded-md"
           >
             {t.signIn}
           </Button>
