@@ -1,0 +1,133 @@
+═══════════════════════════════════════════════════════════
+  🚀 AKTUALIZACJA SERWERA + NAPRAWA HTTPS
+═══════════════════════════════════════════════════════════
+
+Połącz się z serwerem przez Web Console i wykonuj POJEDYNCZO:
+
+
+CZĘŚĆ 1: AKTUALIZACJA APLIKACJI
+───────────────────────────────────────────────────────────
+
+# 1. Przejdź do katalogu
+cd /opt/Secure-Messenger
+
+
+# 2. Pobierz najnowsze zmiany
+git pull origin main
+
+
+# 3. Sprawdź co się zmieniło
+git log --oneline -3
+
+
+CZĘŚĆ 2: KONFIGURACJA HTTPS
+───────────────────────────────────────────────────────────
+
+# 4. Zatrzymaj Docker (zwalnia port 80 dla Certbot)
+docker-compose -f deployment/docker/docker-compose.production.yml down
+
+
+# 5. Zatrzymaj Nginx jeśli działa
+sudo systemctl stop nginx 2>/dev/null || true
+
+
+# 6. Wygeneruj certyfikat SSL (ZMIEŃ EMAIL NA SWÓJ!)
+sudo certbot certonly --standalone --non-interactive --agree-tos --email TWOJ-EMAIL@gmail.com -d secure-messenger.info -d www.secure-messenger.info
+
+
+# 7. Sprawdź czy certyfikat został utworzony
+sudo ls -la /etc/letsencrypt/live/secure-messenger.info/
+
+
+# 8. Zainstaluj Nginx (jeśli nie ma)
+sudo apt install -y nginx
+
+
+# 9. Skopiuj konfigurację Nginx z SSL
+sudo cp deployment/nginx/nginx-ssl.conf /etc/nginx/nginx.conf
+
+
+# 10. Test konfiguracji Nginx
+sudo nginx -t
+
+
+# 11. Uruchom Nginx
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+
+
+# 12. Sprawdź status Nginx
+sudo systemctl status nginx | head -10
+
+
+CZĘŚĆ 3: WERYFIKACJA
+───────────────────────────────────────────────────────────
+
+# 13. Test HTTPS
+curl -I https://secure-messenger.info
+
+
+# 14. Sprawdź czy port 443 jest otwarty
+sudo netstat -tlnp | grep 443
+
+
+# 15. Jeśli firewall jest włączony, otwórz port 443
+sudo ufw allow 443/tcp
+sudo ufw reload
+
+
+═══════════════════════════════════════════════════════════
+  ✅ WERYFIKACJA KOŃCOWA
+═══════════════════════════════════════════════════════════
+
+Otwórz w przeglądarce:
+🔒 https://secure-messenger.info
+
+Powinieneś zobaczyć:
+- ✅ Zieloną kłódkę w pasku adresu
+- ✅ Działającą aplikację
+- ✅ Możliwość rejestracji
+
+
+═══════════════════════════════════════════════════════════
+  📧 KONFIGURACJA EMAIL W SUPABASE
+═══════════════════════════════════════════════════════════
+
+Po skonfigurowaniu HTTPS, w Supabase Dashboard:
+
+1. Authentication > Settings
+2. Włącz: "Enable Email Confirmations"
+3. Wyłącz: "Enable auto confirm"
+4. Authentication > URL Configuration:
+   Site URL: https://secure-messenger.info
+   Redirect URLs: https://secure-messenger.info/**
+
+5. Authentication > Email Templates:
+   Dostosuj szablony (opcjonalnie)
+
+
+═══════════════════════════════════════════════════════════
+  ⚠️ WAŻNE!
+═══════════════════════════════════════════════════════════
+
+1. ZMIEŃ 'TWOJ-EMAIL@gmail.com' na swój email!
+2. Kopiuj komendy POJEDYNCZO
+3. Czekaj aż każda się wykona
+4. Supabase ma limit 3 emaile/h (wystarczy dla testów)
+5. Dla produkcji rozważ upgrade do Pro
+
+
+═══════════════════════════════════════════════════════════
+  🆘 JEŚLI CERTBOT NIE DZIAŁA
+═══════════════════════════════════════════════════════════
+
+Sprawdź DNS:
+nslookup secure-messenger.info
+(musi zwracać: 5.22.223.49)
+
+Sprawdź czy port 80 jest wolny:
+sudo netstat -tlnp | grep :80
+
+Jeśli zajęty, zatrzymaj wszystko:
+docker-compose -f deployment/docker/docker-compose.production.yml down
+sudo systemctl stop nginx
