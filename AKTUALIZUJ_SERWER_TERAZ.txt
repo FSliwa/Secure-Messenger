@@ -1,0 +1,97 @@
+═══════════════════════════════════════════════════════════
+  🚀 AKTUALIZACJA SERWERA - WYKONAJ TERAZ
+═══════════════════════════════════════════════════════════
+
+Połącz się z serwerem przez Web Console UpCloud
+i wykonuj komendy POJEDYNCZO:
+
+
+# 1. Przejdź do katalogu aplikacji
+cd /opt/Secure-Messenger
+
+
+# 2. Pobierz najnowsze zmiany z GitHub
+git pull origin main
+
+
+# 3. Sprawdź co się zmieniło
+git log --oneline -5
+
+
+# 4. Upewnij się że plik .env.production istnieje
+ls -la .env.production
+
+
+# 5. Jeśli NIE istnieje, utwórz go:
+cat > .env.production << 'EOF'
+NODE_ENV=production
+VITE_SUPABASE_URL=https://fyxmppbrealxwnstuzuk.supabase.co
+VITE_SUPABASE_KEY=sb_publishable_Jau8JdiOFfVKQOM1svLxMQ_9-sBqnKc
+SUPABASE_SERVICE_KEY=sb_secret_ek5NhQ2-BVZd-7yHw3RYhw_-sx2qOse
+PORT=3000
+HOST=0.0.0.0
+CORS_ORIGIN=https://secure-messenger.info,http://5.22.223.49
+LOG_LEVEL=info
+EOF
+
+
+# 6. Zatrzymaj aplikację
+docker-compose -f deployment/docker/docker-compose.production.yml down
+
+
+# 7. Przebuduj z najnowszym kodem
+docker-compose -f deployment/docker/docker-compose.production.yml build --no-cache
+
+
+# 8. Uruchom aplikację
+docker-compose -f deployment/docker/docker-compose.production.yml up -d
+
+
+# 9. Poczekaj 10 sekund
+sleep 10
+
+
+# 10. Sprawdź status
+docker ps
+
+
+# 11. Sprawdź logi (powinny być bez błędów)
+docker logs secure-messenger-app --tail 100
+
+
+# 12. Test HTTP
+curl -I http://localhost/
+
+
+# 13. Test zewnętrzny
+curl -I http://5.22.223.49/
+
+
+═══════════════════════════════════════════════════════════
+  ✅ WERYFIKACJA
+═══════════════════════════════════════════════════════════
+
+Otwórz w przeglądarce:
+http://5.22.223.49
+
+Powinieneś zobaczyć zaktualizowaną aplikację!
+
+
+═══════════════════════════════════════════════════════════
+  📋 NASTĘPNE KROKI
+═══════════════════════════════════════════════════════════
+
+Po aktualizacji serwera:
+
+1. W SUPABASE wykonaj SQL:
+   - Otwórz: https://app.supabase.com/project/fyxmppbrealxwnstuzuk
+   - SQL Editor
+   - Skopiuj FIX_DATABASE_COMPLETE.sql
+   - Kliknij RUN
+
+2. Skonfiguruj HTTPS (wybierz metodę):
+   - CLOUDFLARE (NAJŁATWIEJSZA): Zobacz CLOUDFLARE_HTTPS_GUIDE.md
+   - LUB Certbot: Zobacz UPDATE_SERVER_FINAL.txt
+
+3. Skonfiguruj email w Supabase:
+   - Zobacz: SUPABASE_AUTO_EMAIL.md
