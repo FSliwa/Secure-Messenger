@@ -487,7 +487,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             <div className="pt-2 sm:pt-4">
               <Button
                 type="submit"
-                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-3 sm:py-4 text-base sm:text-lg h-12 sm:h-14"
+                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-black font-semibold py-3 sm:py-4 text-base sm:text-lg h-12 sm:h-14"
                 disabled={isSubmitting || isRetrying}
               >
                 {isSubmitting || isRetrying ? (

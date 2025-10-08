@@ -975,15 +975,29 @@ body {
 
 /* Enhanced icon visibility utilities */
 .icon-enhanced {
-  opacity: 1;
+  opacity: 1 !important;
   transition: all 0.2s ease;
-  filter: brightness(1.1) contrast(1.2);
+  filter: brightness(1.4) contrast(1.6) !important;
+  stroke-width: 2px;
 }
 
 .icon-enhanced:hover {
-  opacity: 1;
-  filter: brightness(1.2) contrast(1.3);
-  transform: scale(1.05);
+  opacity: 1 !important;
+  filter: brightness(1.6) contrast(1.8) drop-shadow(0 0 2px currentColor) !important;
+  transform: scale(1.1);
+}
+
+/* User panel and dashboard specific icon enhancements */
+.user-panel-icon {
+  opacity: 1 !important;
+  filter: brightness(1.5) contrast(1.7) !important;
+  stroke-width: 2.5px !important;
+  transition: all 0.2s ease;
+}
+
+.user-panel-icon:hover {
+  transform: scale(1.15);
+  filter: brightness(1.7) contrast(1.9) drop-shadow(0 0 3px currentColor) !important;
 }
 
 /* Icon size utilities for better visibility */
@@ -1014,12 +1028,31 @@ body {
 /* High contrast text utilities */
 .text-high-contrast {
   color: oklch(0.05 0.02 240);
-  font-weight: 500;
+  font-weight: 700 !important;
+  filter: contrast(1.3);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.08);
 }
 
 .dark .text-high-contrast {
   color: oklch(0.98 0.005 240);
-  font-weight: 500;
+  font-weight: 700 !important;
+  filter: contrast(1.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Panel text maximum visibility */
+.panel-text-enhanced {
+  color: oklch(0.03 0.02 240);
+  font-weight: 700 !important;
+  filter: contrast(1.5);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.dark .panel-text-enhanced {
+  color: oklch(0.99 0.005 240);
+  font-weight: 700 !important;
+  filter: contrast(1.5);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
 }
 
 /* Enhanced button text readability */
