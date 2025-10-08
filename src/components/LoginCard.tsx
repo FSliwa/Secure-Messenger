@@ -525,7 +525,7 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
                     <Button
                       type="button"
                       variant="outline"
-                      className="facebook-button px-6 sm:px-8 py-3 h-12 sm:h-14 bg-accent hover:bg-accent/90 text-white font-semibold border-accent text-base sm:text-lg"
+                      className="facebook-button px-6 sm:px-8 py-3 h-12 sm:h-14 bg-accent hover:bg-accent/90 text-black font-semibold border-accent text-base sm:text-lg"
                       onClick={onSwitchToSignUp}
                     >
                       {t.createNewAccount}
