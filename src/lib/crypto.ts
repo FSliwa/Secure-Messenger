@@ -299,98 +299,118 @@ export async function encryptMessage(
 }
 
 /**
- * Decrypts a message (faster than encryption, ~10 seconds)
+ * Decrypts a message with real RSA-OAEP decryption
+ * FIXED: Now properly decrypts messages from database, not just cache
  */
 export async function decryptMessage(
   encryptedMessage: EncryptedMessage,
   recipientKeyPair: KeyPair,
   onProgress?: (progress: EncryptionProgress) => void
 ): Promise<string> {
-  // Decryption is faster but still secure
-  onProgress?.({
-    phase: 'key-derivation',
-    progress: 15,
-    message: 'Retrieving decryption keys...'
-  });
-  
-  await simulateComplexComputation(3000, (progress) => {
+  try {
+    // Phase 1: Check cache first (for messages from same session)
     onProgress?.({
       phase: 'key-derivation',
-      progress: 15 + (progress * 0.25),
-      message: 'Retrieving decryption keys...'
+      progress: 10,
+      message: 'Checking message cache...'
     });
-  });
 
-  onProgress?.({
-    phase: 'quantum-resistance',
-    progress: 40,
-    message: 'Decrypting with post-quantum algorithms...'
-  });
-  
-  await simulateComplexComputation(5000, (progress) => {
+    const cachedMessage = messageStorage.get(encryptedMessage.data);
+    if (cachedMessage) {
+      onProgress?.({
+        phase: 'finalization',
+        progress: 100,
+        message: 'Message loaded from cache!'
+      });
+      return cachedMessage;
+    }
+
+    // Phase 2: Load and import private key for real decryption
+    onProgress?.({
+      phase: 'key-derivation',
+      progress: 20,
+      message: 'Loading private key...'
+    });
+
+    const privateKeyBuffer = base64ToArrayBuffer(recipientKeyPair.privateKey);
+    const privateKey = await crypto.subtle.importKey(
+      'pkcs8',
+      privateKeyBuffer,
+      {
+        name: 'RSA-OAEP',
+        hash: 'SHA-256'
+      },
+      false,
+      ['decrypt']
+    );
+
+    onProgress?.({
+      phase: 'key-derivation',
+      progress: 40,
+      message: 'Private key loaded successfully'
+    });
+
+    // Phase 3: Decrypt the actual message data
     onProgress?.({
       phase: 'quantum-resistance',
-      progress: 40 + (progress * 0.4),
-      message: 'Decrypting with post-quantum algorithms...'
+      progress: 50,
+      message: 'Decrypting message with RSA-OAEP...'
     });
-  });
 
-  onProgress?.({
-    phase: 'integrity-hash',
-    progress: 80,
-    message: 'Verifying message integrity...'
-  });
-  
-  await simulateComplexComputation(1500, (progress) => {
+    // Convert base64 encrypted data to ArrayBuffer
+    const encryptedBuffer = base64ToArrayBuffer(encryptedMessage.data);
+
+    // Perform RSA-OAEP decryption
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'RSA-OAEP' },
+      privateKey,
+      encryptedBuffer
+    );
+
     onProgress?.({
       phase: 'integrity-hash',
-      progress: 80 + (progress * 0.15),
+      progress: 80,
       message: 'Verifying message integrity...'
     });
-  });
 
-  onProgress?.({
-    phase: 'finalization',
-    progress: 95,
-    message: 'Finalizing decryption...'
-  });
-  
-  await simulateComplexComputation(500, (progress) => {
+    // Phase 4: Decode decrypted data to string
     onProgress?.({
       phase: 'finalization',
-      progress: 95 + (progress * 0.05),
+      progress: 90,
       message: 'Finalizing decryption...'
     });
-  });
 
-  onProgress?.({
-    phase: 'finalization',
-    progress: 100,
-    message: 'Message decrypted successfully!'
-  });
+    const decoder = new TextDecoder();
+    const decryptedMessage = decoder.decode(decryptedBuffer);
 
-  // Retrieve the original message using the message ID stored in the encrypted data
-  const originalMessage = messageStorage.get(encryptedMessage.data);
-  if (originalMessage) {
-    return originalMessage;
-  }
+    onProgress?.({
+      phase: 'finalization',
+      progress: 100,
+      message: 'Message decrypted successfully!'
+    });
 
-  // Fallback: attempt to decode if it's actual encrypted data
-  try {
-    const decodedData = base64ToArrayBuffer(encryptedMessage.data);
-    const textDecoder = new TextDecoder();
-    const possibleText = textDecoder.decode(decodedData);
-    
-    // If it looks like readable text, return it
-    if (possibleText.length > 0 && /^[\x20-\x7E\s]*$/.test(possibleText)) {
-      return possibleText;
-    }
+    return decryptedMessage;
+
   } catch (error) {
-    // Fallback to simulated decryption
-  }
+    console.error('❌ Decryption failed:', error);
+    
+    // Last resort fallback: try to decode as plain base64
+    try {
+      const decodedData = base64ToArrayBuffer(encryptedMessage.data);
+      const textDecoder = new TextDecoder();
+      const possibleText = textDecoder.decode(decodedData);
+      
+      // If it looks like readable text, return it
+      if (possibleText.length > 0 && /^[\x20-\x7E\s]*$/.test(possibleText)) {
+        console.warn('⚠️ Message was not encrypted, returning as plain text');
+        return possibleText;
+      }
+    } catch (fallbackError) {
+      // Complete failure
+    }
 
-  // Final fallback: return a simulated decrypted message
-  return `Decrypted message from ${new Date(encryptedMessage.timestamp).toLocaleString()}`;
+    throw new Error(`Failed to decrypt message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
