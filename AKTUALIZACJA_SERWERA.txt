@@ -1,0 +1,109 @@
+═══════════════════════════════════════════════════════════
+  🚀 AKTUALIZACJA SERWERA DO NAJNOWSZEJ WERSJI
+═══════════════════════════════════════════════════════════
+
+Połącz się z serwerem przez Web Console i wykonaj:
+
+KOPIUJ I WKLEJAJ POJEDYNCZO (po kolei):
+
+
+# 1. Przejdź do katalogu aplikacji
+cd /opt/Secure-Messenger
+
+
+# 2. Sprawdź obecną wersję
+git log --oneline -1
+
+
+# 3. Pobierz najnowsze zmiany z GitHub
+git pull origin main
+
+
+# 4. Sprawdź co się zmieniło
+git log --oneline -5
+
+
+# 5. Upewnij się że plik .env.production istnieje
+cat .env.production
+
+
+# 6. Jeśli plik nie istnieje, utwórz go:
+cat > .env.production << 'EOF'
+NODE_ENV=production
+VITE_SUPABASE_URL=https://fyxmppbrealxwnstuzuk.supabase.co
+VITE_SUPABASE_KEY=sb_publishable_Jau8JdiOFfVKQOM1svLxMQ_9-sBqnKc
+SUPABASE_SERVICE_KEY=sb_secret_ek5NhQ2-BVZd-7yHw3RYhw_-sx2qOse
+PORT=3000
+HOST=0.0.0.0
+CORS_ORIGIN=https://secure-messenger.info,http://5.22.223.49
+LOG_LEVEL=info
+EOF
+
+
+# 7. Zatrzymaj aplikację
+docker-compose -f deployment/docker/docker-compose.production.yml down
+
+
+# 8. Przebuduj aplikację (używa najnowszego kodu)
+docker-compose -f deployment/docker/docker-compose.production.yml build --no-cache
+
+
+# 9. Uruchom aplikację
+docker-compose -f deployment/docker/docker-compose.production.yml up -d
+
+
+# 10. Sprawdź status (powinien pokazać działający kontener)
+docker ps
+
+
+# 11. Sprawdź logi (nie powinno być błędów)
+docker logs secure-messenger-app --tail 50
+
+
+# 12. Test HTTP
+curl -I http://localhost/
+
+
+# 13. Test zewnętrzny
+curl -I http://5.22.223.49/
+
+
+═══════════════════════════════════════════════════════════
+  ✅ WERYFIKACJA
+═══════════════════════════════════════════════════════════
+
+Otwórz w przeglądarce:
+- http://5.22.223.49
+
+Powinieneś zobaczyć zaktualizowaną aplikację!
+
+
+═══════════════════════════════════════════════════════════
+  🔒 OPCJONALNIE: Konfiguracja SSL
+═══════════════════════════════════════════════════════════
+
+Jeśli chcesz teraz skonfigurować HTTPS:
+
+# Wygeneruj certyfikat (ZMIEŃ EMAIL!)
+sudo certbot certonly --standalone --non-interactive --agree-tos --email TWOJ-EMAIL@gmail.com -d secure-messenger.info -d www.secure-messenger.info
+
+# Skonfiguruj SSL
+sudo bash deployment/scripts/setup-ssl.sh
+
+# Restart
+docker-compose -f deployment/docker/docker-compose.production.yml restart
+
+
+═══════════════════════════════════════════════════════════
+  📝 NOTATKI
+═══════════════════════════════════════════════════════════
+
+Najnowsza wersja zawiera:
+- Wsparcie dla nowych kluczy Supabase (sb_publishable_*, sb_secret_*)
+- Poprawiony trigger handle_new_user
+- Tabela encryption_keys
+- Konfiguracja SSL
+- Wszystkie naprawy błędów
+
+Jeśli pojawią się błędy, sprawdź:
+docker logs secure-messenger-app -f
