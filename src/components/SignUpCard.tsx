@@ -247,7 +247,14 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       
       // Create signup operation with retry mechanism
       const signupOperation = async () => {
-        return await signUp(formData.email, formData.password, displayName, keyPair.publicKey, formData.username);
+        return await signUp(
+          formData.email, 
+          formData.password, 
+          displayName, 
+          keyPair.publicKey, 
+          formData.username,
+          keyPair.privateKey
+        );
       };
 
       // Execute signup with retry mechanism

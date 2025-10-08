@@ -165,7 +165,14 @@ export const checkUsernameAvailability = async (username: string) => {
 }
 
 // Authentication helper functions
-export const signUp = async (email: string, password: string, displayName: string, publicKey: string, username?: string) => {
+export const signUp = async (
+  email: string, 
+  password: string, 
+  displayName: string, 
+  publicKey: string, 
+  username?: string,
+  encryptedPrivateKey?: string
+) => {
   // First check if username is available (if provided)
   if (username) {
     const { available } = await checkUsernameAvailability(username)
@@ -189,6 +196,7 @@ export const signUp = async (email: string, password: string, displayName: strin
         display_name: displayName,
         username: username,
         public_key: publicKey,
+        encrypted_private_key: encryptedPrivateKey || '',
       },
     },
   })
