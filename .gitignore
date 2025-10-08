@@ -84,8 +84,9 @@ supabase-config-report.json
 
 # Generated files
 public/generate-favicons.html
-public/favicon-*.png
-public/apple-touch-icon.png
+# Favicon PNG files are now included in repo for deployment
+# public/favicon-*.png
+# public/apple-touch-icon.png
 !public/favicon.svg
 !public/favicon.ico
 # Production environment with sensitive data
