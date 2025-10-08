@@ -16,6 +16,56 @@
  * WebCrypto APIs provide native browser cryptographic primitives
  */
 
+/**
+ * Browser compatibility check
+ */
+export function checkBrowserCompatibility(): { 
+  compatible: boolean; 
+  issues: string[];
+  details: {
+    crypto: boolean;
+    localStorage: boolean;
+    textEncoder: boolean;
+  };
+} {
+  const issues: string[] = [];
+  const details = {
+    crypto: false,
+    localStorage: false,
+    textEncoder: false
+  };
+  
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    issues.push('WebCrypto API not available - use Chrome 37+, Firefox 34+, or Safari 11+');
+  } else {
+    details.crypto = true;
+  }
+  
+  try {
+    if (typeof localStorage === 'undefined') {
+      issues.push('localStorage not available - disable private browsing mode');
+    } else {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+      details.localStorage = true;
+    }
+  } catch (e) {
+    issues.push('localStorage is blocked - check browser privacy settings');
+  }
+  
+  if (typeof TextEncoder === 'undefined') {
+    issues.push('TextEncoder not available - update your browser');
+  } else {
+    details.textEncoder = true;
+  }
+  
+  return {
+    compatible: issues.length === 0,
+    issues,
+    details
+  };
+}
+
 export interface KeyPair {
   publicKey: string;
   privateKey: string;
@@ -526,12 +576,47 @@ export function secureWipe(data: string | ArrayBuffer): void {
  * Legacy compatibility functions for existing components
  */
 
+// Add timeout protection wrapper
+async function generateKeyPairWithTimeout(
+  onProgress?: (progress: EncryptionProgress) => void,
+  timeoutMs: number = 60000  // 60 seconds default
+): Promise<KeyPair> {
+  return Promise.race([
+    generatePostQuantumKeyPair(onProgress),
+    new Promise<KeyPair>((_, reject) => 
+      setTimeout(() => reject(new Error('Key generation timeout - please try again or use a different browser')), timeoutMs)
+    )
+  ]);
+}
+
 export async function generateKeyPair(onProgress?: (progress: EncryptionProgress) => void): Promise<KeyPair> {
-  return generatePostQuantumKeyPair(onProgress);
+  try {
+    return await generateKeyPairWithTimeout(onProgress, 60000);
+  } catch (error) {
+    console.error('Key generation failed:', error);
+    throw new Error('Failed to generate encryption keys. Please try again or use a different browser.');
+  }
 }
 
 export async function storeKeys(keyPair: KeyPair): Promise<void> {
-  localStorage.setItem('securechat-keypair', JSON.stringify(keyPair));
+  try {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage not available, keys will not be persisted');
+      return;
+    }
+    
+    // Test if localStorage is writable
+    localStorage.setItem('test', 'test');
+    localStorage.removeItem('test');
+    
+    // Store keys
+    localStorage.setItem('securechat-keypair', JSON.stringify(keyPair));
+    console.log('✅ Keys stored successfully in localStorage');
+  } catch (error) {
+    console.error('Failed to store keys in localStorage:', error);
+    console.warn('Keys generated but not persisted. They will be lost on page refresh.');
+    // Don't throw - allow registration to continue
+  }
 }
 
 export async function getStoredKeys(): Promise<KeyPair | null> {

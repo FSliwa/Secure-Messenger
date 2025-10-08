@@ -11,6 +11,24 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Verify Supabase connection on initialization
+const verifySupabaseConnection = async () => {
+  try {
+    const { error } = await supabase.from('users').select('count').limit(1);
+    if (error && error.message.includes('Invalid API key')) {
+      console.error('❌ Supabase API key is invalid!');
+      console.error('Current key:', supabaseKey.substring(0, 20) + '...');
+      throw new Error('Supabase configuration error: Invalid API key');
+    }
+    console.log('✅ Supabase connection verified');
+  } catch (error) {
+    console.warn('Supabase connection verification failed:', error);
+  }
+};
+
+// Run verification (non-blocking)
+verifySupabaseConnection();
+
 // Database types matching the provided schema
 export interface User {
   id: string

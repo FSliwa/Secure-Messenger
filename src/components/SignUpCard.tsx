@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Spinner, ArrowClockwise } from "@phosphor-icons/react";
-import { generateKeyPair, storeKeys, EncryptionProgress } from "@/lib/crypto";
+import { generateKeyPair, storeKeys, EncryptionProgress, checkBrowserCompatibility } from "@/lib/crypto";
 import { signUp, checkUsernameAvailability } from "@/lib/supabase";
 import { SimpleRetryIndicator } from './RetryStatusDisplay'
 import { NetworkStatusIndicator } from './NetworkStatusIndicator'
@@ -92,6 +92,20 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       }
     };
   }, [usernameCheckTimeout]);
+
+  // Check browser compatibility on mount
+  useEffect(() => {
+    const { compatible, issues } = checkBrowserCompatibility();
+    if (!compatible) {
+      console.error('Browser compatibility issues:', issues);
+      toast.error('Browser Compatibility Issue', {
+        description: issues.join('. '),
+        duration: 10000
+      });
+    } else {
+      console.log('✅ Browser is compatible with all features');
+    }
+  }, []);
 
   const validateField = (name: string, value: any) => {
     switch (name) {
