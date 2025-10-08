@@ -88,3 +88,6 @@ public/favicon-*.png
 public/apple-touch-icon.png
 !public/favicon.svg
 !public/favicon.ico
+# Production environment with sensitive data
+env.production.ready
+.env.production
