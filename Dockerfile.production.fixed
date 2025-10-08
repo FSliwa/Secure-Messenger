@@ -20,7 +20,7 @@ COPY tailwind.config.js ./
 
 # Install dependencies (bez package-lock.json)
 RUN npm install --legacy-peer-deps --omit=optional && \
-    npm install @rollup/rollup-linux-x64-musl lightningcss-linux-x64-musl @tailwindcss/oxide-linux-x64-musl --save-optional && \
+    npm install @rollup/rollup-linux-x64-musl lightningcss-linux-x64-musl @tailwindcss/oxide-linux-x64-musl @swc/core-linux-x64-musl --save-optional && \
     npm cache clean --force
 
 # Copy source code
