@@ -68,7 +68,8 @@ export async function enhancedSignUp(options: SignUpOptions): Promise<EnhancedAu
       options: {
         data: {
           username,
-          display_name: displayName || username
+          display_name: displayName || username,
+          public_key: ''
         }
       }
     });
@@ -82,28 +83,9 @@ export async function enhancedSignUp(options: SignUpOptions): Promise<EnhancedAu
       return { success: false, error: 'Failed to create user account' };
     }
 
-    // Step 4: Create user profile
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        username,
-        email,
-        profile: {
-          display_name: displayName || username,
-          bio: '',
-          avatar_url: null
-        },
-        status: 'online',
-        last_activity: new Date().toISOString()
-      });
-
-    if (profileError) {
-      console.error('Profile creation error:', profileError);
-      // Clean up auth user if profile creation fails
-      await supabase.auth.signOut();
-      return { success: false, error: 'Failed to create user profile' };
-    }
+    // Step 4: User profile is created automatically by database trigger
+    // No manual profile creation needed - the trigger handles it
+    console.log('User created, profile will be created by database trigger');
 
     // Step 5: Save password to history
     await savePasswordHistory(authData.user.id, password);
