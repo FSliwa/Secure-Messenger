@@ -1,0 +1,90 @@
+═══════════════════════════════════════════════════════════
+  🔒 AUTOMATYCZNA INSTALACJA SSL
+  SKOPIUJ I WKLEJ NA SERWER (Web Console)
+═══════════════════════════════════════════════════════════
+
+WAŻNE: Skopiuj CAŁOŚĆ poniżej i wklej w Web Console UpCloud
+
+
+#!/bin/bash
+
+echo "🚀 AUTOMATYCZNA INSTALACJA SSL"
+echo "=============================="
+
+cd /opt/Secure-Messenger
+
+echo "1. Zatrzymywanie Docker..."
+docker-compose -f deployment/docker/docker-compose.production.yml down
+
+echo "2. Instalacja Certbot..."
+apt update
+apt install -y certbot
+
+echo "3. Generowanie certyfikatu SSL..."
+certbot certonly --standalone --non-interactive --agree-tos \
+  --email f.sliwa@nowybankpolski.pl \
+  -d secure-messenger.info \
+  -d www.secure-messenger.info
+
+if [ $? -ne 0 ]; then
+    echo "❌ Błąd generowania certyfikatu"
+    echo "Sprawdź czy DNS wskazuje na ten serwer"
+    exit 1
+fi
+
+echo "4. Sprawdzanie certyfikatu..."
+ls -la /etc/letsencrypt/live/secure-messenger.info/
+
+echo "5. Instalacja Nginx..."
+apt install -y nginx
+
+echo "6. Pobieranie najnowszej konfiguracji..."
+git pull origin main
+
+echo "7. Konfiguracja Nginx z SSL..."
+cp deployment/nginx/nginx-ssl.conf /etc/nginx/nginx.conf
+
+echo "8. Test konfiguracji Nginx..."
+nginx -t
+
+if [ $? -ne 0 ]; then
+    echo "❌ Błąd konfiguracji Nginx"
+    exit 1
+fi
+
+echo "9. Uruchamianie Nginx..."
+systemctl restart nginx
+systemctl enable nginx
+
+echo "10. Otwieranie portu 443..."
+ufw allow 443/tcp 2>/dev/null || true
+
+echo "11. Test HTTPS..."
+sleep 5
+curl -I https://secure-messenger.info | head -5
+
+echo ""
+echo "═══════════════════════════════════════"
+echo "  ✅ SSL SKONFIGUROWANY!"
+echo "═══════════════════════════════════════"
+echo ""
+echo "Otwórz w przeglądarce:"
+echo "🔒 https://secure-messenger.info"
+echo ""
+echo "Sprawdź czy widzisz zieloną kłódkę!"
+
+
+═══════════════════════════════════════════════════════════
+  JAK TO ZROBIĆ:
+═══════════════════════════════════════════════════════════
+
+1. Zaloguj się do UpCloud
+2. Otwórz Web Console dla serwera 5.22.223.49
+3. Skopiuj CAŁY kod powyżej (od #!/bin/bash do końca)
+4. Wklej w terminalu
+5. Naciśnij Enter
+6. Poczekaj ~2 minuty
+7. https://secure-messenger.info BĘDZIE DZIAŁAĆ!
+
+
+═══════════════════════════════════════════════════════════
