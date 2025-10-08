@@ -264,20 +264,31 @@ export async function encryptMessage(
     });
   });
 
-  // Perform actual encryption (simplified)
+  // Perform actual RSA-OAEP encryption
   const encodedMessage = new TextEncoder().encode(message);
-  const key = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
+  
+  // Import recipient's public key
+  const publicKeyBuffer = base64ToArrayBuffer(recipientPublicKey);
+  const publicKey = await crypto.subtle.importKey(
+    'spki',
+    publicKeyBuffer,
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256'
+    },
     false,
     ['encrypt']
   );
   
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  // Encrypt the message with RSA-OAEP
   const encryptedData = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
+    { name: 'RSA-OAEP' },
+    publicKey,
     encodedMessage
   );
+
+  // Convert encrypted data to base64 for storage
+  const encryptedBase64 = arrayBufferToBase64(encryptedData);
 
   const integrity = await generateIntegrityHash(message + nonce + startTime);
 
@@ -288,7 +299,7 @@ export async function encryptMessage(
   });
 
   return {
-    data: messageId, // Store the message ID instead of actual encrypted data for demo
+    data: encryptedBase64, // Return the actual encrypted data
     keyId: senderKeyPair.keyId,
     nonce,
     timestamp: startTime,
