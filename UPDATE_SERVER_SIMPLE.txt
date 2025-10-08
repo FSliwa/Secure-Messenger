@@ -1,0 +1,98 @@
+═══════════════════════════════════════════════════════════
+  🚀 PROSTA AKTUALIZACJA SERWERA (bez SSL)
+═══════════════════════════════════════════════════════════
+
+Jeśli używasz Cloudflare do SSL, nie musisz konfigurować
+certyfikatów na serwerze. Wystarczy zaktualizować aplikację:
+
+
+KOPIUJ I WKLEJAJ NA SERWERZE (pojedynczo):
+
+
+# 1. Przejdź do katalogu
+cd /opt/Secure-Messenger
+
+
+# 2. Pobierz najnowszą wersję
+git pull origin main
+
+
+# 3. Sprawdź zmiany
+git log --oneline -3
+
+
+# 4. Upewnij się że .env.production istnieje
+cat .env.production
+
+
+# 5. Jeśli nie ma pliku, utwórz:
+cat > .env.production << 'EOF'
+NODE_ENV=production
+VITE_SUPABASE_URL=https://fyxmppbrealxwnstuzuk.supabase.co
+VITE_SUPABASE_KEY=sb_publishable_Jau8JdiOFfVKQOM1svLxMQ_9-sBqnKc
+SUPABASE_SERVICE_KEY=sb_secret_ek5NhQ2-BVZd-7yHw3RYhw_-sx2qOse
+PORT=3000
+HOST=0.0.0.0
+CORS_ORIGIN=https://secure-messenger.info,http://5.22.223.49
+LOG_LEVEL=info
+EOF
+
+
+# 6. Restart aplikacji
+docker-compose -f deployment/docker/docker-compose.production.yml down
+
+
+# 7. Przebuduj z najnowszym kodem
+docker-compose -f deployment/docker/docker-compose.production.yml build --no-cache
+
+
+# 8. Uruchom
+docker-compose -f deployment/docker/docker-compose.production.yml up -d
+
+
+# 9. Sprawdź status
+docker ps
+
+
+# 10. Sprawdź logi
+docker logs secure-messenger-app --tail 50
+
+
+# 11. Test
+curl -I http://localhost/
+
+
+═══════════════════════════════════════════════════════════
+  ✅ WERYFIKACJA
+═══════════════════════════════════════════════════════════
+
+Sprawdź w przeglądarce:
+- http://5.22.223.49 (bezpośredni IP)
+
+Jeśli skonfigurowałeś Cloudflare:
+- https://secure-messenger.info (przez Cloudflare z SSL)
+
+
+═══════════════════════════════════════════════════════════
+  📧 PAMIĘTAJ O SUPABASE
+═══════════════════════════════════════════════════════════
+
+1. https://app.supabase.com/project/fyxmppbrealxwnstuzuk
+2. SQL Editor > Wykonaj: FIX_DATABASE_COMPLETE.sql
+3. Authentication > Settings:
+   - Enable Email Confirmations: ✅
+   - Enable auto confirm: ❌
+4. URL Configuration:
+   - Site URL: https://secure-messenger.info
+   - Redirect URLs: https://secure-messenger.info/**
+
+
+═══════════════════════════════════════════════════════════
+  🎯 PODSUMOWANIE
+═══════════════════════════════════════════════════════════
+
+Po wykonaniu:
+✅ Aplikacja zaktualizowana do najnowszej wersji
+✅ Gotowa do pracy z Cloudflare SSL
+✅ Emaile będą wysyłane automatycznie przez Supabase
+✅ Wszystko działa!
