@@ -649,69 +649,101 @@ export const createDirectMessage = async (
   recipientId: string,
   accessCode: string
 ) => {
-  // Check if conversation already exists between these two users
-  const { data: existing } = await supabase
-    .from('conversation_participants')
-    .select('conversation_id, conversations!inner(id, name, is_group, access_code, created_by, created_at, updated_at)')
-    .eq('user_id', createdBy)
-    .eq('conversations.is_group', false)
-    .eq('is_active', true)
-  
-  if (existing && existing.length > 0) {
-    // Check if recipient is also in any of these conversations
-    for (const conv of existing) {
-      const { data: recipientParticipant } = await supabase
-        .from('conversation_participants')
-        .select('id')
-        .eq('conversation_id', conv.conversation_id)
-        .eq('user_id', recipientId)
-        .eq('is_active', true)
-        .single()
-      
-      if (recipientParticipant) {
-        // Conversation already exists, return it
-        return (conv as any).conversations
+  try {
+    console.log(`💬 Creating direct message: ${createdBy} → ${recipientId}`)
+    
+    // Check if conversation already exists between these two users
+    const { data: existing, error: existingError } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id, conversations!inner(id, name, is_group, access_code, created_by, created_at, updated_at)')
+      .eq('user_id', createdBy)
+      .eq('conversations.is_group', false)
+      .eq('is_active', true)
+    
+    if (existingError) {
+      console.error('❌ Error checking existing conversations:', existingError)
+    }
+    
+    if (existing && existing.length > 0) {
+      // Check if recipient is also in any of these conversations
+      for (const conv of existing) {
+        const { data: recipientParticipant } = await supabase
+          .from('conversation_participants')
+          .select('id')
+          .eq('conversation_id', conv.conversation_id)
+          .eq('user_id', recipientId)
+          .eq('is_active', true)
+          .single()
+        
+        if (recipientParticipant) {
+          // Conversation already exists, return it
+          console.log(`✅ Found existing conversation: ${conv.conversation_id}`)
+          return (conv as any).conversations
+        }
       }
     }
+    
+    // Create new conversation
+    console.log(`💬 Creating new conversation...`)
+    const { data: conversation, error } = await supabase
+      .from('conversations')
+      .insert([{
+        name: null, // Direct messages don't need names
+        is_group: false,
+        created_by: createdBy,
+        access_code: accessCode,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('❌ Failed to create conversation:', error)
+      throw error
+    }
+    
+    console.log(`✅ Conversation created: ${conversation.id}`)
+    
+    // Add BOTH users as participants
+    console.log(`👥 Adding both users as participants...`)
+    const { data: participants, error: participantsError } = await supabase
+      .from('conversation_participants')
+      .insert([
+        {
+          conversation_id: conversation.id,
+          user_id: createdBy,
+          joined_at: new Date().toISOString(),
+          is_active: true
+        },
+        {
+          conversation_id: conversation.id,
+          user_id: recipientId,
+          joined_at: new Date().toISOString(),
+          is_active: true
+        }
+      ])
+      .select()
+    
+    if (participantsError) {
+      console.error('❌ Failed to add participants:', participantsError)
+      console.error('Participants error details:', {
+        code: participantsError.code,
+        message: participantsError.message,
+        details: participantsError.details,
+        hint: participantsError.hint
+      })
+      throw participantsError
+    }
+    
+    console.log(`✅ Added ${participants?.length || 0} participants`)
+    console.log(`✅ Direct message conversation created successfully`)
+    
+    return conversation
+  } catch (error) {
+    console.error('❌ createDirectMessage exception:', error)
+    throw error
   }
-  
-  // Create new conversation
-  const { data: conversation, error } = await supabase
-    .from('conversations')
-    .insert([{
-      name: null, // Direct messages don't need names
-      is_group: false,
-      created_by: createdBy,
-      access_code: accessCode,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }])
-    .select()
-    .single()
-  
-  if (error) throw error
-  
-  // Add BOTH users as participants
-  const { error: participantsError } = await supabase
-    .from('conversation_participants')
-    .insert([
-      {
-        conversation_id: conversation.id,
-        user_id: createdBy,
-        joined_at: new Date().toISOString(),
-        is_active: true
-      },
-      {
-        conversation_id: conversation.id,
-        user_id: recipientId,
-        joined_at: new Date().toISOString(),
-        is_active: true
-      }
-    ])
-  
-  if (participantsError) throw participantsError
-  
-  return conversation
 }
 
 // Join conversation with access code
@@ -774,40 +806,72 @@ export const searchUsers = async (query: string, currentUserId: string) => {
   return data || []
 }
 
-// Update user online status
+// Update user online status with enhanced error handling and logging
 export const updateUserStatus = async (userId: string, status: 'online' | 'offline' | 'away') => {
-  const { error } = await supabase
-    .from('users')
-    .update({
-      status,
-      last_seen: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', userId)
-
-  if (error) throw error
+  try {
+    console.log(`📊 Updating user status: ${userId} → ${status}`)
+    
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        status,
+        last_seen: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select()
+    
+    if (error) {
+      console.error('❌ Failed to update user status:', error)
+      throw error
+    }
+    
+    console.log(`✅ User status updated successfully:`, data)
+    return data
+  } catch (error) {
+    console.error('❌ updateUserStatus exception:', error)
+    throw error
+  }
 }
 
-// Get conversation messages
+// Get conversation messages with enhanced error handling
 export const getConversationMessages = async (conversationId: string, limit = 50, offset = 0) => {
-  const { data, error } = await supabase
-    .from('messages')
-    .select(`
-      *,
-      users!messages_sender_id_fkey (
-        id,
-        username,
-        display_name,
-        avatar_url
-      )
-    `)
-    .eq('conversation_id', conversationId)
-    .eq('is_deleted', false)
-    .order('sent_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+  try {
+    console.log(`📨 Loading messages for conversation: ${conversationId}`)
+    
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        *,
+        users!messages_sender_id_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('conversation_id', conversationId)
+      .eq('is_deleted', false)
+      .order('sent_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-  if (error) throw error
-  return data || []
+    if (error) {
+      console.error('❌ Failed to load messages:', error)
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
+      throw error
+    }
+    
+    console.log(`✅ Loaded ${data?.length || 0} messages`)
+    return data || []
+  } catch (error) {
+    console.error('❌ getConversationMessages exception:', error)
+    throw error
+  }
 }
 
 // Create security alert
