@@ -1,11 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Get Supabase configuration from environment variables
-// Updated to support new Supabase key format (sb_publishable_*)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://fyxmppbrealxwnstuzuk.supabase.co'
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_Jau8JdiOFfVKQOM1svLxMQ_9-sBqnKc'
+// SECURITY: These values MUST come from environment variables in production
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing Supabase environment variables!')
+  console.error('Required: VITE_SUPABASE_URL and VITE_SUPABASE_KEY')
+  console.error('Please create .env.local file with these variables')
   throw new Error('Missing Supabase environment variables. Please check your .env file.')
 }
 
@@ -556,30 +559,8 @@ export const subscribeToMessages = (conversationId: string, callback: (message: 
     .subscribe()
 }
 
-// Send encrypted message function
-export const sendMessage = async (
-  conversationId: string,
-  senderId: string,
-  encryptedContent: string,
-  encryptionMetadata: any
-) => {
-  const { data, error } = await supabase
-    .from('messages')
-    .insert([
-      {
-        conversation_id: conversationId,
-        sender_id: senderId,
-        encrypted_content: encryptedContent,
-        encryption_metadata: encryptionMetadata,
-        sent_at: new Date().toISOString()
-      },
-    ])
-    .select()
-    .single()
-
-  if (error) throw error
-  return data
-}
+// Re-export enhanced sendMessage from message-operations (with validation, auto-delete, forwarding)
+export { sendMessage } from './message-operations'
 
 // Get conversations for user with enhanced logging
 export const getUserConversations = async (userId: string) => {

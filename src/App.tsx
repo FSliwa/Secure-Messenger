@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from "@/components/ui/sonner";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
@@ -429,17 +430,61 @@ function AppContent() {
   );
 }
 
+function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="max-w-md w-full text-center space-y-4">
+        <div className="text-6xl">💥</div>
+        <h1 className="text-2xl font-bold text-foreground">Something went wrong</h1>
+        <p className="text-muted-foreground">
+          {error.message || 'An unexpected error occurred'}
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={resetErrorBoundary}
+            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-semibold"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full px-4 py-2 border border-border text-foreground rounded-md hover:bg-accent font-semibold"
+          >
+            Reload Page
+          </button>
+        </div>
+        <details className="text-xs text-left bg-muted p-4 rounded-md">
+          <summary className="cursor-pointer font-semibold mb-2">Technical Details</summary>
+          <pre className="overflow-auto text-[10px]">{error.stack}</pre>
+        </details>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   return (
-    <ThemeProvider>
-      <DeviceProvider>
-        <LanguageProvider>
-          <NotificationProvider>
-            <AppContent />
-          </NotificationProvider>
-        </LanguageProvider>
-      </DeviceProvider>
-    </ThemeProvider>
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onError={(error, errorInfo) => {
+        console.error('❌ Application Error:', error)
+        console.error('Error Info:', errorInfo)
+      }}
+      onReset={() => {
+        // Reset app state if needed
+        window.location.href = '/'
+      }}
+    >
+      <ThemeProvider>
+        <DeviceProvider>
+          <LanguageProvider>
+            <NotificationProvider>
+              <AppContent />
+            </NotificationProvider>
+          </LanguageProvider>
+        </DeviceProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

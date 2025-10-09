@@ -89,69 +89,8 @@ export async function sendMessage(messageData: MessageCreate): Promise<{
   }
 }
 
-/**
- * Get messages for a conversation with filtering options
- */
-export async function getMessages(
-  conversationId: string,
-  options: {
-    limit?: number;
-    offset?: number;
-    before?: string;
-    after?: string;
-    includeDeleted?: boolean;
-  } = {}
-): Promise<{
-  messages: Message[];
-  hasMore: boolean;
-  error?: string;
-}> {
-  try {
-    let query = supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId);
-
-    // Filter out deleted messages unless explicitly requested
-    if (!options.includeDeleted) {
-      query = query.eq('is_deleted', false);
-    }
-
-    // Apply time filters
-    if (options.before) {
-      query = query.lt('sent_at', options.before);
-    }
-    if (options.after) {
-      query = query.gt('sent_at', options.after);
-    }
-
-    // Apply pagination
-    const limit = options.limit || 50;
-    query = query.order('sent_at', { ascending: false });
-    
-    // Use range if offset is provided, otherwise use limit
-    if (options.offset) {
-      query = query.range(options.offset, options.offset + limit);
-    } else {
-      query = query.limit(limit + 1); // Get one extra to check if there are more
-    }
-
-    const { data: messages, error } = await query;
-
-    if (error) {
-      console.error('Failed to get messages:', error);
-      return { messages: [], hasMore: false, error: error.message };
-    }
-
-    const hasMore = messages ? messages.length > limit : false;
-    const resultMessages = hasMore ? messages.slice(0, -1) : messages || [];
-
-    return { messages: resultMessages, hasMore };
-  } catch (error) {
-    console.error('Get messages error:', error);
-    return { messages: [], hasMore: false, error: 'Failed to get messages' };
-  }
-}
+// Note: getMessages() removed - use getConversationMessages() from supabase.ts instead
+// That version includes JOIN with users table for sender information
 
 /**
  * Update a message (edit)
