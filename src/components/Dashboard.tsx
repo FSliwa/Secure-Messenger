@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { ChatInterface } from './ChatInterface'
 import { ProfileSettings } from './ProfileSettings'
 import { EnhancedSecurityInitializer } from './EnhancedSecurityInitializer'
+import { ActivityTracker } from './ActivityTracker'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { NotificationSettings } from './NotificationSettings'
@@ -94,6 +95,9 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Activity Tracker - monitors user presence */}
+      <ActivityTracker userId={currentUser.id} />
+      
       {/* Header - Full Width Messenger Style */}
       <header className="sticky top-0 z-50 w-full bg-card border-b border-border/40 shadow-sm">
         <div className="w-full flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">

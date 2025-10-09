@@ -3,6 +3,8 @@
  * Provides secure voice message recording with encryption support
  */
 
+import { supabase } from './supabase'
+
 export interface VoiceRecordingOptions {
   maxDuration?: number; // Maximum duration in seconds (default: 300 = 5 minutes)
   sampleRate?: number; // Sample rate in Hz (default: 44100)
@@ -614,3 +616,69 @@ export const VoiceUtils = {
     return new Blob([byteArray], { type: mimeType });
   }
 };
+
+/**
+ * Upload voice message to dedicated voice-messages bucket
+ */
+export async function uploadVoiceMessage(
+  blob: Blob,
+  userId: string,
+  conversationId: string
+): Promise<{ url: string | null; error?: string; filePath?: string }> {
+  try {
+    // Check if voice-messages bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets()
+    const bucketExists = buckets?.some(b => b.name === 'voice-messages')
+    
+    if (!bucketExists) {
+      console.error('voice-messages bucket does not exist')
+      return { 
+        url: null, 
+        error: 'Voice messages storage not configured. Please create voice-messages bucket in Supabase Storage.' 
+      }
+    }
+    
+    // Generate unique filename
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(7)
+    const userPrefix = userId.substring(0, 8)
+    const fileName = `${timestamp}-${userPrefix}-${random}.webm`
+    const filePath = `voice/${conversationId}/${fileName}`
+    
+    // Upload to voice-messages bucket
+    const { data, error } = await supabase.storage
+      .from('voice-messages')
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: blob.type || 'audio/webm'
+      })
+    
+    if (error) {
+      console.error('Voice upload error:', error)
+      return { 
+        url: null, 
+        error: error.message,
+        filePath 
+      }
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('voice-messages')
+      .getPublicUrl(filePath)
+    
+    console.log('Voice message uploaded successfully:', urlData.publicUrl)
+    
+    return { 
+      url: urlData.publicUrl,
+      filePath
+    }
+  } catch (error: any) {
+    console.error('Voice upload exception:', error)
+    return { 
+      url: null, 
+      error: error.message || 'Failed to upload voice message' 
+    }
+  }
+}

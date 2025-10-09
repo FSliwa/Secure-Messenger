@@ -48,14 +48,16 @@ import {
 } from '@/lib/crypto'
 import { 
   searchUsers, 
-  createConversation, 
+  createConversation,
+  createDirectMessage, 
   joinConversation,
   getUserConversations,
   getConversationMessages,
   sendMessage,
   subscribeToMessages,
   generateAccessCode,
-  regenerateAccessCode
+  regenerateAccessCode,
+  updateUserStatus
 } from '@/lib/supabase'
 import { BiometricVerificationDialog } from './BiometricVerificationDialog'
 import { MessageSearch } from './MessageSearch'
@@ -537,11 +539,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       // Generate access code for the new conversation
       const accessCode = generateAccessCode()
       
-      // Create conversation
-      const conversation = await createConversation(
-        `Chat with ${targetUser.display_name || targetUser.username}`,
-        false, // not a group
+      // Create direct message conversation (automatically adds both users)
+      const conversation = await createDirectMessage(
         currentUser.id,
+        targetUser.id,
         accessCode
       )
 
@@ -551,12 +552,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       // Set as active conversation
       setActiveConversation(conversation)
       
-      toast.success(`${t.startedConversation} "${accessCode}" with ${targetUser.display_name || targetUser.username} to connect`, {
-        duration: 8000,
-        action: {
-          label: t.copyCode,
-          onClick: () => navigator.clipboard.writeText(accessCode)
-        }
+      toast.success(`Started conversation with ${targetUser.display_name || targetUser.username}!`, {
+        duration: 5000
       })
 
       // Close search dialog
@@ -564,9 +561,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       setSearchQuery('')
       setSearchResults([])
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start conversation:', error)
-      toast.error(t.failedToStartConversation)
+      toast.error(error.message || t.failedToStartConversation)
     }
   }
 

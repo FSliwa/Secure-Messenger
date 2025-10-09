@@ -15,7 +15,7 @@ import { BrowserCompatibilityCheck } from "@/components/BrowserCompatibilityChec
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import { supabase, signOut } from "@/lib/supabase";
+import { supabase, signOut, updateUserStatus } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
 import { requireAuthentication, validateDashboardAccess } from "@/lib/auth-guards";
@@ -198,16 +198,32 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, [appState, authState]);
 
-  const handleLoginSuccess = (user: User) => {
+  const handleLoginSuccess = async (user: User) => {
     setCurrentUser(user);
     setAuthState('authenticated');
     setAppState('dashboard');
+    
+    // Update user status to online
+    try {
+      await updateUserStatus(user.id, 'online');
+    } catch (error) {
+      console.error('Failed to update online status:', error);
+    }
   };
 
   const handleLogout = async () => {
     try {
       setIsLoading(true);
       setAuthState('checking');
+      
+      // Update user status to offline before signing out
+      if (currentUser) {
+        try {
+          await updateUserStatus(currentUser.id, 'offline');
+        } catch (error) {
+          console.error('Failed to update offline status:', error);
+        }
+      }
       
       // Sign out from Supabase (includes database cleanup)
       await signOut();

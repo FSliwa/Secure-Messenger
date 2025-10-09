@@ -643,6 +643,77 @@ export const createConversation = async (
   return data
 }
 
+// Create direct message conversation (1-on-1) with automatic participant addition
+export const createDirectMessage = async (
+  createdBy: string,
+  recipientId: string,
+  accessCode: string
+) => {
+  // Check if conversation already exists between these two users
+  const { data: existing } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id, conversations!inner(id, name, is_group, access_code, created_by, created_at, updated_at)')
+    .eq('user_id', createdBy)
+    .eq('conversations.is_group', false)
+    .eq('is_active', true)
+  
+  if (existing && existing.length > 0) {
+    // Check if recipient is also in any of these conversations
+    for (const conv of existing) {
+      const { data: recipientParticipant } = await supabase
+        .from('conversation_participants')
+        .select('id')
+        .eq('conversation_id', conv.conversation_id)
+        .eq('user_id', recipientId)
+        .eq('is_active', true)
+        .single()
+      
+      if (recipientParticipant) {
+        // Conversation already exists, return it
+        return (conv as any).conversations
+      }
+    }
+  }
+  
+  // Create new conversation
+  const { data: conversation, error } = await supabase
+    .from('conversations')
+    .insert([{
+      name: null, // Direct messages don't need names
+      is_group: false,
+      created_by: createdBy,
+      access_code: accessCode,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }])
+    .select()
+    .single()
+  
+  if (error) throw error
+  
+  // Add BOTH users as participants
+  const { error: participantsError } = await supabase
+    .from('conversation_participants')
+    .insert([
+      {
+        conversation_id: conversation.id,
+        user_id: createdBy,
+        joined_at: new Date().toISOString(),
+        is_active: true
+      },
+      {
+        conversation_id: conversation.id,
+        user_id: recipientId,
+        joined_at: new Date().toISOString(),
+        is_active: true
+      }
+    ])
+  
+  if (participantsError) throw participantsError
+  
+  return conversation
+}
+
 // Join conversation with access code
 export const joinConversation = async (accessCode: string, userId: string) => {
   // First, find the conversation by access code
