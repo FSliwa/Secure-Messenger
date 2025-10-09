@@ -188,29 +188,47 @@ export function FileAttachment({
 
   const uploadFile = async (file: File, attachment: FileAttachment): Promise<string | null> => {
     try {
+      // Check if bucket exists first
+      const { data: buckets } = await supabase.storage.listBuckets()
+      const bucketExists = buckets?.some(b => b.name === 'message-attachments')
+      
+      if (!bucketExists) {
+        toast.error('Storage not configured. Please contact support.')
+        throw new Error('Bucket message-attachments does not exist')
+      }
+      
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
       const filePath = `attachments/${fileName}`
 
-      // Update progress during upload
+      // Upload file to storage
       const { data, error } = await supabase.storage
         .from('message-attachments')
-        .upload(filePath, file)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
-      if (error) throw error
+      if (error) {
+        console.error('Upload error:', error)
+        throw error
+      }
 
+      // Get public URL
       const { data: urlData } = supabase.storage
         .from('message-attachments')
         .getPublicUrl(filePath)
 
       return urlData.publicUrl
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error)
+      toast.error(error.message || 'Upload failed')
       return null
     }
   }
 
   const processFiles = async (files: File[]) => {
+    const validFiles: File[] = []
     const newAttachments: FileAttachment[] = []
 
     for (const file of files) {
@@ -243,15 +261,17 @@ export function FileAttachment({
         }
       }
 
+      // Add to both arrays together to maintain correct pairing
+      validFiles.push(file)
       newAttachments.push(attachment)
     }
 
     setSelectedFiles(prev => [...prev, ...newAttachments])
 
-    // Process each file
-    for (let i = 0; i < newAttachments.length; i++) {
+    // Process each valid file with its matching attachment
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i]
       const attachment = newAttachments[i]
-      const file = files[i]
 
       try {
         // Update status to encrypting if encryption is enabled
@@ -264,10 +284,18 @@ export function FileAttachment({
             )
           )
 
-          // Encrypt file
-          const encryptedData = await encryptFile(file)
-          if (encryptedData) {
-            attachment.encryptedData = encryptedData
+          // Encrypt file with error handling
+          try {
+            const encryptedData = await encryptFile(file)
+            if (encryptedData) {
+              attachment.encryptedData = encryptedData
+            } else {
+              throw new Error('Encryption returned null')
+            }
+          } catch (encryptError) {
+            console.error('File encryption failed:', encryptError)
+            toast.error(`Failed to encrypt ${file.name}. Uploading without encryption.`)
+            // Continue with upload even if encryption fails
           }
         }
 

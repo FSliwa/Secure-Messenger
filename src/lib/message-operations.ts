@@ -39,6 +39,22 @@ export async function sendMessage(messageData: MessageCreate): Promise<{
   error?: string;
 }> {
   try {
+    // Validate conversation exists and user is a participant
+    const { data: participant, error: participantError } = await supabase
+      .from('conversation_participants')
+      .select('id')
+      .eq('conversation_id', messageData.conversation_id)
+      .eq('user_id', messageData.sender_id)
+      .eq('is_active', true)
+      .single();
+
+    if (participantError || !participant) {
+      return { 
+        success: false, 
+        error: 'You are not a member of this conversation or it does not exist' 
+      };
+    }
+
     // Calculate auto-delete timestamp if specified
     let autoDeleteAt: string | undefined;
     if (messageData.auto_delete_minutes && messageData.auto_delete_minutes > 0) {
@@ -111,12 +127,13 @@ export async function getMessages(
 
     // Apply pagination
     const limit = options.limit || 50;
-    query = query
-      .order('sent_at', { ascending: false })
-      .limit(limit + 1); // Get one extra to check if there are more
-
+    query = query.order('sent_at', { ascending: false });
+    
+    // Use range if offset is provided, otherwise use limit
     if (options.offset) {
       query = query.range(options.offset, options.offset + limit);
+    } else {
+      query = query.limit(limit + 1); // Get one extra to check if there are more
     }
 
     const { data: messages, error } = await query;
@@ -280,7 +297,7 @@ export async function getMessagesForAutoDeletion(): Promise<{
 }
 
 /**
- * Process auto-deletion of expired messages
+ * Process auto-deletion of expired messages with batching
  */
 export async function processAutoDeleteMessages(): Promise<{
   deletedCount: number;
@@ -297,22 +314,32 @@ export async function processAutoDeleteMessages(): Promise<{
       return { deletedCount: 0 };
     }
 
-    // Soft delete the messages
-    const messageIds = messages.map(m => m.id);
-    const { error: deleteError } = await supabase
-      .from('messages')
-      .update({ 
-        is_deleted: true,
-        edited_at: new Date().toISOString() 
-      })
-      .in('id', messageIds);
+    // Process in batches of 100 to prevent database overload
+    const BATCH_SIZE = 100;
+    let totalDeleted = 0;
 
-    if (deleteError) {
-      console.error('Failed to auto-delete messages:', deleteError);
-      return { deletedCount: 0, error: deleteError.message };
+    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+      const batch = messages.slice(i, i + BATCH_SIZE);
+      const batchIds = batch.map(m => m.id);
+
+      const { error: deleteError } = await supabase
+        .from('messages')
+        .update({ 
+          is_deleted: true,
+          edited_at: new Date().toISOString() 
+        })
+        .in('id', batchIds);
+
+      if (deleteError) {
+        console.error(`Failed to auto-delete batch ${i / BATCH_SIZE + 1}:`, deleteError);
+        // Continue with next batch even if one fails
+        continue;
+      }
+
+      totalDeleted += batch.length;
     }
 
-    return { deletedCount: messages.length };
+    return { deletedCount: totalDeleted };
   } catch (error) {
     console.error('Auto-deletion process error:', error);
     return { deletedCount: 0, error: 'Failed to process auto-deletion' };
