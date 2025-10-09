@@ -581,25 +581,43 @@ export const sendMessage = async (
   return data
 }
 
-// Get conversations for user
+// Get conversations for user with enhanced logging
 export const getUserConversations = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('conversation_participants')
-    .select(`
-      *,
-      conversations (
-        id,
-        name,
-        is_group,
-        created_at,
-        updated_at
-      )
-    `)
-    .eq('user_id', userId)
-    .eq('is_active', true)
-
-  if (error) throw error
-  return data
+  console.log(`📋 Loading conversations for user: ${userId}`)
+  
+  try {
+    const { data, error } = await supabase
+      .from('conversation_participants')
+      .select(`
+        conversation_id,
+        joined_at,
+        conversations!inner (
+          id,
+          name,
+          is_group,
+          access_code,
+          created_by,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: false })
+    
+    if (error) {
+      console.error('❌ Failed to load conversations:', error)
+      throw error
+    }
+    
+    const conversations = data?.map(item => (item as any).conversations) || []
+    console.log(`✅ Loaded ${conversations.length} conversations`)
+    
+    return conversations
+  } catch (error) {
+    console.error('❌ getUserConversations exception:', error)
+    throw error
+  }
 }
 
 // Create new conversation with access code
@@ -787,45 +805,6 @@ export const joinConversation = async (accessCode: string, userId: string) => {
   if (error) throw error
 
   return { conversation, participant: data }
-}
-
-// Get user's conversations
-export const getUserConversations = async (userId: string) => {
-  console.log(`📋 Loading conversations for user: ${userId}`)
-  
-  try {
-    const { data, error } = await supabase
-      .from('conversation_participants')
-      .select(`
-        conversation_id,
-        joined_at,
-        conversations!inner (
-          id,
-          name,
-          is_group,
-          access_code,
-          created_by,
-          created_at,
-          updated_at
-        )
-      `)
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('joined_at', { ascending: false })
-    
-    if (error) {
-      console.error('❌ Failed to load conversations:', error)
-      throw error
-    }
-    
-    const conversations = data?.map(item => (item as any).conversations) || []
-    console.log(`✅ Loaded ${conversations.length} conversations`)
-    
-    return conversations
-  } catch (error) {
-    console.error('❌ getUserConversations exception:', error)
-    throw error
-  }
 }
 
 // Search users by username or display name
