@@ -695,7 +695,9 @@ export const searchUsers = async (query: string, currentUserId: string) => {
     .select('id, username, display_name, avatar_url, status, last_seen')
     .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
     .neq('id', currentUserId)
-    .limit(20)
+    .order('status', { ascending: false }) // Online users first
+    .order('last_seen', { ascending: false }) // Then by last seen
+    .limit(50) // Increased from 20 to 50
 
   if (error) throw error
   return data || []

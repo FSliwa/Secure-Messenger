@@ -240,7 +240,12 @@ export function LoginCard({ onSuccess, onSwitchToSignUp }: LoginProps) {
 
       console.log('👤 User object created:', userObject.username)
       
-      toast.success('Welcome back!')
+      toast.success('Welcome back! Redirecting to dashboard...', {
+        duration: 2000
+      })
+      
+      // Small delay for smooth transition
+      await new Promise(resolve => setTimeout(resolve, 500))
       
       console.log('���� Calling success callback...')
       onSuccess?.(userObject)
