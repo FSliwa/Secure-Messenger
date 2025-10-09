@@ -21,6 +21,7 @@ import { supabase, signOut, updateUserStatus } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
 import { requireAuthentication, validateDashboardAccess } from "@/lib/auth-guards";
+import { trackDeviceLogin } from "@/lib/device-tracking";
 
 type AppState = 'database-init' | 'landing' | 'login' | 'dashboard' | 'reset-password' | 'auth-callback';
 
@@ -210,6 +211,13 @@ function AppContent() {
       await updateUserStatus(user.id, 'online');
     } catch (error) {
       console.error('Failed to update online status:', error);
+    }
+    
+    // Track device login
+    try {
+      await trackDeviceLogin(user.id);
+    } catch (error) {
+      console.error('Failed to track device login:', error);
     }
   };
 
