@@ -5,28 +5,28 @@
 -- Cel: Poprawa wydajności wyszukiwania użytkowników
 -- ============================================================================
 
--- 1. Indeks dla wyszukiwania po username (jeśli nie istnieje)
+-- KROK 1: Włącz rozszerzenie pg_trgm (MUSI BYĆ PIERWSZE!)
 -- ============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_users_username_search 
-ON public.users USING gin (username gin_trgm_ops);
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- 2. Indeks dla wyszukiwania po display_name (jeśli nie istnieje)
--- ============================================================================
-
-CREATE INDEX IF NOT EXISTS idx_users_display_name_search 
-ON public.users USING gin (display_name gin_trgm_ops);
-
--- 3. Indeks kompozytowy dla sortowania po status i last_seen
+-- KROK 2: Indeks kompozytowy dla sortowania po status i last_seen
 -- ============================================================================
 
 CREATE INDEX IF NOT EXISTS idx_users_status_last_seen 
 ON public.users(status DESC, last_seen DESC);
 
--- 4. Włącz rozszerzenie pg_trgm dla lepszego wyszukiwania tekstowego
+-- KROK 3: Indeks dla wyszukiwania po username (z pg_trgm)
 -- ============================================================================
 
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_users_username_search 
+ON public.users USING gin (username gin_trgm_ops);
+
+-- KROK 4: Indeks dla wyszukiwania po display_name (z pg_trgm)
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_users_display_name_search 
+ON public.users USING gin (display_name gin_trgm_ops);
 
 -- 5. Statystyki dla optymalizatora zapytań
 -- ============================================================================
