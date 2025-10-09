@@ -17,6 +17,7 @@ export function DatabaseHealthCheck() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(false)
 
   const checkDatabaseHealth = async () => {
     setIsChecking(true)
@@ -74,6 +75,7 @@ export function DatabaseHealthCheck() {
   }, [])
 
   if (!healthStatus && !isChecking) return null
+  if (isDismissed) return null
 
   if (isChecking) {
     return (
@@ -102,9 +104,19 @@ export function DatabaseHealthCheck() {
     <div className="fixed bottom-4 right-4 z-50">
       <Card className={`w-80 ${healthStatus.overall === 'error' ? 'border-destructive' : ''}`}>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Icon className={`h-5 w-5 ${iconColor}`} weight="fill" />
-            Database Status
+          <CardTitle className="flex items-center justify-between text-base">
+            <div className="flex items-center gap-2">
+              <Icon className={`h-5 w-5 ${iconColor}`} weight="fill" />
+              Database Status
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDismissed(true)}
+              className="h-6 w-6 p-0 hover:bg-muted"
+            >
+              ×
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">

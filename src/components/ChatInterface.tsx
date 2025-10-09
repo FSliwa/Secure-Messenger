@@ -34,6 +34,7 @@ import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { useNotificationHandler } from '@/hooks/useNotificationHandler'
+import { notificationSound } from '@/lib/notification-sound'
 import { VoiceRecorder } from '@/components/VoiceRecorder'
 import { VoiceMessage } from '@/components/VoiceMessage'
 import { EnhancedFileSharing } from '@/components/EnhancedFileSharing'
@@ -418,9 +419,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             const senderName = transformedMessage.senderName
             const conversationName = conversation.name || (conversation.is_group ? 'Group Chat' : 'Direct Message')
 
+            // Play notification sound (WhatsApp-style)
             if (hasMention) {
+              notificationSound.playMention()
               await notifyMention(senderName, messagePreview, conversationName)
             } else {
+              notificationSound.playMessageReceived()
               await notifyMessage(senderName, messagePreview, conversation.is_group ? conversationName : undefined)
             }
           } catch (error) {
