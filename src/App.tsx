@@ -12,6 +12,7 @@ import { DatabaseInit } from "@/components/DatabaseInit";
 import { PasswordResetHandler } from "@/components/PasswordResetHandler";
 import { AuthCallback } from "@/components/AuthCallback";
 import { BrowserCompatibilityCheck } from "@/components/BrowserCompatibilityCheck";
+import { DatabaseHealthCheck } from "@/components/DatabaseHealthCheck";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -323,6 +324,7 @@ function AppContent() {
     return (
       <>
         <Dashboard onLogout={handleLogout} currentUser={currentUser} />
+        <DatabaseHealthCheck />
         <Toaster position="top-center" />
       </>
     );
