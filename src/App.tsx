@@ -11,6 +11,7 @@ import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { DatabaseInit } from "@/components/DatabaseInit";
 import { PasswordResetHandler } from "@/components/PasswordResetHandler";
 import { AuthCallback } from "@/components/AuthCallback";
+import { BrowserCompatibilityCheck } from "@/components/BrowserCompatibilityCheck";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -327,6 +328,7 @@ function AppContent() {
   // Landing/Login screens
   return (
     <div className="min-h-screen bg-background">
+      <BrowserCompatibilityCheck />
       <Header onLoginClick={handleSwitchToLogin} />
       
       <main>

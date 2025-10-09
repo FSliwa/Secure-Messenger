@@ -1209,3 +1209,142 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================================
+   BROWSER COMPATIBILITY ENHANCEMENTS
+   ============================================================================ */
+
+/* CSS Grid fallback for older browsers */
+@supports not (display: grid) {
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .grid > * {
+    flex: 1 1 auto;
+  }
+}
+
+/* Flexbox gap fallback for Safari < 14.1 */
+@supports not (gap: 1rem) {
+  .flex.gap-2 > *:not(:last-child) {
+    margin-right: 0.5rem;
+  }
+  
+  .flex.gap-4 > *:not(:last-child) {
+    margin-right: 1rem;
+  }
+  
+  .grid.gap-4 > * {
+    margin-bottom: 1rem;
+    margin-right: 1rem;
+  }
+}
+
+/* Backdrop filter fallback */
+@supports not (backdrop-filter: blur(10px)) {
+  .backdrop-blur-sm {
+    background-color: rgba(var(--background-rgb), 0.95);
+  }
+  
+  .backdrop-blur {
+    background-color: rgba(var(--background-rgb), 0.98);
+  }
+}
+
+/* Sticky positioning fallback */
+@supports not (position: sticky) {
+  header[class*="sticky"] {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 50;
+  }
+}
+
+/* CSS custom properties fallback for IE11 (if needed) */
+@supports not (--custom: property) {
+  :root {
+    background: #ffffff;
+    color: #000000;
+  }
+  
+  .dark {
+    background: #000000;
+    color: #ffffff;
+  }
+}
+
+/* ============================================================================
+   ENHANCED MOBILE SUPPORT
+   ============================================================================ */
+
+/* Prevent horizontal scrolling on mobile */
+body {
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Better tap highlight colors */
+* {
+  -webkit-tap-highlight-color: rgba(66, 126, 234, 0.1);
+}
+
+/* Improve text rendering on all platforms */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1;
+  font-kerning: normal;
+}
+
+/* Fix for iOS input zoom */
+@media screen and (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents iOS zoom */
+  }
+}
+
+/* Better focus indicators for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support for Windows */
+@media (prefers-contrast: high) {
+  * {
+    border-color: currentColor !important;
+  }
+  
+  button {
+    border: 2px solid currentColor !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+}

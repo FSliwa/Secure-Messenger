@@ -4,8 +4,11 @@
 <head>
     <!-- Essential meta tags -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover, user-scalable=yes" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Mobile Web App Capable -->
+    <meta name="mobile-web-app-capable" content="yes" />
     
     <!-- Primary Meta Tags -->
     <title>SecureChat Pro - Commercial Grade Encrypted Messaging</title>
@@ -118,6 +121,13 @@
             // Polyfill for older browsers
             if (!supportsES6) {
                 console.warn('This browser may not support all features. Please update to a modern browser.');
+                document.body.innerHTML = '<div style="padding: 2rem; text-align: center; font-family: system-ui, -apple-system, sans-serif;"><h1 style="color: #dc2626; margin-bottom: 1rem;">Browser Not Supported</h1><p>Please update to a modern browser:<br><strong>Chrome 90+, Firefox 88+, Safari 14+, or Edge 90+</strong></p></div>';
+                return;
+            }
+            
+            // Fetch API polyfill for older browsers
+            if (typeof fetch === 'undefined') {
+                console.warn('Fetch API not available, some features may not work properly');
             }
             
             // Viewport height fix for mobile browsers

@@ -17,53 +17,163 @@
  */
 
 /**
- * Browser compatibility check
+ * Enhanced browser compatibility check with detailed browser detection
  */
 export function checkBrowserCompatibility(): { 
   compatible: boolean; 
   issues: string[];
+  warnings: string[];
+  browserInfo: {
+    name: string;
+    version: string;
+    isSupported: boolean;
+  };
   details: {
     crypto: boolean;
     localStorage: boolean;
     textEncoder: boolean;
+    promises: boolean;
+    fetch: boolean;
+    es6: boolean;
   };
 } {
   const issues: string[] = [];
+  const warnings: string[] = [];
   const details = {
     crypto: false,
     localStorage: false,
-    textEncoder: false
+    textEncoder: false,
+    promises: false,
+    fetch: false,
+    es6: false
   };
   
+  // Detect browser
+  const browserInfo = detectBrowser();
+  
+  // Check WebCrypto API
   if (typeof crypto === 'undefined' || !crypto.subtle) {
-    issues.push('WebCrypto API not available - use Chrome 37+, Firefox 34+, or Safari 11+');
+    issues.push('WebCrypto API not available. Please use: Chrome 37+, Firefox 34+, Safari 11+, or Edge 79+');
   } else {
     details.crypto = true;
   }
   
+  // Check localStorage
   try {
     if (typeof localStorage === 'undefined') {
-      issues.push('localStorage not available - disable private browsing mode');
+      issues.push('localStorage not available. Please disable private/incognito mode');
     } else {
-      localStorage.setItem('test', 'test');
-      localStorage.removeItem('test');
+      localStorage.setItem('__test__', 'test');
+      localStorage.removeItem('__test__');
       details.localStorage = true;
     }
   } catch (e) {
-    issues.push('localStorage is blocked - check browser privacy settings');
+    issues.push('localStorage is blocked. Check browser privacy settings or disable private browsing');
   }
   
+  // Check TextEncoder
   if (typeof TextEncoder === 'undefined') {
-    issues.push('TextEncoder not available - update your browser');
+    issues.push('TextEncoder not available. Please update your browser');
   } else {
     details.textEncoder = true;
+  }
+  
+  // Check Promises
+  if (typeof Promise === 'undefined') {
+    issues.push('Promises not supported. Update to a modern browser');
+  } else {
+    details.promises = true;
+  }
+  
+  // Check Fetch API
+  if (typeof fetch === 'undefined') {
+    warnings.push('Fetch API not available. Using fallback XHR');
+  } else {
+    details.fetch = true;
+  }
+  
+  // Check ES6 support
+  try {
+    new Function('(a = 0) => a');
+    details.es6 = true;
+  } catch (e) {
+    issues.push('ES6 not supported. Update to: Chrome 51+, Firefox 54+, Safari 10+, Edge 15+');
+  }
+  
+  // Browser-specific warnings
+  if (browserInfo.name === 'Safari' && parseInt(browserInfo.version) < 14) {
+    warnings.push('Safari version is old. Recommended: Safari 14+ for best experience');
+  }
+  
+  if (browserInfo.name === 'Firefox' && parseInt(browserInfo.version) < 88) {
+    warnings.push('Firefox version is old. Recommended: Firefox 88+ for best experience');
+  }
+  
+  if (browserInfo.name === 'IE') {
+    issues.push('Internet Explorer is not supported. Please use Edge, Chrome, Firefox, or Safari');
   }
   
   return {
     compatible: issues.length === 0,
     issues,
+    warnings,
+    browserInfo,
     details
   };
+}
+
+/**
+ * Detect browser name and version
+ */
+function detectBrowser(): { name: string; version: string; isSupported: boolean } {
+  const ua = navigator.userAgent;
+  let name = 'Unknown';
+  let version = '0';
+  let isSupported = false;
+  
+  // Chrome
+  if (ua.includes('Chrome') && !ua.includes('Edg')) {
+    name = 'Chrome';
+    const match = ua.match(/Chrome\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 90;
+  }
+  // Edge (Chromium)
+  else if (ua.includes('Edg/')) {
+    name = 'Edge';
+    const match = ua.match(/Edg\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 90;
+  }
+  // Firefox
+  else if (ua.includes('Firefox')) {
+    name = 'Firefox';
+    const match = ua.match(/Firefox\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 88;
+  }
+  // Safari
+  else if (ua.includes('Safari') && !ua.includes('Chrome')) {
+    name = 'Safari';
+    const match = ua.match(/Version\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 14;
+  }
+  // Opera
+  else if (ua.includes('OPR/')) {
+    name = 'Opera';
+    const match = ua.match(/OPR\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 76;
+  }
+  // IE
+  else if (ua.includes('MSIE') || ua.includes('Trident/')) {
+    name = 'IE';
+    version = '11';
+    isSupported = false;
+  }
+  
+  return { name, version, isSupported };
 }
 
 export interface KeyPair {
