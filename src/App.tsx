@@ -16,6 +16,7 @@ import { DatabaseHealthCheck } from "@/components/DatabaseHealthCheck";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { DeviceProvider } from "@/contexts/DeviceContext";
 import { supabase, signOut, updateUserStatus } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
@@ -423,11 +424,13 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <LanguageProvider>
-        <NotificationProvider>
-          <AppContent />
-        </NotificationProvider>
-      </LanguageProvider>
+      <DeviceProvider>
+        <LanguageProvider>
+          <NotificationProvider>
+            <AppContent />
+          </NotificationProvider>
+        </LanguageProvider>
+      </DeviceProvider>
     </ThemeProvider>
   );
 }
