@@ -4,6 +4,7 @@ import { ChatInterface } from './ChatInterface'
 import { ProfileSettings } from './ProfileSettings'
 import { EnhancedSecurityInitializer } from './EnhancedSecurityInitializer'
 import { ActivityTracker } from './ActivityTracker'
+import { UserPresenceSync } from './UserPresenceSync'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { NotificationSettings } from './NotificationSettings'
@@ -97,6 +98,9 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
     <div className="min-h-screen bg-background">
       {/* Activity Tracker - monitors user presence */}
       <ActivityTracker userId={currentUser.id} />
+      
+      {/* User Presence Sync - realtime status updates for all users */}
+      <UserPresenceSync />
       
       {/* Header - Full Width Messenger Style */}
       <header className="sticky top-0 z-50 w-full bg-card border-b border-border/40 shadow-sm">
