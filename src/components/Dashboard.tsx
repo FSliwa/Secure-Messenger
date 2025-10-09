@@ -99,8 +99,8 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
       {/* Activity Tracker - monitors user presence */}
       <ActivityTracker userId={currentUser.id} />
       
-      {/* User Presence Sync - realtime status updates for all users */}
-      <UserPresenceSync />
+      {/* User Presence Sync - temporarily disabled due to WebSocket issues */}
+      {/* <UserPresenceSync /> */}
       
       {/* Header - Full Width Messenger Style */}
       <header className="sticky top-0 z-50 w-full bg-card border-b border-border/40 shadow-sm">
