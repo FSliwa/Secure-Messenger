@@ -108,21 +108,9 @@
     <script>
         // Feature detection and polyfills
         (function() {
-            // Check for modern JavaScript support
-            var supportsES6 = (function() {
-                try {
-                    new Function("(a = 0) => a");
-                    return true;
-                } catch (err) {
-                    return false;
-                }
-            })();
-            
-            // Polyfill for older browsers
-            if (!supportsES6) {
-                console.warn('This browser may not support all features. Please update to a modern browser.');
-                document.body.innerHTML = '<div style="padding: 2rem; text-align: center; font-family: system-ui, -apple-system, sans-serif;"><h1 style="color: #dc2626; margin-bottom: 1rem;">Browser Not Supported</h1><p>Please update to a modern browser:<br><strong>Chrome 90+, Firefox 88+, Safari 14+, or Edge 90+</strong></p></div>';
-                return;
+            // Basic feature detection - only warn, don't block
+            if (typeof Promise === 'undefined') {
+                console.warn('This browser is very old and may not work properly. Please update to a modern browser.');
             }
             
             // Fetch API polyfill for older browsers

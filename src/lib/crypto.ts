@@ -78,9 +78,10 @@ export function checkBrowserCompatibility(): {
     details.textEncoder = true;
   }
   
-  // Check Promises
+  // Check Promises (warning only, not blocking)
   if (typeof Promise === 'undefined') {
-    issues.push('Promises not supported. Update to a modern browser');
+    warnings.push('Promises not supported. Some features may not work. Update to a modern browser');
+    details.promises = false;
   } else {
     details.promises = true;
   }
@@ -92,12 +93,13 @@ export function checkBrowserCompatibility(): {
     details.fetch = true;
   }
   
-  // Check ES6 support
+  // Check ES6 support (warning only, not blocking)
   try {
     new Function('(a = 0) => a');
     details.es6 = true;
   } catch (e) {
-    issues.push('ES6 not supported. Update to: Chrome 51+, Firefox 54+, Safari 10+, Edge 15+');
+    warnings.push('Some ES6 features may not work. Consider updating your browser for best experience.');
+    details.es6 = false;
   }
   
   // Browser-specific warnings
@@ -113,10 +115,22 @@ export function checkBrowserCompatibility(): {
     issues.push('Internet Explorer is not supported. Please use Edge, Chrome, Firefox, or Safari');
   }
   
+  // Only block if critical APIs are missing (WebCrypto, localStorage, TextEncoder)
+  // Other features like ES6, Fetch, Promises are nice-to-have
+  const criticalIssues = issues.filter(issue => 
+    issue.includes('WebCrypto') || 
+    issue.includes('localStorage') || 
+    issue.includes('TextEncoder') ||
+    issue.includes('Internet Explorer')
+  );
+  
+  // Non-critical issues become warnings
+  const nonCriticalIssues = issues.filter(i => !criticalIssues.includes(i));
+  
   return {
-    compatible: issues.length === 0,
-    issues,
-    warnings,
+    compatible: criticalIssues.length === 0, // Block only for critical APIs
+    issues: criticalIssues,
+    warnings: [...warnings, ...nonCriticalIssues],
     browserInfo,
     details
   };
