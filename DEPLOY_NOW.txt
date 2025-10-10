@@ -1,0 +1,79 @@
+═══════════════════════════════════════════════════════════
+  🚀 KOMENDY DO AKTUALIZACJI SERWERA - SKOPIUJ I WKLEJ
+═══════════════════════════════════════════════════════════
+
+KROK 1: ZALOGUJ SIĘ NA SERWER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ssh admin@5.22.223.49
+
+(Wpisz hasło: MIlik112)
+
+
+KROK 2: AKTUALIZUJ APLIKACJĘ (SKOPIUJ CAŁOŚĆ)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+cd /opt/Secure-Messenger && \
+git pull origin main && \
+npm install && \
+npm run build && \
+sudo cp -r dist/* /usr/share/nginx/html/ && \
+sudo systemctl restart nginx && \
+echo "" && \
+echo "═══════════════════════════════════════════════" && \
+echo "  ✅ DEPLOYMENT ZAKOŃCZONY POMYŚLNIE!" && \
+echo "═══════════════════════════════════════════════" && \
+echo "" && \
+echo "🌐 Aplikacja dostępna: https://secure-messenger.info" && \
+echo "" && \
+systemctl status nginx --no-pager -l
+
+
+KROK 3: WERYFIKACJA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Otwórz: https://secure-messenger.info
+2. Naciśnij: Ctrl + Shift + R (force refresh)
+3. F12 → Console
+4. Otwórz konwersację
+5. Sprawdź logi:
+   ✅ "📨 Loading messages for conversation"
+   ✅ "✅ Loaded X messages for conversation"
+   ❌ NIE POWINNO BYĆ: "Failed to load messages"
+
+
+═══════════════════════════════════════════════════════════
+  📊 CO ZOSTAŁO NAPRAWIONE
+═══════════════════════════════════════════════════════════
+
+✅ "Failed to load messages" - naprawiony raz na zawsze
+✅ Graceful error handling dla RLS policies
+✅ Puste konwersacje nie pokazują błędu
+✅ Realtime subscriptions działają zawsze
+✅ Rozszerzone logowanie dla debugowania
+
+Commit: bad6d33
+Files: src/lib/supabase.ts, src/components/ChatInterface.tsx
+Status: ✅ Pushed to GitHub
+
+
+═══════════════════════════════════════════════════════════
+  🔧 JEŚLI COŚ NIE DZIAŁA
+═══════════════════════════════════════════════════════════
+
+Sprawdź build:
+  cd /opt/Secure-Messenger && ls -la dist/
+
+Sprawdź Nginx:
+  sudo systemctl status nginx
+  sudo nginx -t
+
+Sprawdź logi:
+  sudo tail -f /var/log/nginx/error.log
+
+Zobacz szczegóły:
+  cat SERVER_UPDATE_INSTRUCTIONS.md
+
+
+═══════════════════════════════════════════════════════════
+
