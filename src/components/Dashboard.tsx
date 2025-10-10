@@ -19,6 +19,7 @@ import {
 } from '@phosphor-icons/react'
 import { getStoredKeys, KeyPair } from '@/lib/crypto'
 import { toast } from 'sonner'
+import { useUserStatus } from '@/hooks/useUserStatus'
 
 interface User {
   id: string;
@@ -40,6 +41,13 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const [showSecurityInitializer, setShowSecurityInitializer] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [showNotificationDemo, setShowNotificationDemo] = useState(false)
+
+  // Automatic user status management (online/away/offline)
+  useUserStatus({
+    userId: currentUser?.id || '',
+    enabled: !!currentUser?.id,
+    heartbeatInterval: 30 // Update status every 30 seconds
+  })
 
   useEffect(() => {
     const loadCryptoKeys = async () => {
