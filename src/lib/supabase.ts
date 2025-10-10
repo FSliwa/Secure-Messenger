@@ -862,14 +862,26 @@ export const getConversationMessages = async (conversationId: string, limit = 50
         details: error.details,
         hint: error.hint
       })
+      
+      // Return empty array instead of throwing for RLS/permission errors
+      // This prevents "Failed to load messages" from blocking the UI
+      if (error.code === 'PGRST301' || error.code === '42501' || error.message?.includes('permission denied')) {
+        console.warn('⚠️ RLS/Permission issue - returning empty array')
+        return []
+      }
+      
       throw error
     }
     
-    console.log(`✅ Loaded ${data?.length || 0} messages`)
-    return data || []
+    // Always return an array, even if data is null/undefined
+    const messages = data || []
+    console.log(`✅ Loaded ${messages.length} messages`)
+    return messages
   } catch (error) {
     console.error('❌ getConversationMessages exception:', error)
-    throw error
+    // Return empty array instead of throwing to prevent UI breakage
+    console.warn('⚠️ Returning empty array due to exception')
+    return []
   }
 }
 

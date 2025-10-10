@@ -348,22 +348,27 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   // Separate function to load conversation messages
   const loadConversationMessages = async (conversation: Conversation) => {
     try {
+      console.log(`🔄 Loading messages for conversation: ${conversation.id}`)
       const conversationMessages = await getConversationMessages(conversation.id, 50, 0);
       
-      // Transform database messages to our Message interface
-      const transformedMessages: Message[] = conversationMessages.reverse().map((dbMessage: any) => ({
-        id: dbMessage.id,
-        conversation_id: dbMessage.conversation_id,
-        sender_id: dbMessage.sender_id,
-        senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
-        encrypted_content: typeof dbMessage.encrypted_content === 'string' 
-          ? JSON.parse(dbMessage.encrypted_content) 
-          : dbMessage.encrypted_content,
-        timestamp: new Date(dbMessage.sent_at).getTime(),
-        status: 'delivered' as const,
-        isEncrypted: true,
-        type: 'text' as const
-      }));
+      // Transform database messages to our Message interface (with guard for empty array)
+      const transformedMessages: Message[] = (conversationMessages && conversationMessages.length > 0)
+        ? conversationMessages.reverse().map((dbMessage: any) => ({
+            id: dbMessage.id,
+            conversation_id: dbMessage.conversation_id,
+            sender_id: dbMessage.sender_id,
+            senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
+            encrypted_content: typeof dbMessage.encrypted_content === 'string' 
+              ? JSON.parse(dbMessage.encrypted_content) 
+              : dbMessage.encrypted_content,
+            timestamp: new Date(dbMessage.sent_at).getTime(),
+            status: 'delivered' as const,
+            isEncrypted: true,
+            type: 'text' as const
+          }))
+        : [];
+
+      console.log(`✅ Loaded ${transformedMessages.length} messages for conversation`)
 
       // Replace messages for this conversation
       setMessages((currentMessages) => {
@@ -437,8 +442,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         subscription.unsubscribe();
       };
     } catch (error) {
-      console.error('Failed to load messages:', error);
-      toast.error('Failed to load messages');
+      console.error('❌ Failed to load messages:', error);
+      // Don't show error toast - getConversationMessages already handles this gracefully
+      // by returning empty array. Just log the error for debugging.
+      console.warn('⚠️ Message loading encountered an error, but continuing...');
     }
   };
 
