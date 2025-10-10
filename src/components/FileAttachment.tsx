@@ -432,13 +432,18 @@ export function FileAttachment({
             <Button onClick={() => fileInputRef.current?.click()}>
               Choose Files
             </Button>
+            <label htmlFor="file-attachment-input" className="sr-only">
+              Select files to attach
+            </label>
             <input
+              id="file-attachment-input"
               ref={fileInputRef}
               type="file"
               multiple
               accept={allowedTypes.join(',')}
               onChange={handleFileSelect}
               className="hidden"
+              aria-label="Select files to attach"
             />
             <div className="mt-4 text-xs text-muted-foreground">
               <p>Max {maxFiles} files, {maxFileSize}MB each</p>

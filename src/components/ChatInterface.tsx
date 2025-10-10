@@ -1135,7 +1135,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 
                 <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
                   <DialogTrigger asChild>
-                    <button className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+                    <button 
+                      className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                      aria-label="Create new conversation"
+                    >
                       <Plus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </DialogTrigger>
@@ -1179,7 +1182,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
                 <Dialog open={showJoinConversation} onOpenChange={setShowJoinConversation}>
                   <DialogTrigger asChild>
-                    <button className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+                    <button 
+                      className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                      aria-label="Join conversation with access code"
+                    >
                       <UserPlus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </DialogTrigger>
@@ -1336,6 +1342,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                             navigator.clipboard.writeText(conversation.access_code!)
                             toast.success(t.accessCodeCopied)
                           }}
+                          aria-label="Copy access code"
                         >
                           <Copy className="w-3 h-3" />
                         </button>

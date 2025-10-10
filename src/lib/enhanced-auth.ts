@@ -183,7 +183,7 @@ export async function enhancedSignIn(options: LoginOptions): Promise<EnhancedAut
           lockoutInfo: {
             isLocked: true,
             remainingTime: 30,
-            reason: LOCKOUT_REASONS.TOO_MANY_FAILED_LOGINS
+            reason: LOCKOUT_REASONS.FAILED_LOGIN
           }
         };
       }
