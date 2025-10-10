@@ -55,9 +55,13 @@ CREATE POLICY conversations_delete
 -- 2. FIX USER STATUS UPDATES
 -- ============================================================================
 
--- Drop old status update policies if exist
-DROP POLICY IF EXISTS users_update_own_status ON users;
+-- Drop ALL old user policies first (idempotent)
+DROP POLICY IF EXISTS users_select ON users;
+DROP POLICY IF EXISTS users_insert ON users;
 DROP POLICY IF EXISTS users_update ON users;
+DROP POLICY IF EXISTS users_update_own_status ON users;
+DROP POLICY IF EXISTS users_delete ON users;
+DROP POLICY IF EXISTS view_users ON users;
 
 -- Recreate users policies with status update support
 
