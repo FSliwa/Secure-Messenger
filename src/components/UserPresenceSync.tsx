@@ -2,77 +2,75 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 /**
- * Syncs user presence status in realtime with fallback to polling
- * - Tries WebSocket realtime first (requires HTTPS)
- * - Falls back to polling if WebSocket not available
+ * Syncs user presence status in realtime with a robust fallback to polling.
+ * - Prioritizes WebSocket realtime connection (requires HTTPS).
+ * - Automatically falls back to polling if WebSocket fails for ANY reason 
+ *   (e.g., non-HTTPS environment, network issues, Supabase URL misconfiguration).
+ * - Prevents application crash by handling WebSocket errors gracefully.
  */
 export function UserPresenceSync() {
-  const [realtimeAvailable, setRealtimeAvailable] = useState(true)
+  const [usePolling, setUsePolling] = useState(false)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  
+  const subscriptionRef = useRef<any>(null)
+
   useEffect(() => {
-    console.log('🔔 UserPresenceSync: Initializing presence sync')
+    console.log('🔔 UserPresenceSync: Initializing presence sync...')
     
-    // Check if we're on HTTPS (required for WebSocket)
-    const isSecure = window.location.protocol === 'https:' || 
-                     window.location.hostname === 'localhost'
-    
-    if (!isSecure) {
-      console.warn('⚠️  UserPresenceSync: Not on HTTPS, WebSocket may not work. Using polling fallback.')
-      setRealtimeAvailable(false)
+    // Cleanup function to be called on unmount or before re-running
+    const cleanup = () => {
+      console.log('🔔 UserPresenceSync: Cleaning up...')
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe()
+        subscriptionRef.current = null
+      }
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
     }
 
-    let subscription: any = null
-
-    // Try WebSocket realtime subscription
-    if (isSecure) {
-      console.log('🔔 UserPresenceSync: Attempting WebSocket realtime subscription')
+    // Attempt WebSocket Realtime Subscription
+    const tryRealtime = () => {
+      console.log('🔔 UserPresenceSync: Attempting WebSocket realtime subscription...')
       
-      subscription = supabase
-        .channel('users-presence-sync')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'users'
-          },
-          (payload) => {
-            console.log('👤 User status changed (realtime):', {
-              userId: payload.new.id,
-              username: payload.new.username,
-              status: payload.new.status,
-              lastSeen: payload.new.last_seen
-            })
-            
-            // Dispatch custom event for other components to listen
-            window.dispatchEvent(new CustomEvent('user-status-changed', {
-              detail: {
-                userId: payload.new.id,
-                status: payload.new.status,
-                lastSeen: payload.new.last_seen,
-                username: payload.new.username
-              }
-            }))
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ UserPresenceSync: WebSocket realtime active')
-            setRealtimeAvailable(true)
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ UserPresenceSync: WebSocket error, falling back to polling')
-            setRealtimeAvailable(false)
-          } else if (status === 'TIMED_OUT') {
-            console.error('⏱️  UserPresenceSync: WebSocket timeout, falling back to polling')
-            setRealtimeAvailable(false)
-          }
-        })
+      try {
+        subscriptionRef.current = supabase
+          .channel('users-presence-sync')
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'users' },
+            (payload) => {
+              console.log('👤 User status changed (realtime):', payload.new)
+              window.dispatchEvent(new CustomEvent('user-status-changed', {
+                detail: {
+                  userId: payload.new.id,
+                  status: payload.new.status,
+                  lastSeen: payload.new.last_seen,
+                  username: payload.new.username
+                }
+              }))
+            }
+          )
+          .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('✅ UserPresenceSync: WebSocket realtime active.')
+              setUsePolling(false) // Ensure polling is off
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
+              console.error('❌ UserPresenceSync: WebSocket error, falling back to polling.', err)
+              cleanup() // Clean up failed subscription
+              setUsePolling(true) // Switch to polling
+            }
+          })
+      } catch (error) {
+        console.error('❌ UserPresenceSync: Critical error during WebSocket setup, falling back to polling.', error)
+        cleanup() // Clean up any partial setup
+        setUsePolling(true) // Switch to polling
+      }
     }
 
-    // Fallback: Polling when WebSocket is not available
-    if (!realtimeAvailable || !isSecure) {
-      console.log('🔄 UserPresenceSync: Using polling fallback (every 30 seconds)')
+    // Polling Fallback Logic
+    const startPolling = () => {
+      console.log('🔄 UserPresenceSync: Using polling fallback (every 30 seconds).')
       
       let previousStatuses: Record<string, string> = {}
       
@@ -87,17 +85,9 @@ export function UserPresenceSync() {
             return
           }
           
-          // Check for status changes
           users?.forEach(user => {
             if (previousStatuses[user.id] && previousStatuses[user.id] !== user.status) {
-              console.log('👤 User status changed (polling):', {
-                userId: user.id,
-                username: user.username,
-                status: user.status,
-                oldStatus: previousStatuses[user.id]
-              })
-              
-              // Dispatch event
+              console.log('👤 User status changed (polling):', user)
               window.dispatchEvent(new CustomEvent('user-status-changed', {
                 detail: {
                   userId: user.id,
@@ -107,7 +97,6 @@ export function UserPresenceSync() {
                 }
               }))
             }
-            
             previousStatuses[user.id] = user.status
           })
         } catch (error) {
@@ -115,27 +104,19 @@ export function UserPresenceSync() {
         }
       }
       
-      // Initial poll
-      pollUserStatuses()
-      
-      // Poll every 30 seconds
+      pollUserStatuses() // Initial poll
       pollingIntervalRef.current = setInterval(pollUserStatuses, 30000)
     }
 
-    // Cleanup on unmount
-    return () => {
-      console.log('🔔 UserPresenceSync: Cleaning up')
-      
-      if (subscription) {
-        subscription.unsubscribe()
-      }
-      
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-        pollingIntervalRef.current = null
-      }
+    if (usePolling) {
+      startPolling()
+    } else {
+      tryRealtime()
     }
-  }, [realtimeAvailable])
+
+    // Cleanup on component unmount
+    return cleanup
+  }, [usePolling])
 
   // This component doesn't render anything
   return null
