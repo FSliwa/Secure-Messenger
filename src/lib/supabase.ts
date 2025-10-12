@@ -572,7 +572,7 @@ export const getUserConversations = async (userId: string) => {
       .select(`
         conversation_id,
         joined_at,
-        conversations!inner (
+        conversations:conversations!inner (
           id,
           name,
           is_group,
@@ -580,10 +580,10 @@ export const getUserConversations = async (userId: string) => {
           created_by,
           created_at,
           updated_at,
-          conversation_participants!inner (
+          conversation_participants:conversation_participants!inner (
             user_id,
             is_active,
-            users!inner (
+            users:users!inner (
               id,
               username,
               display_name,
