@@ -660,98 +660,29 @@ export const createDirectMessage = async (
   createdBy: string,
   recipientId: string,
   accessCode: string
-) => {
+): Promise<Conversation> => {
   try {
-    console.log(`💬 Creating direct message: ${createdBy} → ${recipientId}`)
+    console.log(`💬 Calling RPC to create/get direct message: ${createdBy} → ${recipientId}`)
     
-    // Check if conversation already exists between these two users
-    const { data: existing, error: existingError } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id, conversations!inner(id, name, is_group, access_code, created_by, created_at, updated_at)')
-      .eq('user_id', createdBy)
-      .eq('conversations.is_group', false)
-      .eq('is_active', true)
-    
-    if (existingError) {
-      console.error('❌ Error checking existing conversations:', existingError)
-    }
-    
-    if (existing && existing.length > 0) {
-      // Check if recipient is also in any of these conversations
-      for (const conv of existing) {
-        const { data: recipientParticipant } = await supabase
-          .from('conversation_participants')
-          .select('id')
-          .eq('conversation_id', conv.conversation_id)
-          .eq('user_id', recipientId)
-          .eq('is_active', true)
-          .single()
-        
-        if (recipientParticipant) {
-          // Conversation already exists, return it
-          console.log(`✅ Found existing conversation: ${conv.conversation_id}`)
-          return (conv as any).conversations
-        }
-      }
-    }
-    
-    // Create new conversation
-    console.log(`💬 Creating new conversation...`)
-    const { data: conversation, error } = await supabase
-      .from('conversations')
-      .insert([{
-        name: null, // Direct messages don't need names
-        is_group: false,
-        created_by: createdBy,
-        access_code: accessCode,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
-      .select()
-      .single()
-    
+    const { data, error } = await supabase.rpc('create_direct_message', {
+      creator_id: createdBy,
+      recipient_id: recipientId,
+      access_code: accessCode
+    })
+
     if (error) {
-      console.error('❌ Failed to create conversation:', error)
+      console.error('❌ Failed to create/get direct message via RPC:', error)
       throw error
     }
-    
-    console.log(`✅ Conversation created: ${conversation.id}`)
-    
-    // Add BOTH users as participants
-    console.log(`👥 Adding both users as participants...`)
-    const { data: participants, error: participantsError } = await supabase
-      .from('conversation_participants')
-      .insert([
-        {
-          conversation_id: conversation.id,
-          user_id: createdBy,
-          joined_at: new Date().toISOString(),
-          is_active: true
-        },
-        {
-          conversation_id: conversation.id,
-          user_id: recipientId,
-          joined_at: new Date().toISOString(),
-          is_active: true
-        }
-      ])
-      .select()
-    
-    if (participantsError) {
-      console.error('❌ Failed to add participants:', participantsError)
-      console.error('Participants error details:', {
-        code: participantsError.code,
-        message: participantsError.message,
-        details: participantsError.details,
-        hint: participantsError.hint
-      })
-      throw participantsError
+
+    if (!data) {
+      throw new Error('RPC create_direct_message returned no data')
     }
     
-    console.log(`✅ Added ${participants?.length || 0} participants`)
-    console.log(`✅ Direct message conversation created successfully`)
-    
+    const conversation = data as Conversation;
+    console.log(`✅ RPC returned conversation: ${conversation.id}`)
     return conversation
+
   } catch (error) {
     console.error('❌ createDirectMessage exception:', error)
     throw error

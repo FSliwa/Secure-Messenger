@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -204,6 +204,49 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     closeVerification 
   } = useBiometricVerification(currentUser.id)
 
+  const reloadConversations = useCallback(async () => {
+    try {
+      console.log('🔄 Reloading conversations...')
+      const userConversations = await getUserConversations(currentUser.id)
+      
+      const loadedConversations = await Promise.all(
+        userConversations.map(async (item: any) => {
+          const conversation = item.conversations
+          let otherParticipant: Conversation['otherParticipant'] | undefined = undefined
+          
+          if (!conversation.is_group && item.conversations?.conversation_participants) {
+            const otherParticipantData = item.conversations.conversation_participants
+              .find((p: any) => p.user_id !== currentUser.id)
+            
+            if (otherParticipantData?.users) {
+              otherParticipant = {
+                id: otherParticipantData.users.id,
+                username: otherParticipantData.users.username,
+                display_name: otherParticipantData.users.display_name,
+                avatar_url: otherParticipantData.users.avatar_url,
+                status: otherParticipantData.users.status || 'offline',
+                public_key: otherParticipantData.users.public_key
+              }
+            }
+          }
+          
+          return {
+            ...conversation,
+            otherParticipant
+          }
+        })
+      )
+      
+      setConversations(loadedConversations)
+      console.log(`✅ Reloaded ${loadedConversations.length} conversations.`)
+      return loadedConversations
+    } catch (error) {
+      console.error('Failed to reload conversations:', error)
+      setConversations([])
+      return []
+    }
+  }, [currentUser.id])
+
   useEffect(() => {
     const loadKeys = async () => {
       const keys = await getStoredKeys()
@@ -214,61 +257,19 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }, [currentUser.id])
 
   useEffect(() => {
-    const loadConversations = async () => {
-      try {
-        const userConversations = await getUserConversations(currentUser.id)
-        
-        // Transform conversations with real participant data
-        const loadedConversations = await Promise.all(
-          userConversations.map(async (item: any) => {
-            const conversation = item.conversations
-            let otherParticipant: {
-              id: string
-              username: string
-              display_name: string | null
-              avatar_url: string | null
-              status: 'online' | 'offline' | 'away'
-              public_key: string
-            } | undefined = undefined
-            
-            // For direct messages, get the other participant
-            if (!conversation.is_group && item.conversations?.conversation_participants) {
-              const otherParticipantData = item.conversations.conversation_participants
-                .find((p: any) => p.user_id !== currentUser.id)
-              
-              if (otherParticipantData?.users) {
-                otherParticipant = {
-                  id: otherParticipantData.users.id,
-                  username: otherParticipantData.users.username,
-                  display_name: otherParticipantData.users.display_name,
-                  avatar_url: otherParticipantData.users.avatar_url,
-                  status: otherParticipantData.users.status || 'offline',
-                  public_key: otherParticipantData.users.public_key
-                }
-              }
-            }
-            
-            return {
-              ...conversation,
-              otherParticipant
-            }
-          })
-        )
-        
-        setConversations(loadedConversations)
-        
-        // Auto-select first conversation if available
-        if (loadedConversations.length > 0 && !activeConversation) {
-          setActiveConversation(loadedConversations[0])
+    reloadConversations().then(loadedConversations => {
+      // Improved auto-selection logic
+      setActiveConversation(prevActive => {
+        if (prevActive && loadedConversations.some(c => c.id === prevActive.id)) {
+          return prevActive; // Keep current if it still exists
         }
-      } catch (error) {
-        console.error('Failed to load conversations:', error)
-        setConversations([])
-      }
-    }
-
-    loadConversations()
-  }, [currentUser.id])
+        if (loadedConversations.length > 0) {
+          return loadedConversations[0]; // Otherwise, select the first one
+        }
+        return null;
+      });
+    });
+  }, [reloadConversations])
   
   // Realtime status updates - listen for user-status-changed events
   useEffect(() => {
@@ -304,9 +305,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       }
     }
     
-    window.addEventListener('user-status-changed', handleStatusChange)
-    return () => window.removeEventListener('user-status-changed', handleStatusChange)
-  }, [setConversations, activeConversation])
+    window.addEventListener('user-status-changed', handleStatusChange as EventListener)
+    return () => window.removeEventListener('user-status-changed', handleStatusChange as EventListener)
+  }, [activeConversation])
 
   const selectConversation = async (conversation: Conversation) => {
     try {
@@ -555,8 +556,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         accessCode
       )
 
-      // Add to local state
-      setConversations((prev) => [...(prev || []), conversation])
+      // Reload conversations from DB instead of manually adding to state
+      await reloadConversations()
       
       // Show access code to user
       toast.success(`${t.conversationCreated} ${accessCode}`, {
@@ -598,11 +599,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         accessCode
       )
 
-      // Add to local state
-      setConversations((prev) => [...(prev || []), conversation])
+      // Reload conversations from DB to ensure consistency
+      const reloaded = await reloadConversations()
+      const newConversation = reloaded.find(c => c.id === conversation.id)
       
-      // Set as active conversation
-      setActiveConversation(conversation)
+      // Set the newly created conversation as active
+      setActiveConversation(newConversation || null)
       
       toast.success(`Started conversation with ${targetUser.display_name || targetUser.username}!`, {
         duration: 5000
