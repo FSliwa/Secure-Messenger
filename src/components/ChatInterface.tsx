@@ -268,7 +268,45 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     }
 
     loadConversations()
-  }, [currentUser.id, setConversations])
+  }, [currentUser.id])
+  
+  // Realtime status updates - listen for user-status-changed events
+  useEffect(() => {
+    const handleStatusChange = (event: any) => {
+      const { userId, status } = event.detail
+      console.log(`🔔 Status changed: ${userId} → ${status}`)
+      
+      // Update conversations list with new status
+      setConversations(prev => 
+        prev.map(conv => {
+          if (conv.otherParticipant?.id === userId) {
+            return {
+              ...conv,
+              otherParticipant: {
+                ...conv.otherParticipant,
+                status: status
+              }
+            }
+          }
+          return conv
+        })
+      )
+      
+      // Update active conversation if it's the changed user
+      if (activeConversation?.otherParticipant?.id === userId) {
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          otherParticipant: prev.otherParticipant ? {
+            ...prev.otherParticipant,
+            status: status
+          } : undefined
+        } : null)
+      }
+    }
+    
+    window.addEventListener('user-status-changed', handleStatusChange)
+    return () => window.removeEventListener('user-status-changed', handleStatusChange)
+  }, [setConversations, activeConversation])
 
   const selectConversation = async (conversation: Conversation) => {
     try {
@@ -741,7 +779,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         )
       )
       
-      setShowEncryptionDialog(false)
+      // Show "100% Complete" for 1.5 seconds before closing dialog
+      setTimeout(() => {
+        setShowEncryptionDialog(false)
+      }, 1500)
       toast.success(t.voiceMessageRecorded)
       
     } catch (error) {
@@ -841,7 +882,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         )
       )
       
-      setShowEncryptionDialog(false)
+      // Show "100% Complete" for 1.5 seconds before closing dialog
+      setTimeout(() => {
+        setShowEncryptionDialog(false)
+      }, 1500)
       
     } catch (error) {
       console.error('Encryption failed:', error)
@@ -1672,7 +1716,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {encryptionProgress && (
+            {encryptionProgress ? (
               <>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -1683,6 +1727,19 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {encryptionProgress.message}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Initializing</span>
+                    <span>0%</span>
+                  </div>
+                  <Progress value={0} className="h-2 animate-pulse" />
+                </div>
+                <p className="text-sm text-muted-foreground animate-pulse">
+                  Preparing encryption...
                 </p>
               </>
             )}
