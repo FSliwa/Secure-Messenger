@@ -245,7 +245,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       setConversations([])
       return []
     }
-  }, [currentUser.id])
+  }, [currentUser.id, setConversations])
 
   useEffect(() => {
     const loadKeys = async () => {
@@ -307,7 +307,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     
     window.addEventListener('user-status-changed', handleStatusChange as EventListener)
     return () => window.removeEventListener('user-status-changed', handleStatusChange as EventListener)
-  }, [activeConversation])
+  }, [activeConversation, setConversations])
 
   const selectConversation = async (conversation: Conversation) => {
     try {
