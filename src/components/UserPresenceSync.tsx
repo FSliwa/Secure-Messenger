@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabase'
 
 /**
  * Syncs user presence status in realtime with a robust fallback to polling.
- * - Prioritizes WebSocket realtime connection (requires HTTPS).
- * - Automatically falls back to polling if WebSocket fails for ANY reason 
+ * - Prioritizes WebSocket realtime connection.
+ * - Automatically falls back to polling if WebSocket fails for ANY reason
  *   (e.g., non-HTTPS environment, network issues, Supabase URL misconfiguration).
  * - Prevents application crash by handling WebSocket errors gracefully.
  */
