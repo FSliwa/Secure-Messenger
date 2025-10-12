@@ -107,8 +107,8 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
       {/* Activity Tracker - monitors user presence */}
       <ActivityTracker userId={currentUser.id} />
       
-      {/* User Presence Sync - enables realtime status updates */}
-      <UserPresenceSync />
+      {/* User Presence Sync - RE-DISABLED until VITE_SUPABASE_URL is confirmed to use https:// */}
+      {/* <UserPresenceSync /> */}
       
       {/* Header - Full Width Messenger Style */}
       <header className="sticky top-0 z-50 w-full bg-card border-b border-border/40 shadow-sm">
