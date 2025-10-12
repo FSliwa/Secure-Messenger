@@ -579,7 +579,19 @@ export const getUserConversations = async (userId: string) => {
           access_code,
           created_by,
           created_at,
-          updated_at
+          updated_at,
+          conversation_participants!inner (
+            user_id,
+            is_active,
+            users!inner (
+              id,
+              username,
+              display_name,
+              avatar_url,
+              status,
+              last_seen
+            )
+          )
         )
       `)
       .eq('user_id', userId)

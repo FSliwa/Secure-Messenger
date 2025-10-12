@@ -97,14 +97,44 @@ export function useUserStatus({
       }
     }, heartbeatInterval * 1000);
 
-    // Setup inactivity detection
+    // Setup inactivity detection with comprehensive event coverage
     const activityEvents = [
+      // Mouse events
       'mousedown',
       'mousemove',
+      'click',
+      'wheel',
+      'contextmenu',
+      
+      // Keyboard events
+      'keydown',
       'keypress',
-      'scroll',
+      'keyup',
+      'input',
+      
+      // Touch events (mobile)
       'touchstart',
-      'click'
+      'touchmove',
+      'touchend',
+      
+      // Scroll
+      'scroll',
+      
+      // Focus events
+      'focus',
+      'focusin',
+      
+      // Modern pointer events (fallback for mouse + touch)
+      'pointerdown',
+      'pointermove',
+      
+      // Form events
+      'submit',
+      'change',
+      
+      // Drag & Drop
+      'dragstart',
+      'drop'
     ];
 
     // Reset timer on any activity
