@@ -589,7 +589,8 @@ export const getUserConversations = async (userId: string) => {
               display_name,
               avatar_url,
               status,
-              last_seen
+              last_seen,
+              public_key
             )
           )
         )

@@ -102,6 +102,7 @@ interface Conversation {
     display_name: string | null
     avatar_url: string | null
     status: 'online' | 'offline' | 'away'
+    public_key: string
   }
 }
 
@@ -227,6 +228,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
               display_name: string | null
               avatar_url: string | null
               status: 'online' | 'offline' | 'away'
+              public_key: string
             } | undefined = undefined
             
             // For direct messages, get the other participant
@@ -240,7 +242,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                   username: otherParticipantData.users.username,
                   display_name: otherParticipantData.users.display_name,
                   avatar_url: otherParticipantData.users.avatar_url,
-                  status: otherParticipantData.users.status || 'offline'
+                  status: otherParticipantData.users.status || 'offline',
+                  public_key: otherParticipantData.users.public_key
                 }
               }
             }
@@ -687,10 +690,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     setShowEncryptionDialog(true)
 
     try {
-      // Encrypt the voice data
+      // Get recipient public key from conversation participants
+      const recipientPublicKey = activeConversation.otherParticipant?.public_key
+      
+      if (!recipientPublicKey) {
+        throw new Error('Cannot find recipient encryption key. Please try starting a new conversation.')
+      }
+
+      // Encrypt the voice data with recipient's real public key
       const encryptedContent = await encryptMessage(
         voiceBase64,
-        'recipient-public-key', // Would get from conversation participants
+        recipientPublicKey,
         keyPair,
         (progress) => {
           setEncryptionProgress({
@@ -791,10 +801,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     setShowEncryptionDialog(true)
 
     try {
-      // Simulate encryption process
+      // Get recipient public key from conversation participants
+      const recipientPublicKey = activeConversation.otherParticipant?.public_key
+      
+      if (!recipientPublicKey) {
+        throw new Error('Cannot find recipient encryption key. Please try starting a new conversation.')
+      }
+
+      // Encrypt message with recipient's real public key
       const encryptedContent = await encryptMessage(
         messageToSend,
-        'recipient-public-key', // Would get from conversation participants
+        recipientPublicKey,
         keyPair,
         (progress) => {
           setEncryptionProgress(progress)
