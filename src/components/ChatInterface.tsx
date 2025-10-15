@@ -30,7 +30,9 @@ import {
   Microphone
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { useKV } from '@github/spark/hooks'
+// useKV is causing state management conflicts with remote data.
+// Replace with standard useState for data fetched from Supabase.
+// import { useKV } from '@github/spark/hooks' 
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { useNotificationHandler } from '@/hooks/useNotificationHandler'
@@ -128,8 +130,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const { t } = useLanguage()
   const { playNotificationSound, showNotification } = useNotifications()
   const { notifyMessage, notifyMention, notifyUserJoined, notifyUserLeft } = useNotificationHandler()
-  const [messages, setMessages] = useKV<Message[]>('chat-messages', [])
-  const [conversations, setConversations] = useKV<Conversation[]>('user-conversations', [])
+  // Użycie useState zamiast useKV
+  const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [isEncrypting, setIsEncrypting] = useState(false)
