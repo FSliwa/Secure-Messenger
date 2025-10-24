@@ -562,51 +562,106 @@ export const subscribeToMessages = (conversationId: string, callback: (message: 
 // Re-export enhanced sendMessage from message-operations (with validation, auto-delete, forwarding)
 export { sendMessage } from './message-operations'
 
-// Get conversations for user with enhanced logging
+// Get conversations for user with enhanced logging and proper participant data
 export const getUserConversations = async (userId: string) => {
   console.log(`📋 Loading conversations for user: ${userId}`)
   
   try {
-    const { data, error } = await supabase
+    // Get all conversations where user is a participant
+    const { data: participantData, error: participantError } = await supabase
       .from('conversation_participants')
-      .select(`
-        conversation_id,
-        joined_at,
-        conversations:conversations!inner (
-          id,
-          name,
-          is_group,
-          access_code,
-          created_by,
-          created_at,
-          updated_at,
-          conversation_participants:conversation_participants!inner (
-            user_id,
-            is_active,
-            users:users!inner (
-              id,
-              username,
-              display_name,
-              avatar_url,
-              status,
-              last_seen,
-              public_key
-            )
-          )
-        )
-      `)
+      .select('conversation_id')
       .eq('user_id', userId)
       .eq('is_active', true)
-      .order('joined_at', { ascending: false })
     
-    if (error) {
-      console.error('❌ Failed to load conversations:', error)
-      throw error
+    if (participantError) {
+      console.error('❌ Failed to load participant data:', participantError)
+      throw participantError
     }
+
+    if (!participantData || participantData.length === 0) {
+      console.log('📋 No conversations found for user')
+      return []
+    }
+
+    const conversationIds = participantData.map(p => p.conversation_id)
     
-    const conversations = data?.map(item => (item as any).conversations) || []
-    console.log(`✅ Loaded ${conversations.length} conversations`)
+    // Get conversation details
+    const { data: conversationsData, error: conversationsError } = await supabase
+      .from('conversations')
+      .select('*')
+      .in('id', conversationIds)
+      .order('updated_at', { ascending: false })
     
+    if (conversationsError) {
+      console.error('❌ Failed to load conversations:', conversationsError)
+      throw conversationsError
+    }
+
+    // For each conversation, get all participants with their user data
+    const conversations = await Promise.all(
+      (conversationsData || []).map(async (conversation) => {
+        const { data: participants, error: participantsError } = await supabase
+          .from('conversation_participants')
+          .select(`
+            user_id,
+            is_active,
+            joined_at
+          `)
+          .eq('conversation_id', conversation.id)
+          .eq('is_active', true)
+
+        if (participantsError) {
+          console.error(`❌ Failed to load participants for conversation ${conversation.id}:`, participantsError)
+          return conversation
+        }
+
+        // Get user details for all participants
+        const userIds = participants?.map(p => p.user_id) || []
+        
+        if (userIds.length === 0) {
+          return conversation
+        }
+
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, username, display_name, avatar_url, status, last_seen, public_key')
+          .in('id', userIds)
+
+        if (usersError) {
+          console.error(`❌ Failed to load user data for conversation ${conversation.id}:`, usersError)
+          return conversation
+        }
+
+        // For direct messages, find the other participant
+        let otherParticipant: any = undefined
+        if (!conversation.is_group && participants && participants.length === 2) {
+          const otherParticipantId = participants.find(p => p.user_id !== userId)?.user_id
+          if (otherParticipantId && users) {
+            const userData = users.find(u => u.id === otherParticipantId)
+            if (userData) {
+              otherParticipant = {
+                id: userData.id,
+                username: userData.username,
+                display_name: userData.display_name,
+                avatar_url: userData.avatar_url,
+                status: userData.status || 'offline',
+                last_seen: userData.last_seen,
+                public_key: userData.public_key
+              }
+            }
+          }
+        }
+
+        return {
+          ...conversation,
+          otherParticipant,
+          participants: users || []
+        }
+      })
+    )
+    
+    console.log(`✅ Loaded ${conversations.length} conversations with participant data`)
     return conversations
   } catch (error) {
     console.error('❌ getUserConversations exception:', error)
@@ -662,26 +717,107 @@ export const createDirectMessage = async (
   accessCode: string
 ): Promise<Conversation> => {
   try {
-    console.log(`💬 Calling RPC to create/get direct message: ${createdBy} → ${recipientId}`)
+    console.log(`💬 Creating direct message: ${createdBy} → ${recipientId}`)
     
-    const { data, error } = await supabase.rpc('create_direct_message', {
-      creator_id: createdBy,
-      recipient_id: recipientId,
-      access_code: accessCode
-    })
+    // First, check if a conversation already exists between these two users
+    const { data: existingParticipants, error: searchError } = await supabase
+      .from('conversation_participants')
+      .select(`
+        conversation_id,
+        conversations!inner (
+          id,
+          name,
+          is_group,
+          access_code,
+          created_by,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('user_id', createdBy)
+      .eq('is_active', true)
 
-    if (error) {
-      console.error('❌ Failed to create/get direct message via RPC:', error)
-      throw error
+    if (searchError) {
+      console.error('❌ Failed to search for existing conversations:', searchError)
+      throw searchError
     }
 
-    if (!data) {
-      throw new Error('RPC create_direct_message returned no data')
+    // Check if any of these conversations also has the recipient
+    if (existingParticipants && existingParticipants.length > 0) {
+      for (const participant of existingParticipants) {
+        const conv = (participant as any).conversations
+        
+        // Check if this is a direct message (not group) and has the recipient
+        if (!conv.is_group) {
+          const { data: otherParticipants, error: checkError } = await supabase
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', conv.id)
+            .eq('is_active', true)
+
+          if (!checkError && otherParticipants) {
+            const userIds = otherParticipants.map((p: any) => p.user_id)
+            
+            // If this conversation has exactly 2 participants (creator and recipient)
+            if (userIds.length === 2 && userIds.includes(recipientId)) {
+              console.log(`✅ Found existing conversation: ${conv.id}`)
+              return conv as Conversation
+            }
+          }
+        }
+      }
     }
+
+    // No existing conversation found, create a new one
+    console.log('📝 Creating new conversation...')
     
-    const conversation = data as Conversation;
-    console.log(`✅ RPC returned conversation: ${conversation.id}`)
-    return conversation
+    const { data: newConversation, error: createError } = await supabase
+      .from('conversations')
+      .insert([
+        {
+          name: null, // Direct messages don't have names
+          is_group: false,
+          created_by: createdBy,
+          access_code: accessCode,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+      ])
+      .select()
+      .single()
+
+    if (createError) {
+      console.error('❌ Failed to create conversation:', createError)
+      throw createError
+    }
+
+    console.log(`✅ Created conversation: ${newConversation.id}`)
+
+    // Add both participants
+    const { error: participantError } = await supabase
+      .from('conversation_participants')
+      .insert([
+        {
+          conversation_id: newConversation.id,
+          user_id: createdBy,
+          joined_at: new Date().toISOString(),
+          is_active: true
+        },
+        {
+          conversation_id: newConversation.id,
+          user_id: recipientId,
+          joined_at: new Date().toISOString(),
+          is_active: true
+        }
+      ])
+
+    if (participantError) {
+      console.error('❌ Failed to add participants:', participantError)
+      throw participantError
+    }
+
+    console.log(`✅ Added both participants to conversation`)
+    return newConversation as Conversation
 
   } catch (error) {
     console.error('❌ createDirectMessage exception:', error)

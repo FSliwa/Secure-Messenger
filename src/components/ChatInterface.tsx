@@ -60,7 +60,8 @@ import {
   subscribeToMessages,
   generateAccessCode,
   regenerateAccessCode,
-  updateUserStatus
+  updateUserStatus,
+  supabase
 } from '@/lib/supabase'
 import { BiometricVerificationDialog } from './BiometricVerificationDialog'
 import { MessageSearch } from './MessageSearch'
@@ -210,38 +211,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const reloadConversations = useCallback(async () => {
     try {
       console.log('🔄 Reloading conversations...')
-      const userConversations = await getUserConversations(currentUser.id)
+      const loadedConversations = await getUserConversations(currentUser.id)
       
-      const loadedConversations = await Promise.all(
-        userConversations.map(async (item: any) => {
-          const conversation = item.conversations
-          let otherParticipant: Conversation['otherParticipant'] | undefined = undefined
-          
-          if (!conversation.is_group && item.conversations?.conversation_participants) {
-            const otherParticipantData = item.conversations.conversation_participants
-              .find((p: any) => p.user_id !== currentUser.id)
-            
-            if (otherParticipantData?.users) {
-              otherParticipant = {
-                id: otherParticipantData.users.id,
-                username: otherParticipantData.users.username,
-                display_name: otherParticipantData.users.display_name,
-                avatar_url: otherParticipantData.users.avatar_url,
-                status: otherParticipantData.users.status || 'offline',
-                public_key: otherParticipantData.users.public_key
-              }
-            }
-          }
-          
-          return {
-            ...conversation,
-            otherParticipant
-          }
-        })
-      )
-      
+      console.log(`✅ Loaded ${loadedConversations.length} conversations with full data`)
       setConversations(loadedConversations)
-      console.log(`✅ Reloaded ${loadedConversations.length} conversations.`)
       return loadedConversations
     } catch (error) {
       console.error('Failed to reload conversations:', error)
@@ -302,15 +275,51 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           ...prev,
           otherParticipant: prev.otherParticipant ? {
             ...prev.otherParticipant,
-            status: status
+            status: status,
+            last_seen: event.detail.last_seen || prev.otherParticipant.last_seen
           } : undefined
         } : null)
       }
     }
     
     window.addEventListener('user-status-changed', handleStatusChange as EventListener)
-    return () => window.removeEventListener('user-status-changed', handleStatusChange as EventListener)
-  }, [activeConversation, setConversations])
+    
+    // Also subscribe to Supabase real-time updates for user status
+    const userIds = conversations?.map(c => c.otherParticipant?.id).filter(Boolean) || []
+    const channel = supabase
+      .channel('user-status-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users'
+        },
+        (payload) => {
+          const updatedUser = payload.new as any
+          
+          // Only update if it's one of our conversation participants
+          if (userIds.includes(updatedUser.id)) {
+            console.log('📊 Real-time user update:', updatedUser)
+            
+            // Dispatch custom event
+            window.dispatchEvent(new CustomEvent('user-status-changed', {
+              detail: {
+                userId: updatedUser.id,
+                status: updatedUser.status,
+                last_seen: updatedUser.last_seen
+              }
+            }))
+          }
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      window.removeEventListener('user-status-changed', handleStatusChange as EventListener)
+      supabase.removeChannel(channel)
+    }
+  }, [activeConversation, conversations, setConversations])
 
   const selectConversation = async (conversation: Conversation) => {
     try {
