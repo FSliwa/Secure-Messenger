@@ -99,42 +99,17 @@ export function useUserStatus({
 
     // Setup inactivity detection with comprehensive event coverage
     const activityEvents = [
-      // Mouse events
+      // Mouse events (reduced from multiple to essential)
       'mousedown',
-      'mousemove',
-      'click',
-      'wheel',
-      'contextmenu',
       
-      // Keyboard events
+      // Keyboard events (reduced)
       'keydown',
-      'keypress',
-      'keyup',
-      'input',
       
       // Touch events (mobile)
       'touchstart',
-      'touchmove',
-      'touchend',
       
       // Scroll
-      'scroll',
-      
-      // Focus events
-      'focus',
-      'focusin',
-      
-      // Modern pointer events (fallback for mouse + touch)
-      'pointerdown',
-      'pointermove',
-      
-      // Form events
-      'submit',
-      'change',
-      
-      // Drag & Drop
-      'dragstart',
-      'drop'
+      'scroll'
     ];
 
     // Reset timer on any activity
@@ -148,8 +123,15 @@ export function useUserStatus({
     // Handle visibility change (tab switch)
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Tab is hidden - don't set offline immediately
-        // Just stop the heartbeat
+        // Tab is hidden - set status to away after brief delay (30 seconds)
+        // This prevents immediate offline status when user briefly switches tabs
+        setTimeout(() => {
+          if (document.hidden) {
+            setAway();
+          }
+        }, 30000); // 30 seconds delay
+        
+        // Stop the heartbeat to conserve resources
         if (heartbeatIntervalRef.current) {
           clearInterval(heartbeatIntervalRef.current);
         }

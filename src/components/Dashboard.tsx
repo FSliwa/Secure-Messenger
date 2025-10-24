@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import { ChatInterface } from './ChatInterface'
 import { ProfileSettings } from './ProfileSettings'
 import { EnhancedSecurityInitializer } from './EnhancedSecurityInitializer'
-import { ActivityTracker } from './ActivityTracker'
 import { UserPresenceSync } from './UserPresenceSync'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
@@ -104,9 +103,6 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Activity Tracker - monitors user presence */}
-      <ActivityTracker userId={currentUser.id} />
-      
       {/* User Presence Sync - now with robust fallback, safe to enable */}
       <UserPresenceSync />
       

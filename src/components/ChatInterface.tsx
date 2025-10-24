@@ -1396,13 +1396,26 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       </div>
                       <span className="text-xs text-muted-foreground">{getLastMessageTime(conversation.id)}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground truncate">
-                        {getLastMessagePreview(conversation.id)}
-                      </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground truncate">
+                          {getLastMessagePreview(conversation.id)}
+                        </p>
+                        {conversation.otherParticipant?.status !== 'online' && conversation.otherParticipant?.last_seen && (
+                          <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {new Date(conversation.otherParticipant.last_seen).toLocaleString('pl-PL', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        )}
+                      </div>
                       {conversation.access_code && (
                         <button
-                          className="ml-2 text-xs text-primary hover:text-primary/80"
+                          className="ml-2 text-xs text-primary hover:text-primary/80 flex-shrink-0"
                           onClick={(e) => {
                             e.stopPropagation()
                             navigator.clipboard.writeText(conversation.access_code!)
@@ -1478,8 +1491,22 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>{t.activeNow}</span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        activeConversation.otherParticipant?.status === 'online' ? 'bg-green-500' :
+                        activeConversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                      }`}></div>
+                      <span>
+                        {activeConversation.otherParticipant?.status === 'online' ? t.activeNow :
+                         activeConversation.otherParticipant?.status === 'away' ? 'Zaraz wracam' :
+                         activeConversation.otherParticipant?.last_seen 
+                           ? `Ostatnio aktywny ${new Date(activeConversation.otherParticipant.last_seen).toLocaleDateString('pl-PL', { 
+                               month: 'short', 
+                               day: 'numeric',
+                               hour: '2-digit',
+                               minute: '2-digit'
+                             })}`
+                           : 'Offline'}
+                      </span>
                       <Lock className="w-3 h-3 ml-2" />
                       {/* Access Code Display */}
                       {activeConversation.access_code && (
