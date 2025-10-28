@@ -93,36 +93,26 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
     // Show multiple icons if multiple types are supported
     if (supportedTypes.length > 1) {
       return (
-        <div className="flex items-center gap-1">
-          {supportedTypes.includes('fingerprint') && <Fingerprint className="w-4 h-4" />}
-          {supportedTypes.includes('face') && <FaceMask className="w-4 h-4" />}
-          {supportedTypes.includes('iris') && <Eye className="w-4 h-4" />}
+        <div className="flex items-center gap-2">
+          {supportedTypes.includes('fingerprint') && <Fingerprint className="w-5 h-5 icon-enhanced" />}
+          {supportedTypes.includes('face') && <FaceMask className="w-5 h-5 icon-enhanced" />}
+          {supportedTypes.includes('iris') && <Eye className="w-5 h-5 icon-enhanced" />}
         </div>
       );
     }
     
     // Single icon based on primary type
     if (biometricType.includes('Face ID') || biometricType.includes('face')) {
-      return <FaceMask className="w-5 h-5 opacity-90" />;
+      return <FaceMask className="w-5 h-5 icon-enhanced" />;
     }
     if (biometricType.includes('iris') || biometricType.includes('eye')) {
-      return <Eye className="w-5 h-5 opacity-90" />;
+      return <Eye className="w-5 h-5 icon-enhanced" />;
     }
-    return <Fingerprint className="w-5 h-5 opacity-90" />;
+    return <Fingerprint className="w-5 h-5 icon-enhanced" />;
   };
 
   const getButtonText = () => {
-    if (supportedTypes.length > 1) {
-      return 'Sign in with Biometrics';
-    }
-    
-    if (biometricType.includes('Face ID') || biometricType.includes('face')) {
-      return 'Sign in with Face ID';
-    }
-    if (biometricType.includes('iris') || biometricType.includes('eye')) {
-      return 'Sign in with Iris';
-    }
-    return 'Sign in with Fingerprint';
+    return 'Sign in with Auth';
   };
 
   return (
@@ -131,7 +121,7 @@ export function BiometricLoginButton({ onSuccess, className }: BiometricLoginBut
       variant="outline"
       onClick={handleBiometricLogin}
       disabled={isLoading}
-      className={`w-full flex items-center gap-2 border-border hover:bg-muted/50 text-foreground facebook-button ${className || ''}`}
+      className={`w-full flex items-center gap-3 border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 text-foreground font-semibold facebook-button transition-all ${className || ''}`}
     >
       {isLoading ? (
         <>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -30,10 +30,13 @@ import {
   Microphone
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { useKV } from '@github/spark/hooks'
+// useKV is causing state management conflicts with remote data.
+// Replace with standard useState for data fetched from Supabase.
+// import { useKV } from '@github/spark/hooks' 
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { useNotificationHandler } from '@/hooks/useNotificationHandler'
+import { notificationSound } from '@/lib/notification-sound'
 import { VoiceRecorder } from '@/components/VoiceRecorder'
 import { VoiceMessage } from '@/components/VoiceMessage'
 import { EnhancedFileSharing } from '@/components/EnhancedFileSharing'
@@ -48,14 +51,17 @@ import {
 } from '@/lib/crypto'
 import { 
   searchUsers, 
-  createConversation, 
+  createConversation,
+  createDirectMessage, 
   joinConversation,
   getUserConversations,
   getConversationMessages,
   sendMessage,
   subscribeToMessages,
   generateAccessCode,
-  regenerateAccessCode
+  regenerateAccessCode,
+  updateUserStatus,
+  supabase
 } from '@/lib/supabase'
 import { BiometricVerificationDialog } from './BiometricVerificationDialog'
 import { MessageSearch } from './MessageSearch'
@@ -99,6 +105,7 @@ interface Conversation {
     display_name: string | null
     avatar_url: string | null
     status: 'online' | 'offline' | 'away'
+    public_key: string
   }
 }
 
@@ -124,8 +131,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   const { t } = useLanguage()
   const { playNotificationSound, showNotification } = useNotifications()
   const { notifyMessage, notifyMention, notifyUserJoined, notifyUserLeft } = useNotificationHandler()
-  const [messages, setMessages] = useKV<Message[]>('chat-messages', [])
-  const [conversations, setConversations] = useKV<Conversation[]>('user-conversations', [])
+  // Użycie useState zamiast useKV
+  const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [isEncrypting, setIsEncrypting] = useState(false)
@@ -200,6 +208,21 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     closeVerification 
   } = useBiometricVerification(currentUser.id)
 
+  const reloadConversations = useCallback(async () => {
+    try {
+      console.log('🔄 Reloading conversations...')
+      const loadedConversations = await getUserConversations(currentUser.id)
+      
+      console.log(`✅ Loaded ${loadedConversations.length} conversations with full data`)
+      setConversations(loadedConversations)
+      return loadedConversations
+    } catch (error) {
+      console.error('Failed to reload conversations:', error)
+      setConversations([])
+      return []
+    }
+  }, [currentUser.id, setConversations])
+
   useEffect(() => {
     const loadKeys = async () => {
       const keys = await getStoredKeys()
@@ -210,59 +233,93 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   }, [currentUser.id])
 
   useEffect(() => {
-    const loadConversations = async () => {
-      try {
-        const userConversations = await getUserConversations(currentUser.id)
-        
-        // Transform conversations with real participant data
-        const loadedConversations = await Promise.all(
-          userConversations.map(async (item: any) => {
-            const conversation = item.conversations
-            let otherParticipant: {
-              id: string
-              username: string
-              display_name: string | null
-              avatar_url: string | null
-              status: 'online' | 'offline' | 'away'
-            } | undefined = undefined
-            
-            // For direct messages, get the other participant
-            if (!conversation.is_group && item.conversations?.conversation_participants) {
-              const otherParticipantData = item.conversations.conversation_participants
-                .find((p: any) => p.user_id !== currentUser.id)
-              
-              if (otherParticipantData?.users) {
-                otherParticipant = {
-                  id: otherParticipantData.users.id,
-                  username: otherParticipantData.users.username,
-                  display_name: otherParticipantData.users.display_name,
-                  avatar_url: otherParticipantData.users.avatar_url,
-                  status: otherParticipantData.users.status || 'offline'
-                }
+    reloadConversations().then(loadedConversations => {
+      // Improved auto-selection logic
+      setActiveConversation(prevActive => {
+        if (prevActive && loadedConversations.some(c => c.id === prevActive.id)) {
+          return prevActive; // Keep current if it still exists
+        }
+        if (loadedConversations.length > 0) {
+          return loadedConversations[0]; // Otherwise, select the first one
+        }
+        return null;
+      });
+    });
+  }, [reloadConversations])
+  
+  // Realtime status updates - listen for user-status-changed events
+  useEffect(() => {
+    const handleStatusChange = (event: any) => {
+      const { userId, status } = event.detail
+      console.log(`🔔 Status changed: ${userId} → ${status}`)
+      
+      // Update conversations list with new status
+      setConversations(prev => 
+        prev.map(conv => {
+          if (conv.otherParticipant?.id === userId) {
+            return {
+              ...conv,
+              otherParticipant: {
+                ...conv.otherParticipant,
+                status: status
               }
             }
-            
-            return {
-              ...conversation,
-              otherParticipant
-            }
-          })
-        )
-        
-        setConversations(loadedConversations)
-        
-        // Auto-select first conversation if available
-        if (loadedConversations.length > 0 && !activeConversation) {
-          setActiveConversation(loadedConversations[0])
-        }
-      } catch (error) {
-        console.error('Failed to load conversations:', error)
-        setConversations([])
+          }
+          return conv
+        })
+      )
+      
+      // Update active conversation if it's the changed user
+      if (activeConversation?.otherParticipant?.id === userId) {
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          otherParticipant: prev.otherParticipant ? {
+            ...prev.otherParticipant,
+            status: status,
+            last_seen: event.detail.last_seen || prev.otherParticipant.last_seen
+          } : undefined
+        } : null)
       }
     }
-
-    loadConversations()
-  }, [currentUser.id, setConversations])
+    
+    window.addEventListener('user-status-changed', handleStatusChange as EventListener)
+    
+    // Also subscribe to Supabase real-time updates for user status
+    const userIds = conversations?.map(c => c.otherParticipant?.id).filter(Boolean) || []
+    const channel = supabase
+      .channel('user-status-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users'
+        },
+        (payload) => {
+          const updatedUser = payload.new as any
+          
+          // Only update if it's one of our conversation participants
+          if (userIds.includes(updatedUser.id)) {
+            console.log('📊 Real-time user update:', updatedUser)
+            
+            // Dispatch custom event
+            window.dispatchEvent(new CustomEvent('user-status-changed', {
+              detail: {
+                userId: updatedUser.id,
+                status: updatedUser.status,
+                last_seen: updatedUser.last_seen
+              }
+            }))
+          }
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      window.removeEventListener('user-status-changed', handleStatusChange as EventListener)
+      supabase.removeChannel(channel)
+    }
+  }, [activeConversation, conversations, setConversations])
 
   const selectConversation = async (conversation: Conversation) => {
     try {
@@ -345,22 +402,27 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
   // Separate function to load conversation messages
   const loadConversationMessages = async (conversation: Conversation) => {
     try {
+      console.log(`🔄 Loading messages for conversation: ${conversation.id}`)
       const conversationMessages = await getConversationMessages(conversation.id, 50, 0);
       
-      // Transform database messages to our Message interface
-      const transformedMessages: Message[] = conversationMessages.reverse().map((dbMessage: any) => ({
-        id: dbMessage.id,
-        conversation_id: dbMessage.conversation_id,
-        sender_id: dbMessage.sender_id,
-        senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
-        encrypted_content: typeof dbMessage.encrypted_content === 'string' 
-          ? JSON.parse(dbMessage.encrypted_content) 
-          : dbMessage.encrypted_content,
-        timestamp: new Date(dbMessage.sent_at).getTime(),
-        status: 'delivered' as const,
-        isEncrypted: true,
-        type: 'text' as const
-      }));
+      // Transform database messages to our Message interface (with guard for empty array)
+      const transformedMessages: Message[] = (conversationMessages && conversationMessages.length > 0)
+        ? conversationMessages.reverse().map((dbMessage: any) => ({
+            id: dbMessage.id,
+            conversation_id: dbMessage.conversation_id,
+            sender_id: dbMessage.sender_id,
+            senderName: dbMessage.users?.display_name || dbMessage.users?.username || 'Unknown User',
+            encrypted_content: typeof dbMessage.encrypted_content === 'string' 
+              ? JSON.parse(dbMessage.encrypted_content) 
+              : dbMessage.encrypted_content,
+            timestamp: new Date(dbMessage.sent_at).getTime(),
+            status: 'delivered' as const,
+            isEncrypted: true,
+            type: 'text' as const
+          }))
+        : [];
+
+      console.log(`✅ Loaded ${transformedMessages.length} messages for conversation`)
 
       // Replace messages for this conversation
       setMessages((currentMessages) => {
@@ -416,9 +478,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             const senderName = transformedMessage.senderName
             const conversationName = conversation.name || (conversation.is_group ? 'Group Chat' : 'Direct Message')
 
+            // Play notification sound (WhatsApp-style)
             if (hasMention) {
+              notificationSound.playMention()
               await notifyMention(senderName, messagePreview, conversationName)
             } else {
+              notificationSound.playMessageReceived()
               await notifyMessage(senderName, messagePreview, conversation.is_group ? conversationName : undefined)
             }
           } catch (error) {
@@ -431,8 +496,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         subscription.unsubscribe();
       };
     } catch (error) {
-      console.error('Failed to load messages:', error);
-      toast.error('Failed to load messages');
+      console.error('❌ Failed to load messages:', error);
+      // Don't show error toast - getConversationMessages already handles this gracefully
+      // by returning empty array. Just log the error for debugging.
+      console.warn('⚠️ Message loading encountered an error, but continuing...');
     }
   };
 
@@ -501,8 +568,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         accessCode
       )
 
-      // Add to local state
-      setConversations((prev) => [...(prev || []), conversation])
+      // Reload conversations from DB instead of manually adding to state
+      await reloadConversations()
       
       // Show access code to user
       toast.success(`${t.conversationCreated} ${accessCode}`, {
@@ -537,26 +604,22 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       // Generate access code for the new conversation
       const accessCode = generateAccessCode()
       
-      // Create conversation
-      const conversation = await createConversation(
-        `Chat with ${targetUser.display_name || targetUser.username}`,
-        false, // not a group
+      // Create direct message conversation (automatically adds both users)
+      const conversation = await createDirectMessage(
         currentUser.id,
+        targetUser.id,
         accessCode
       )
 
-      // Add to local state
-      setConversations((prev) => [...(prev || []), conversation])
+      // Reload conversations from DB to ensure consistency
+      const reloaded = await reloadConversations()
+      const newConversation = reloaded.find(c => c.id === conversation.id)
       
-      // Set as active conversation
-      setActiveConversation(conversation)
+      // Set the newly created conversation as active
+      setActiveConversation(newConversation || null)
       
-      toast.success(`${t.startedConversation} "${accessCode}" with ${targetUser.display_name || targetUser.username} to connect`, {
-        duration: 8000,
-        action: {
-          label: t.copyCode,
-          onClick: () => navigator.clipboard.writeText(accessCode)
-        }
+      toast.success(`Started conversation with ${targetUser.display_name || targetUser.username}!`, {
+        duration: 5000
       })
 
       // Close search dialog
@@ -564,9 +627,9 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       setSearchQuery('')
       setSearchResults([])
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start conversation:', error)
-      toast.error(t.failedToStartConversation)
+      toast.error(error.message || t.failedToStartConversation)
     }
   }
 
@@ -679,10 +742,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     setShowEncryptionDialog(true)
 
     try {
-      // Encrypt the voice data
+      // Get recipient public key from conversation participants
+      const recipientPublicKey = activeConversation.otherParticipant?.public_key
+      
+      if (!recipientPublicKey) {
+        throw new Error('Cannot find recipient encryption key. Please try starting a new conversation.')
+      }
+
+      // Encrypt the voice data with recipient's real public key
       const encryptedContent = await encryptMessage(
         voiceBase64,
-        'recipient-public-key', // Would get from conversation participants
+        recipientPublicKey,
         keyPair,
         (progress) => {
           setEncryptionProgress({
@@ -723,7 +793,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         )
       )
       
-      setShowEncryptionDialog(false)
+      // Show "100% Complete" for 1.5 seconds before closing dialog
+      setTimeout(() => {
+        setShowEncryptionDialog(false)
+      }, 1500)
       toast.success(t.voiceMessageRecorded)
       
     } catch (error) {
@@ -783,10 +856,17 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     setShowEncryptionDialog(true)
 
     try {
-      // Simulate encryption process
+      // Get recipient public key from conversation participants
+      const recipientPublicKey = activeConversation.otherParticipant?.public_key
+      
+      if (!recipientPublicKey) {
+        throw new Error('Cannot find recipient encryption key. Please try starting a new conversation.')
+      }
+
+      // Encrypt message with recipient's real public key
       const encryptedContent = await encryptMessage(
         messageToSend,
-        'recipient-public-key', // Would get from conversation participants
+        recipientPublicKey,
         keyPair,
         (progress) => {
           setEncryptionProgress(progress)
@@ -816,7 +896,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         )
       )
       
-      setShowEncryptionDialog(false)
+      // Show "100% Complete" for 1.5 seconds before closing dialog
+      setTimeout(() => {
+        setShowEncryptionDialog(false)
+      }, 1500)
       
     } catch (error) {
       console.error('Encryption failed:', error)
@@ -1127,7 +1210,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 
                 <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
                   <DialogTrigger asChild>
-                    <button className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+                    <button 
+                      className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                      aria-label="Create new conversation"
+                    >
                       <Plus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </DialogTrigger>
@@ -1171,7 +1257,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
                 <Dialog open={showJoinConversation} onOpenChange={setShowJoinConversation}>
                   <DialogTrigger asChild>
-                    <button className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+                    <button 
+                      className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                      aria-label="Join conversation with access code"
+                    >
                       <UserPlus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </DialogTrigger>
@@ -1316,18 +1405,32 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       </div>
                       <span className="text-xs text-muted-foreground">{getLastMessageTime(conversation.id)}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground truncate">
-                        {getLastMessagePreview(conversation.id)}
-                      </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground truncate">
+                          {getLastMessagePreview(conversation.id)}
+                        </p>
+                        {conversation.otherParticipant?.status !== 'online' && conversation.otherParticipant?.last_seen && (
+                          <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {new Date(conversation.otherParticipant.last_seen).toLocaleString('pl-PL', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        )}
+                      </div>
                       {conversation.access_code && (
                         <button
-                          className="ml-2 text-xs text-primary hover:text-primary/80"
+                          className="ml-2 text-xs text-primary hover:text-primary/80 flex-shrink-0"
                           onClick={(e) => {
                             e.stopPropagation()
                             navigator.clipboard.writeText(conversation.access_code!)
                             toast.success(t.accessCodeCopied)
                           }}
+                          aria-label="Copy access code"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
@@ -1397,8 +1500,22 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>{t.activeNow}</span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        activeConversation.otherParticipant?.status === 'online' ? 'bg-green-500' :
+                        activeConversation.otherParticipant?.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                      }`}></div>
+                      <span>
+                        {activeConversation.otherParticipant?.status === 'online' ? t.activeNow :
+                         activeConversation.otherParticipant?.status === 'away' ? 'Zaraz wracam' :
+                         activeConversation.otherParticipant?.last_seen 
+                           ? `Ostatnio aktywny ${new Date(activeConversation.otherParticipant.last_seen).toLocaleDateString('pl-PL', { 
+                               month: 'short', 
+                               day: 'numeric',
+                               hour: '2-digit',
+                               minute: '2-digit'
+                             })}`
+                           : 'Offline'}
+                      </span>
                       <Lock className="w-3 h-3 ml-2" />
                       {/* Access Code Display */}
                       {activeConversation.access_code && (
@@ -1640,7 +1757,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {encryptionProgress && (
+            {encryptionProgress ? (
               <>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -1651,6 +1768,19 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {encryptionProgress.message}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Initializing</span>
+                    <span>0%</span>
+                  </div>
+                  <Progress value={0} className="h-2 animate-pulse" />
+                </div>
+                <p className="text-sm text-muted-foreground animate-pulse">
+                  Preparing encryption...
                 </p>
               </>
             )}

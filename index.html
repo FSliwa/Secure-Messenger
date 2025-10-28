@@ -4,8 +4,11 @@
 <head>
     <!-- Essential meta tags -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover, user-scalable=yes" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Mobile Web App Capable -->
+    <meta name="mobile-web-app-capable" content="yes" />
     
     <!-- Primary Meta Tags -->
     <title>SecureChat Pro - Commercial Grade Encrypted Messaging</title>
@@ -32,11 +35,46 @@
     <meta property="twitter:description" content="Connect with friends and the world around you with end-to-end encrypted messaging. Enterprise-grade security with post-quantum cryptography." />
     <meta property="twitter:image" content="/favicon-512x512.png" />
     
-    <!-- Favicons and Icons -->
+    <!-- Favicons and Icons for all browsers -->
+    <!-- Standard favicon for modern browsers with cache busting -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    
+    <!-- PNG favicons for different sizes - all generated from Secure-Messenger Favicon.svg -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/favicon-128x128.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="256x256" href="/favicon-256x256.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/favicon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/favicon-144x144.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/favicon-120x120.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="/favicon-114x114.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="/favicon-76x76.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="/favicon-72x72.png" />
+    <link rel="apple-touch-icon" sizes="60x60" href="/favicon-60x60.png" />
+    <link rel="apple-touch-icon" sizes="57x57" href="/favicon-57x57.png" />
+    
+    <!-- Android Chrome -->
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Safari Pinned Tab -->
+    <link rel="mask-icon" href="/favicon.svg" color="#667eea" />
+    
+    <!-- Windows Metro -->
+    <meta name="msapplication-TileImage" content="/favicon-144x144.png" />
+    <meta name="msapplication-square70x70logo" content="/favicon-70x70.png" />
+    <meta name="msapplication-square150x150logo" content="/favicon-150x150.png" />
+    <meta name="msapplication-square310x310logo" content="/favicon-310x310.png" />
+    <meta name="msapplication-wide310x150logo" content="/favicon-310x150.png" />
     
     <!-- Theme and Browser Configuration -->
     <meta name="theme-color" content="#1877F2" />
@@ -70,19 +108,14 @@
     <script>
         // Feature detection and polyfills
         (function() {
-            // Check for modern JavaScript support
-            var supportsES6 = (function() {
-                try {
-                    new Function("(a = 0) => a");
-                    return true;
-                } catch (err) {
-                    return false;
-                }
-            })();
+            // Basic feature detection - only warn, don't block
+            if (typeof Promise === 'undefined') {
+                console.warn('This browser is very old and may not work properly. Please update to a modern browser.');
+            }
             
-            // Polyfill for older browsers
-            if (!supportsES6) {
-                console.warn('This browser may not support all features. Please update to a modern browser.');
+            // Fetch API polyfill for older browsers
+            if (typeof fetch === 'undefined') {
+                console.warn('Fetch API not available, some features may not work properly');
             }
             
             // Viewport height fix for mobile browsers

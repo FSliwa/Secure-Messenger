@@ -159,9 +159,16 @@ export function UserSearchDialog({
                 autoFocus
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Możesz wyszukiwać według nazwy użytkownika (@nazwa) lub pełnej nazwy
-            </p>
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-xs text-muted-foreground">
+                Możesz wyszukiwać według nazwy użytkownika (@nazwa) lub pełnej nazwy
+              </p>
+              {searchResults.length > 0 && !isSearching && (
+                <p className="text-xs font-medium text-primary">
+                  Znaleziono: {searchResults.length}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Selected Users Counter (for add mode) */}
@@ -254,10 +261,10 @@ export function UserSearchDialog({
                                user.status === 'away' ? 'Zaraz wracam' : 'Nieaktywny'}
                             </Badge>
                             
-                            {user.status !== 'online' && (
+                            {user.status !== 'online' && user.last_seen && (
                               <span className="text-muted-foreground flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {new Date(user.last_seen).toLocaleDateString('pl-PL', { 
+                                {new Date(user.last_seen).toLocaleString('pl-PL', { 
                                   month: 'short', 
                                   day: 'numeric',
                                   hour: '2-digit',

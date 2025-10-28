@@ -1,31 +1,33 @@
 // Account Lockout Management
 import { supabase } from './supabase';
+import { logSecurityEvent as logSecurityAuditEvent } from './security-audit';
 
 export interface AccountLockout {
   id: string;
   user_id: string;
   reason: string;
-  locked_at: string;
   locked_until: string;
+  locked_by?: string;
   is_active: boolean;
-  attempts_count: number;
   created_at: string;
+  unlock_attempts?: number;
+  is_permanent?: boolean;
+  unlock_token?: string;
+  metadata?: any;
 }
 
 export interface LockoutReason {
-  TOO_MANY_FAILED_LOGINS: 'too_many_failed_logins';
+  FAILED_LOGIN: 'failed_login';
   SUSPICIOUS_ACTIVITY: 'suspicious_activity';
   ADMIN_ACTION: 'admin_action';
   SECURITY_VIOLATION: 'security_violation';
-  BRUTE_FORCE_DETECTED: 'brute_force_detected';
 }
 
 const LOCKOUT_REASONS: LockoutReason = {
-  TOO_MANY_FAILED_LOGINS: 'too_many_failed_logins',
+  FAILED_LOGIN: 'failed_login',
   SUSPICIOUS_ACTIVITY: 'suspicious_activity', 
   ADMIN_ACTION: 'admin_action',
-  SECURITY_VIOLATION: 'security_violation',
-  BRUTE_FORCE_DETECTED: 'brute_force_detected'
+  SECURITY_VIOLATION: 'security_violation'
 };
 
 /**
@@ -35,7 +37,8 @@ export async function lockAccount(
   userId: string, 
   reason: keyof LockoutReason, 
   durationMinutes: number = 30,
-  attempsCount: number = 0
+  isPermanent: boolean = false,
+  metadata?: any
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const lockedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
@@ -47,7 +50,8 @@ export async function lockAccount(
         reason: LOCKOUT_REASONS[reason],
         locked_until: lockedUntil.toISOString(),
         is_active: true,
-        attempts_count: attempsCount
+        is_permanent: isPermanent,
+        metadata: metadata || {}
       });
 
     if (error) {
@@ -55,12 +59,19 @@ export async function lockAccount(
       return { success: false, error: error.message };
     }
 
+    // Log security event
+    await logSecurityAuditEvent(userId, 'account_locked', {
+      reason,
+      duration_minutes: durationMinutes,
+      is_permanent: isPermanent
+    }, isPermanent ? 'critical' : 'high');
+
     // Update user status to reflect lockout
     await supabase
       .from('users')
       .update({ 
         status: 'offline',
-        last_activity: new Date().toISOString()
+        last_seen: new Date().toISOString()
       })
       .eq('id', userId);
 
@@ -137,6 +148,11 @@ export async function unlockAccount(userId: string): Promise<{ success: boolean;
       return { success: false, error: error.message };
     }
 
+    // Log security event
+    await logSecurityAuditEvent(userId, 'account_unlocked', {
+      unlocked_at: new Date().toISOString()
+    }, 'medium');
+
     return { success: true };
   } catch (error) {
     console.error('Account unlock error:', error);
@@ -173,31 +189,56 @@ export async function getAccountLockoutHistory(userId: string): Promise<{
 /**
  * Track failed login attempt
  */
-export async function trackFailedLoginAttempt(userId: string): Promise<{
+export async function trackFailedLoginAttempt(
+  email: string,
+  userId?: string,
+  ipAddress?: string,
+  userAgent?: string,
+  failureReason?: string
+): Promise<{
   shouldLock: boolean;
   attemptsCount: number;
 }> {
   try {
+    // Log the failed attempt
+    await supabase
+      .from('login_attempts')
+      .insert({
+        email,
+        user_id: userId,
+        success: false,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        failure_reason: failureReason
+      });
+
+    if (!userId) {
+      return { shouldLock: false, attemptsCount: 0 };
+    }
+
     // Get recent failed attempts (last 15 minutes)
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
     
     const { data: recentAttempts, error } = await supabase
-      .from('security_alerts')
+      .from('login_attempts')
       .select('*')
       .eq('user_id', userId)
-      .eq('alert_type', 'login_failed')
-      .gte('created_at', fifteenMinutesAgo.toISOString());
+      .eq('success', false)
+      .gte('attempt_time', fifteenMinutesAgo.toISOString());
 
     if (error) {
       console.error('Failed to check recent attempts:', error);
       return { shouldLock: false, attemptsCount: 0 };
     }
 
-    const attemptsCount = (recentAttempts?.length || 0) + 1;
+    const attemptsCount = recentAttempts?.length || 0;
     
     // Lock account after 5 failed attempts
     if (attemptsCount >= 5) {
-      await lockAccount(userId, 'TOO_MANY_FAILED_LOGINS', 30, attemptsCount);
+      await lockAccount(userId, 'FAILED_LOGIN', 30, false, {
+        attempts_count: attemptsCount,
+        ip_address: ipAddress
+      });
       return { shouldLock: true, attemptsCount };
     }
 
@@ -205,6 +246,38 @@ export async function trackFailedLoginAttempt(userId: string): Promise<{
   } catch (error) {
     console.error('Error tracking failed login attempt:', error);
     return { shouldLock: false, attemptsCount: 0 };
+  }
+}
+
+
+/**
+ * Track successful login
+ */
+export async function trackSuccessfulLogin(
+  email: string,
+  userId: string,
+  ipAddress?: string,
+  userAgent?: string
+): Promise<void> {
+  try {
+    // Log the successful attempt
+    await supabase
+      .from('login_attempts')
+      .insert({
+        email,
+        user_id: userId,
+        success: true,
+        ip_address: ipAddress,
+        user_agent: userAgent
+      });
+
+    // Log security event
+    await logSecurityAuditEvent(userId, 'login_success', {
+      email,
+      ip_address: ipAddress
+    }, 'low', { ip_address: ipAddress, user_agent: userAgent });
+  } catch (error) {
+    console.error('Error tracking successful login:', error);
   }
 }
 

@@ -367,13 +367,18 @@ export function EnhancedFileSharing({
           <p>Supported: Images, Videos, Audio, Documents, Archives</p>
         </div>
 
+        <label htmlFor="enhanced-file-input" className="sr-only">
+          Select files to share
+        </label>
         <input
+          id="enhanced-file-input"
           ref={fileInputRef}
           type="file"
           multiple
           accept={allowedTypes.join(',')}
           onChange={handleFileInputChange}
           className="hidden"
+          aria-label="Select files to share"
         />
       </div>
 

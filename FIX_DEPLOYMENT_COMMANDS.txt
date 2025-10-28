@@ -1,0 +1,80 @@
+================================================================================
+KOMENDY NAPRAWCZE DLA SECURE MESSENGER
+================================================================================
+
+Skopiuj i wklej każdą komendę osobno do panelu serwerowego:
+
+1. ZATRZYMAJ STARE KONTENERY:
+----------------------------------------
+sudo docker stop secure-messenger-app secure-messenger-nginx secure-messenger-simple secure-messenger
+sudo docker rm secure-messenger-app secure-messenger-nginx secure-messenger-simple secure-messenger
+sudo systemctl stop nginx
+
+
+2. PRZEJDŹ DO KATALOGU APLIKACJI:
+----------------------------------------
+cd /opt/Secure-Messenger
+
+
+3. SPRAWDŹ CZY MASZ ZBUDOWANĄ APLIKACJĘ:
+----------------------------------------
+ls -la dist/
+
+
+4. JEŚLI NIE MA FOLDERU "dist", ZBUDUJ APLIKACJĘ:
+----------------------------------------
+npm install
+npm run build
+
+
+5. UTWÓRZ PROSTĄ KONFIGURACJĘ NGINX:
+----------------------------------------
+cat > nginx-simple.conf << 'EOF'
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    location /health {
+        return 200 "OK";
+    }
+}
+EOF
+
+
+6. URUCHOM APLIKACJĘ BEZPOŚREDNIO:
+----------------------------------------
+sudo docker run -d --name secure-messenger --restart always -p 80:80 -v $(pwd)/dist:/usr/share/nginx/html -v $(pwd)/nginx-simple.conf:/etc/nginx/conf.d/default.conf nginx:alpine
+
+
+7. SPRAWDŹ STATUS:
+----------------------------------------
+sudo docker ps
+sudo docker logs secure-messenger
+
+
+8. TESTUJ APLIKACJĘ:
+----------------------------------------
+curl http://localhost
+curl http://localhost/health
+
+
+9. NAPRAW SSH (OPCJONALNIE):
+----------------------------------------
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp  
+sudo systemctl restart ssh
+
+
+================================================================================
+APLIKACJA POWINNA BYĆ DOSTĘPNA POD: http://5.22.223.49
+================================================================================
+
+JEŚLI NADAL NIE DZIAŁA, WYKONAJ:
+----------------------------------------
+sudo docker logs secure-messenger
+sudo ss -tlnp | grep :80
+sudo iptables -L -n | grep 80

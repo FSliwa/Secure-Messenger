@@ -16,6 +16,180 @@
  * WebCrypto APIs provide native browser cryptographic primitives
  */
 
+/**
+ * Enhanced browser compatibility check with detailed browser detection
+ */
+export function checkBrowserCompatibility(): { 
+  compatible: boolean; 
+  issues: string[];
+  warnings: string[];
+  browserInfo: {
+    name: string;
+    version: string;
+    isSupported: boolean;
+  };
+  details: {
+    crypto: boolean;
+    localStorage: boolean;
+    textEncoder: boolean;
+    promises: boolean;
+    fetch: boolean;
+    es6: boolean;
+  };
+} {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+  const details = {
+    crypto: false,
+    localStorage: false,
+    textEncoder: false,
+    promises: false,
+    fetch: false,
+    es6: false
+  };
+  
+  // Detect browser
+  const browserInfo = detectBrowser();
+  
+  // Check WebCrypto API
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    issues.push('WebCrypto API not available. Please use: Chrome 37+, Firefox 34+, Safari 11+, or Edge 79+');
+  } else {
+    details.crypto = true;
+  }
+  
+  // Check localStorage
+  try {
+    if (typeof localStorage === 'undefined') {
+      issues.push('localStorage not available. Please disable private/incognito mode');
+    } else {
+      localStorage.setItem('__test__', 'test');
+      localStorage.removeItem('__test__');
+      details.localStorage = true;
+    }
+  } catch (e) {
+    issues.push('localStorage is blocked. Check browser privacy settings or disable private browsing');
+  }
+  
+  // Check TextEncoder
+  if (typeof TextEncoder === 'undefined') {
+    issues.push('TextEncoder not available. Please update your browser');
+  } else {
+    details.textEncoder = true;
+  }
+  
+  // Check Promises (warning only, not blocking)
+  if (typeof Promise === 'undefined') {
+    warnings.push('Promises not supported. Some features may not work. Update to a modern browser');
+    details.promises = false;
+  } else {
+    details.promises = true;
+  }
+  
+  // Check Fetch API
+  if (typeof fetch === 'undefined') {
+    warnings.push('Fetch API not available. Using fallback XHR');
+  } else {
+    details.fetch = true;
+  }
+  
+  // Check ES6 support (warning only, not blocking)
+  try {
+    new Function('(a = 0) => a');
+    details.es6 = true;
+  } catch (e) {
+    warnings.push('Some ES6 features may not work. Consider updating your browser for best experience.');
+    details.es6 = false;
+  }
+  
+  // Browser-specific warnings
+  if (browserInfo.name === 'Safari' && parseInt(browserInfo.version) < 14) {
+    warnings.push('Safari version is old. Recommended: Safari 14+ for best experience');
+  }
+  
+  if (browserInfo.name === 'Firefox' && parseInt(browserInfo.version) < 88) {
+    warnings.push('Firefox version is old. Recommended: Firefox 88+ for best experience');
+  }
+  
+  if (browserInfo.name === 'IE') {
+    issues.push('Internet Explorer is not supported. Please use Edge, Chrome, Firefox, or Safari');
+  }
+  
+  // Only block if critical APIs are missing (WebCrypto, localStorage, TextEncoder)
+  // Other features like ES6, Fetch, Promises are nice-to-have
+  const criticalIssues = issues.filter(issue => 
+    issue.includes('WebCrypto') || 
+    issue.includes('localStorage') || 
+    issue.includes('TextEncoder') ||
+    issue.includes('Internet Explorer')
+  );
+  
+  // Non-critical issues become warnings
+  const nonCriticalIssues = issues.filter(i => !criticalIssues.includes(i));
+  
+  return {
+    compatible: criticalIssues.length === 0, // Block only for critical APIs
+    issues: criticalIssues,
+    warnings: [...warnings, ...nonCriticalIssues],
+    browserInfo,
+    details
+  };
+}
+
+/**
+ * Detect browser name and version
+ */
+function detectBrowser(): { name: string; version: string; isSupported: boolean } {
+  const ua = navigator.userAgent;
+  let name = 'Unknown';
+  let version = '0';
+  let isSupported = false;
+  
+  // Chrome
+  if (ua.includes('Chrome') && !ua.includes('Edg')) {
+    name = 'Chrome';
+    const match = ua.match(/Chrome\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 90;
+  }
+  // Edge (Chromium)
+  else if (ua.includes('Edg/')) {
+    name = 'Edge';
+    const match = ua.match(/Edg\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 90;
+  }
+  // Firefox
+  else if (ua.includes('Firefox')) {
+    name = 'Firefox';
+    const match = ua.match(/Firefox\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 88;
+  }
+  // Safari
+  else if (ua.includes('Safari') && !ua.includes('Chrome')) {
+    name = 'Safari';
+    const match = ua.match(/Version\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 14;
+  }
+  // Opera
+  else if (ua.includes('OPR/')) {
+    name = 'Opera';
+    const match = ua.match(/OPR\/(\d+)/);
+    version = match ? match[1] : '0';
+    isSupported = parseInt(version) >= 76;
+  }
+  // IE
+  else if (ua.includes('MSIE') || ua.includes('Trident/')) {
+    name = 'IE';
+    version = '11';
+    isSupported = false;
+  }
+  
+  return { name, version, isSupported };
+}
+
 export interface KeyPair {
   publicKey: string;
   privateKey: string;
@@ -264,20 +438,31 @@ export async function encryptMessage(
     });
   });
 
-  // Perform actual encryption (simplified)
+  // Perform actual RSA-OAEP encryption
   const encodedMessage = new TextEncoder().encode(message);
-  const key = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
+  
+  // Import recipient's public key
+  const publicKeyBuffer = base64ToArrayBuffer(recipientPublicKey);
+  const publicKey = await crypto.subtle.importKey(
+    'spki',
+    publicKeyBuffer,
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256'
+    },
     false,
     ['encrypt']
   );
   
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  // Encrypt the message with RSA-OAEP
   const encryptedData = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
+    { name: 'RSA-OAEP' },
+    publicKey,
     encodedMessage
   );
+
+  // Convert encrypted data to base64 for storage
+  const encryptedBase64 = arrayBufferToBase64(encryptedData);
 
   const integrity = await generateIntegrityHash(message + nonce + startTime);
 
@@ -288,7 +473,7 @@ export async function encryptMessage(
   });
 
   return {
-    data: messageId, // Store the message ID instead of actual encrypted data for demo
+    data: encryptedBase64, // Return the actual encrypted data
     keyId: senderKeyPair.keyId,
     nonce,
     timestamp: startTime,
@@ -299,98 +484,118 @@ export async function encryptMessage(
 }
 
 /**
- * Decrypts a message (faster than encryption, ~10 seconds)
+ * Decrypts a message with real RSA-OAEP decryption
+ * FIXED: Now properly decrypts messages from database, not just cache
  */
 export async function decryptMessage(
   encryptedMessage: EncryptedMessage,
   recipientKeyPair: KeyPair,
   onProgress?: (progress: EncryptionProgress) => void
 ): Promise<string> {
-  // Decryption is faster but still secure
-  onProgress?.({
-    phase: 'key-derivation',
-    progress: 15,
-    message: 'Retrieving decryption keys...'
-  });
-  
-  await simulateComplexComputation(3000, (progress) => {
+  try {
+    // Phase 1: Check cache first (for messages from same session)
     onProgress?.({
       phase: 'key-derivation',
-      progress: 15 + (progress * 0.25),
-      message: 'Retrieving decryption keys...'
+      progress: 10,
+      message: 'Checking message cache...'
     });
-  });
 
-  onProgress?.({
-    phase: 'quantum-resistance',
-    progress: 40,
-    message: 'Decrypting with post-quantum algorithms...'
-  });
-  
-  await simulateComplexComputation(5000, (progress) => {
+    const cachedMessage = messageStorage.get(encryptedMessage.data);
+    if (cachedMessage) {
+      onProgress?.({
+        phase: 'finalization',
+        progress: 100,
+        message: 'Message loaded from cache!'
+      });
+      return cachedMessage;
+    }
+
+    // Phase 2: Load and import private key for real decryption
+    onProgress?.({
+      phase: 'key-derivation',
+      progress: 20,
+      message: 'Loading private key...'
+    });
+
+    const privateKeyBuffer = base64ToArrayBuffer(recipientKeyPair.privateKey);
+    const privateKey = await crypto.subtle.importKey(
+      'pkcs8',
+      privateKeyBuffer,
+      {
+        name: 'RSA-OAEP',
+        hash: 'SHA-256'
+      },
+      false,
+      ['decrypt']
+    );
+
+    onProgress?.({
+      phase: 'key-derivation',
+      progress: 40,
+      message: 'Private key loaded successfully'
+    });
+
+    // Phase 3: Decrypt the actual message data
     onProgress?.({
       phase: 'quantum-resistance',
-      progress: 40 + (progress * 0.4),
-      message: 'Decrypting with post-quantum algorithms...'
+      progress: 50,
+      message: 'Decrypting message with RSA-OAEP...'
     });
-  });
 
-  onProgress?.({
-    phase: 'integrity-hash',
-    progress: 80,
-    message: 'Verifying message integrity...'
-  });
-  
-  await simulateComplexComputation(1500, (progress) => {
+    // Convert base64 encrypted data to ArrayBuffer
+    const encryptedBuffer = base64ToArrayBuffer(encryptedMessage.data);
+
+    // Perform RSA-OAEP decryption
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'RSA-OAEP' },
+      privateKey,
+      encryptedBuffer
+    );
+
     onProgress?.({
       phase: 'integrity-hash',
-      progress: 80 + (progress * 0.15),
+      progress: 80,
       message: 'Verifying message integrity...'
     });
-  });
 
-  onProgress?.({
-    phase: 'finalization',
-    progress: 95,
-    message: 'Finalizing decryption...'
-  });
-  
-  await simulateComplexComputation(500, (progress) => {
+    // Phase 4: Decode decrypted data to string
     onProgress?.({
       phase: 'finalization',
-      progress: 95 + (progress * 0.05),
+      progress: 90,
       message: 'Finalizing decryption...'
     });
-  });
 
-  onProgress?.({
-    phase: 'finalization',
-    progress: 100,
-    message: 'Message decrypted successfully!'
-  });
+    const decoder = new TextDecoder();
+    const decryptedMessage = decoder.decode(decryptedBuffer);
 
-  // Retrieve the original message using the message ID stored in the encrypted data
-  const originalMessage = messageStorage.get(encryptedMessage.data);
-  if (originalMessage) {
-    return originalMessage;
-  }
+    onProgress?.({
+      phase: 'finalization',
+      progress: 100,
+      message: 'Message decrypted successfully!'
+    });
 
-  // Fallback: attempt to decode if it's actual encrypted data
-  try {
-    const decodedData = base64ToArrayBuffer(encryptedMessage.data);
-    const textDecoder = new TextDecoder();
-    const possibleText = textDecoder.decode(decodedData);
-    
-    // If it looks like readable text, return it
-    if (possibleText.length > 0 && /^[\x20-\x7E\s]*$/.test(possibleText)) {
-      return possibleText;
-    }
+    return decryptedMessage;
+
   } catch (error) {
-    // Fallback to simulated decryption
-  }
+    console.error('❌ Decryption failed:', error);
+    
+    // Last resort fallback: try to decode as plain base64
+    try {
+      const decodedData = base64ToArrayBuffer(encryptedMessage.data);
+      const textDecoder = new TextDecoder();
+      const possibleText = textDecoder.decode(decodedData);
+      
+      // If it looks like readable text, return it
+      if (possibleText.length > 0 && /^[\x20-\x7E\s]*$/.test(possibleText)) {
+        console.warn('⚠️ Message was not encrypted, returning as plain text');
+        return possibleText;
+      }
+    } catch (fallbackError) {
+      // Complete failure
+    }
 
-  // Final fallback: return a simulated decrypted message
-  return `Decrypted message from ${new Date(encryptedMessage.timestamp).toLocaleString()}`;
+    throw new Error(`Failed to decrypt message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -495,12 +700,47 @@ export function secureWipe(data: string | ArrayBuffer): void {
  * Legacy compatibility functions for existing components
  */
 
+// Add timeout protection wrapper
+async function generateKeyPairWithTimeout(
+  onProgress?: (progress: EncryptionProgress) => void,
+  timeoutMs: number = 60000  // 60 seconds default
+): Promise<KeyPair> {
+  return Promise.race([
+    generatePostQuantumKeyPair(onProgress),
+    new Promise<KeyPair>((_, reject) => 
+      setTimeout(() => reject(new Error('Key generation timeout - please try again or use a different browser')), timeoutMs)
+    )
+  ]);
+}
+
 export async function generateKeyPair(onProgress?: (progress: EncryptionProgress) => void): Promise<KeyPair> {
-  return generatePostQuantumKeyPair(onProgress);
+  try {
+    return await generateKeyPairWithTimeout(onProgress, 60000);
+  } catch (error) {
+    console.error('Key generation failed:', error);
+    throw new Error('Failed to generate encryption keys. Please try again or use a different browser.');
+  }
 }
 
 export async function storeKeys(keyPair: KeyPair): Promise<void> {
-  localStorage.setItem('securechat-keypair', JSON.stringify(keyPair));
+  try {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage not available, keys will not be persisted');
+      return;
+    }
+    
+    // Test if localStorage is writable
+    localStorage.setItem('test', 'test');
+    localStorage.removeItem('test');
+    
+    // Store keys
+    localStorage.setItem('securechat-keypair', JSON.stringify(keyPair));
+    console.log('✅ Keys stored successfully in localStorage');
+  } catch (error) {
+    console.error('Failed to store keys in localStorage:', error);
+    console.warn('Keys generated but not persisted. They will be lost on page refresh.');
+    // Don't throw - allow registration to continue
+  }
 }
 
 export async function getStoredKeys(): Promise<KeyPair | null> {

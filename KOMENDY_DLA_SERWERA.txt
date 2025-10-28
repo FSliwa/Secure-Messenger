@@ -1,0 +1,85 @@
+═══════════════════════════════════════════════════════════
+  🚀 KOMENDY DO WYKONANIA NA SERWERZE
+═══════════════════════════════════════════════════════════
+
+KOPIUJ I WKLEJ POJEDYNCZO (po kolei):
+
+
+# 1. Przejdź do katalogu
+cd /opt/Secure-Messenger
+
+
+# 2. Pobierz najnowsze zmiany
+git pull origin main
+
+
+# 3. Utwórz plik .env.production
+cat > .env.production << 'EOF'
+NODE_ENV=production
+VITE_SUPABASE_URL=https://fyxmppbrealxwnstuzuk.supabase.co
+VITE_SUPABASE_KEY=sb_publishable_Jau8JdiOFfVKQOM1svLxMQ_9-sBqnKc
+SUPABASE_SERVICE_KEY=sb_secret_ek5NhQ2-BVZd-7yHw3RYhw_-sx2qOse
+PORT=3000
+HOST=0.0.0.0
+CORS_ORIGIN=https://secure-messenger.info,http://5.22.223.49
+LOG_LEVEL=info
+EOF
+
+
+# 4. Zatrzymaj Docker
+docker-compose -f deployment/docker/docker-compose.production.yml down
+
+
+# 5. Wygeneruj certyfikat SSL (ZMIEŃ EMAIL NA SWÓJ!)
+sudo certbot certonly --standalone --non-interactive --agree-tos --email TWOJ-EMAIL@gmail.com -d secure-messenger.info -d www.secure-messenger.info
+
+
+# 6. Sprawdź czy certyfikat został utworzony
+sudo ls -la /etc/letsencrypt/live/secure-messenger.info/
+
+
+# 7. Skonfiguruj Nginx z SSL
+sudo bash deployment/scripts/setup-ssl.sh
+
+
+# 8. Przebuduj aplikację
+docker-compose -f deployment/docker/docker-compose.production.yml build --no-cache
+
+
+# 9. Uruchom aplikację
+docker-compose -f deployment/docker/docker-compose.production.yml up -d
+
+
+# 10. Sprawdź status
+docker ps
+
+
+# 11. Sprawdź logi
+docker logs secure-messenger-app --tail 50
+
+
+# 12. Test HTTPS
+curl -I https://secure-messenger.info
+
+
+═══════════════════════════════════════════════════════════
+  ✅ PO WYKONANIU APLIKACJA BĘDZIE DOSTĘPNA:
+═══════════════════════════════════════════════════════════
+
+🔒 https://secure-messenger.info
+🔒 https://www.secure-messenger.info
+
+
+═══════════════════════════════════════════════════════════
+  WAŻNE!
+═══════════════════════════════════════════════════════════
+
+1. Wykonaj NAJPIERW SQL w Supabase:
+   - Otwórz: https://app.supabase.com/project/fyxmppbrealxwnstuzuk
+   - SQL Editor
+   - Skopiuj FIX_DATABASE_COMPLETE.sql
+   - Kliknij RUN
+
+2. Potem wykonaj komendy powyżej NA SERWERZE
+
+3. PAMIĘTAJ zamienić TWOJ-EMAIL@gmail.com na swój email!

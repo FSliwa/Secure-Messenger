@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Spinner, ArrowClockwise } from "@phosphor-icons/react";
-import { generateKeyPair, storeKeys, EncryptionProgress } from "@/lib/crypto";
+import { generateKeyPair, storeKeys, EncryptionProgress, checkBrowserCompatibility } from "@/lib/crypto";
 import { signUp, checkUsernameAvailability } from "@/lib/supabase";
 import { SimpleRetryIndicator } from './RetryStatusDisplay'
 import { NetworkStatusIndicator } from './NetworkStatusIndicator'
@@ -92,6 +92,20 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       }
     };
   }, [usernameCheckTimeout]);
+
+  // Check browser compatibility on mount
+  useEffect(() => {
+    const { compatible, issues } = checkBrowserCompatibility();
+    if (!compatible) {
+      console.error('Browser compatibility issues:', issues);
+      toast.error('Browser Compatibility Issue', {
+        description: issues.join('. '),
+        duration: 10000
+      });
+    } else {
+      console.log('✅ Browser is compatible with all features');
+    }
+  }, []);
 
   const validateField = (name: string, value: any) => {
     switch (name) {
@@ -247,7 +261,14 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
       
       // Create signup operation with retry mechanism
       const signupOperation = async () => {
-        return await signUp(formData.email, formData.password, displayName, keyPair.publicKey, formData.username);
+        return await signUp(
+          formData.email, 
+          formData.password, 
+          displayName, 
+          keyPair.publicKey, 
+          formData.username,
+          keyPair.privateKey
+        );
       };
 
       // Execute signup with retry mechanism
@@ -487,7 +508,7 @@ export function SignUpCard({ onSuccess, onSwitchToLogin }: SignUpProps) {
             <div className="pt-2 sm:pt-4">
               <Button
                 type="submit"
-                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-accent-foreground font-semibold py-3 sm:py-4 text-base sm:text-lg h-12 sm:h-14"
+                className="w-full facebook-button btn-primary-enhanced bg-accent hover:bg-accent/90 text-black font-semibold py-3 sm:py-4 text-base sm:text-lg h-12 sm:h-14"
                 disabled={isSubmitting || isRetrying}
               >
                 {isSubmitting || isRetrying ? (

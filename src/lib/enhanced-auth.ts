@@ -1,9 +1,10 @@
 // Enhanced Authentication with Security Features Integration
 import { supabase } from './supabase';
-import { isAccountLocked, trackFailedLoginAttempt, LOCKOUT_REASONS } from './account-lockout';
+import { isAccountLocked, trackFailedLoginAttempt, trackSuccessfulLogin, LOCKOUT_REASONS } from './account-lockout';
 import { savePasswordHistory, isPasswordReused } from './password-history';
 import { generateDeviceFingerprint, saveTrustedDevice, isDeviceTrusted, detectSuspiciousActivity } from './trusted-devices';
 import { is2FAEnabled, verify2FA } from './two-factor-auth';
+import { checkSuspiciousActivity } from './security-audit';
 import type { AuthError, User } from '@supabase/supabase-js';
 
 export interface EnhancedAuthResult {
@@ -67,7 +68,8 @@ export async function enhancedSignUp(options: SignUpOptions): Promise<EnhancedAu
       options: {
         data: {
           username,
-          display_name: displayName || username
+          display_name: displayName || username,
+          public_key: ''
         }
       }
     });
@@ -81,28 +83,9 @@ export async function enhancedSignUp(options: SignUpOptions): Promise<EnhancedAu
       return { success: false, error: 'Failed to create user account' };
     }
 
-    // Step 4: Create user profile
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        username,
-        email,
-        profile: {
-          display_name: displayName || username,
-          bio: '',
-          avatar_url: null
-        },
-        status: 'online',
-        last_activity: new Date().toISOString()
-      });
-
-    if (profileError) {
-      console.error('Profile creation error:', profileError);
-      // Clean up auth user if profile creation fails
-      await supabase.auth.signOut();
-      return { success: false, error: 'Failed to create user profile' };
-    }
+    // Step 4: User profile is created automatically by database trigger
+    // No manual profile creation needed - the trigger handles it
+    console.log('User created, profile will be created by database trigger');
 
     // Step 5: Save password to history
     await savePasswordHistory(authData.user.id, password);
@@ -200,7 +183,7 @@ export async function enhancedSignIn(options: LoginOptions): Promise<EnhancedAut
           lockoutInfo: {
             isLocked: true,
             remainingTime: 30,
-            reason: LOCKOUT_REASONS.TOO_MANY_FAILED_LOGINS
+            reason: LOCKOUT_REASONS.FAILED_LOGIN
           }
         };
       }

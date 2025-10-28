@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  secure-messenger-dev:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile
+    container_name: secure-messenger-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../../src:/app/src
+      - ../../public:/app/public
+      - ../../index.html:/app/index.html
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - ../../.env.local
+    networks:
+      - secure-messenger-network
+    stdin_open: true
+    tty: true
+
+networks:
+  secure-messenger-network:
+    driver: bridge

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChatInterface } from './ChatInterface'
+import { Feed } from './Feed'
 import { ProfileSettings } from './ProfileSettings'
 import { EnhancedSecurityInitializer } from './EnhancedSecurityInitializer'
+import { UserPresenceSync } from './UserPresenceSync'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { NotificationSettings } from './NotificationSettings'
@@ -13,10 +15,13 @@ import {
   SignOut, 
   Shield,
   User,
-  Bell
+  Bell,
+  ChatCircle,
+  Newspaper
 } from '@phosphor-icons/react'
 import { getStoredKeys, KeyPair } from '@/lib/crypto'
 import { toast } from 'sonner'
+import { useUserStatus } from '@/hooks/useUserStatus'
 
 interface User {
   id: string;
@@ -38,6 +43,14 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const [showSecurityInitializer, setShowSecurityInitializer] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [showNotificationDemo, setShowNotificationDemo] = useState(false)
+  const [activeTab, setActiveTab] = useState<'chat' | 'feed'>('chat')
+
+  // Automatic user status management (online/away/offline)
+  useUserStatus({
+    userId: currentUser?.id || '',
+    enabled: !!currentUser?.id,
+    heartbeatInterval: 30 // Update status every 30 seconds
+  })
 
   useEffect(() => {
     const loadCryptoKeys = async () => {
@@ -94,6 +107,9 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* User Presence Sync - now with robust fallback, safe to enable */}
+      <UserPresenceSync />
+      
       {/* Header - Full Width Messenger Style */}
       <header className="sticky top-0 z-50 w-full bg-card border-b border-border/40 shadow-sm">
         <div className="w-full flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -109,15 +125,35 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
             </div>
           </div>
 
-          {/* Center - User greeting and status with better contrast */}
+          {/* Center - Tab Navigation and User Status */}
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Welcome back, {userName}
-              </h2>
-              <div className="flex items-center justify-center gap-2 mt-1">
+            <div className="flex flex-col items-center">
+              {/* Tab Buttons */}
+              <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1">
+                <Button
+                  variant={activeTab === 'chat' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('chat')}
+                  className="gap-2 h-8"
+                >
+                  <ChatCircle className="h-4 w-4" weight={activeTab === 'chat' ? 'fill' : 'regular'} />
+                  <span className="hidden sm:inline">Chat</span>
+                </Button>
+                <Button
+                  variant={activeTab === 'feed' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('feed')}
+                  className="gap-2 h-8"
+                >
+                  <Newspaper className="h-4 w-4" weight={activeTab === 'feed' ? 'fill' : 'regular'} />
+                  <span className="hidden sm:inline">Feed</span>
+                </Button>
+              </div>
+              
+              {/* User Status */}
+              <div className="flex items-center justify-center gap-2 mt-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm"></div>
-                <span className="text-xs sm:text-sm text-foreground/70 font-medium">Online</span>
+                <span className="text-xs text-foreground/70 font-medium">Online - {userName}</span>
               </div>
             </div>
           </div>
@@ -177,7 +213,11 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
       {/* Main content - Full width like Messenger */}
       <main className="w-full h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
-        <ChatInterface currentUser={currentUser || { id: '', username: '', email: '' }} />
+        {activeTab === 'chat' ? (
+          <ChatInterface currentUser={currentUser || { id: '', username: '', email: '' }} />
+        ) : (
+          <Feed currentUser={currentUser || { id: '', username: '', email: '' }} />
+        )}
       </main>
 
       {/* Profile Settings Dialog */}

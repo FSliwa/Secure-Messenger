@@ -2,6 +2,9 @@
 -- Ten plik zawiera WSZYSTKIE elementy Enhanced Security Initialization
 -- Bezpieczny do wielokrotnego uruchamiania - używa IF EXISTS/IF NOT EXISTS
 -- 
+-- UWAGA: Skrypt jest bezpieczny nawet przy pierwszym uruchomieniu!
+-- Automatycznie obsługuje sytuacje gdy tabele jeszcze nie istnieją.
+-- 
 -- KROKI:
 -- 1. Create Account Lockouts Table
 -- 2. Create Login Attempts Table  
@@ -15,8 +18,24 @@
 -- CZYSZCZENIE STARYCH OBIEKTÓW
 -- ============================================
 -- Usuń stare triggery i funkcje które mogą powodować konflikty
-DROP TRIGGER IF EXISTS trigger_password_history ON auth.users;
-DROP TRIGGER IF EXISTS cleanup_expired_sessions_trigger ON public.conversation_access_sessions;
+-- Używamy DO bloku aby złapać błędy gdy tabele nie istnieją
+DO $$ 
+BEGIN
+    -- Próbuj usunąć triggery (ignoruj błędy jeśli tabele nie istnieją)
+    DROP TRIGGER IF EXISTS trigger_password_history ON auth.users;
+EXCEPTION 
+    WHEN undefined_table THEN NULL;
+END $$;
+
+DO $$ 
+BEGIN
+    -- Próbuj usunąć trigger z tabeli która może nie istnieć
+    DROP TRIGGER IF EXISTS cleanup_expired_sessions_trigger ON public.conversation_access_sessions;
+EXCEPTION 
+    WHEN undefined_table THEN NULL;
+END $$;
+
+-- Usuń funkcje (te mogą istnieć niezależnie od tabel)
 DROP FUNCTION IF EXISTS public.add_password_history() CASCADE;
 DROP FUNCTION IF EXISTS public.cleanup_expired_sessions() CASCADE;
 DROP FUNCTION IF EXISTS public.check_account_lockout(uuid) CASCADE;
@@ -393,10 +412,18 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger do czyszczenia sesji
-DROP TRIGGER IF EXISTS cleanup_expired_sessions_trigger ON public.conversation_access_sessions;
-CREATE TRIGGER cleanup_expired_sessions_trigger
-  AFTER INSERT ON public.conversation_access_sessions
-  EXECUTE FUNCTION public.cleanup_expired_sessions();
+DO $$ 
+BEGIN
+    -- Sprawdź czy tabela istnieje przed utworzeniem triggera
+    IF EXISTS (SELECT 1 FROM information_schema.tables 
+               WHERE table_schema = 'public' 
+               AND table_name = 'conversation_access_sessions') THEN
+        DROP TRIGGER IF EXISTS cleanup_expired_sessions_trigger ON public.conversation_access_sessions;
+        CREATE TRIGGER cleanup_expired_sessions_trigger
+          AFTER INSERT ON public.conversation_access_sessions
+          EXECUTE FUNCTION public.cleanup_expired_sessions();
+    END IF;
+END $$;
 
 -- Funkcja do dodawania historii haseł
 -- UWAGA: W Supabase nie mamy bezpośredniego dostępu do haseł

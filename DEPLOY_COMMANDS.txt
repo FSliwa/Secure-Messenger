@@ -1,0 +1,57 @@
+🚀 KOMENDY DEPLOYMENT - SECURE MESSENGER
+======================================
+
+📋 KROK 1: Z twojego komputera (terminal 1):
+-------------------------------------------
+cd ~/Secure-Messenger
+scp secure-messenger-deploy.tar.gz admin@5.22.223.49:/tmp/
+
+Hasło: MIlik112
+
+
+📋 KROK 2: Połącz się z serwerem (terminal 2):
+---------------------------------------------
+ssh admin@5.22.223.49
+
+Hasło: MIlik112
+
+
+📋 KROK 3: Na serwerze - skopiuj całą komendę:
+---------------------------------------------
+cd /tmp && tar -xzf secure-messenger-deploy.tar.gz server-deploy.sh && chmod +x server-deploy.sh && sudo ./server-deploy.sh && cd /opt/secure-messenger
+
+
+📋 KROK 4: Skonfiguruj Supabase:
+-------------------------------
+nano .env.production
+
+Ustaw:
+VITE_SUPABASE_URL=https://twoj-projekt.supabase.co
+VITE_SUPABASE_ANON_KEY=twoj-klucz-anon
+VITE_APP_URL=http://5.22.223.49
+
+Zapisz: Ctrl+X, potem Y, potem Enter
+
+
+📋 KROK 5: Uruchom deployment:
+-----------------------------
+sudo ./deployment/scripts/deploy.sh
+
+
+📋 KROK 6: Sprawdź czy działa:
+-----------------------------
+./deployment/scripts/health-check.sh
+curl http://localhost/health
+docker ps
+
+
+🎉 GOTOWE! Aplikacja powinna być dostępna pod:
+http://5.22.223.49
+
+
+⚠️  JEŚLI HASŁO NIE DZIAŁA:
+--------------------------
+Możliwe że hasło zawiera znaki specjalne. Spróbuj:
+- Wpisać hasło bardzo dokładnie
+- Upewnić się że caps lock jest wyłączony
+- Sprawdzić czy używasz właściwego użytkownika (admin)

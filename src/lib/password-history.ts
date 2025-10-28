@@ -7,6 +7,7 @@ export interface PasswordHistoryEntry {
   user_id: string;
   password_hash: string;
   created_at: string;
+  expires_at?: string;
 }
 
 /**

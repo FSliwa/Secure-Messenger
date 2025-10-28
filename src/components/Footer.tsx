@@ -114,7 +114,7 @@ export function Footer() {
               </div>
               
               <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-right">
-                © 2024 SecureChat. All rights reserved.
+                © 2025 SecureChat by EML Technology. All rights reserved.
               </p>
             </div>
           </div>

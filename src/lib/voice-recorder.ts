@@ -3,6 +3,8 @@
  * Provides secure voice message recording with encryption support
  */
 
+import { supabase } from './supabase'
+
 export interface VoiceRecordingOptions {
   maxDuration?: number; // Maximum duration in seconds (default: 300 = 5 minutes)
   sampleRate?: number; // Sample rate in Hz (default: 44100)
@@ -29,6 +31,8 @@ export class VoiceRecorder {
   private onError?: (error: Error) => void;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
+  private source: MediaStreamAudioSourceNode | null = null;
+  private autoStopTimeout: NodeJS.Timeout | null = null;
   private waveformData: number[] = [];
 
   constructor(options: VoiceRecordingOptions = {}) {
@@ -103,8 +107,8 @@ export class VoiceRecorder {
       // Set up audio context for waveform analysis
       this.audioContext = new AudioContext();
       this.analyser = this.audioContext.createAnalyser();
-      const source = this.audioContext.createMediaStreamSource(this.audioStream);
-      source.connect(this.analyser);
+      this.source = this.audioContext.createMediaStreamSource(this.audioStream);
+      this.source.connect(this.analyser);
       
       this.analyser.fftSize = 256;
       this.analyser.smoothingTimeConstant = 0.8;
@@ -140,8 +144,8 @@ export class VoiceRecorder {
       // Start recording
       this.mediaRecorder.start(100); // Collect data every 100ms
 
-      // Set up automatic stop after max duration
-      setTimeout(() => {
+      // Set up automatic stop after max duration with cleanup
+      this.autoStopTimeout = setTimeout(() => {
         if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
           this.stopRecording();
         }
@@ -161,6 +165,12 @@ export class VoiceRecorder {
    * Stop voice recording
    */
   stopRecording(): void {
+    // Clear auto-stop timeout
+    if (this.autoStopTimeout) {
+      clearTimeout(this.autoStopTimeout);
+      this.autoStopTimeout = null;
+    }
+    
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.stop();
     }
@@ -168,6 +178,12 @@ export class VoiceRecorder {
     if (this.audioStream) {
       this.audioStream.getTracks().forEach(track => track.stop());
       this.audioStream = null;
+    }
+
+    // Disconnect source to prevent memory leak
+    if (this.source) {
+      this.source.disconnect();
+      this.source = null;
     }
 
     if (this.audioContext) {
@@ -270,20 +286,26 @@ export class VoiceRecorder {
 
   /**
    * Collect waveform data for visualization
+   * Limits to max 1000 data points to prevent memory issues
    */
   private collectWaveformData(): void {
     if (!this.analyser) return;
 
     const bufferLength = this.analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
+    const MAX_WAVEFORM_POINTS = 1000;
 
     const collectData = () => {
       if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
         this.analyser!.getByteTimeDomainData(dataArray);
         
         // Sample every 10th data point to reduce size
-        for (let i = 0; i < bufferLength; i += 10) {
-          this.waveformData.push(dataArray[i]);
+        // Only collect if we haven't reached max points
+        if (this.waveformData.length < MAX_WAVEFORM_POINTS) {
+          for (let i = 0; i < bufferLength; i += 10) {
+            if (this.waveformData.length >= MAX_WAVEFORM_POINTS) break;
+            this.waveformData.push(dataArray[i]);
+          }
         }
 
         requestAnimationFrame(collectData);
@@ -355,7 +377,12 @@ export class VoicePlayer {
       }
 
       this.analyser = this.audioContext.createAnalyser();
-      this.source = this.audioContext.createMediaElementSource(this.audio);
+      
+      // Only create source if it doesn't exist (prevents "already created" error)
+      if (!this.source) {
+        this.source = this.audioContext.createMediaElementSource(this.audio);
+      }
+      
       this.source.connect(this.analyser);
       this.analyser.connect(this.audioContext.destination);
 
@@ -589,3 +616,69 @@ export const VoiceUtils = {
     return new Blob([byteArray], { type: mimeType });
   }
 };
+
+/**
+ * Upload voice message to dedicated voice-messages bucket
+ */
+export async function uploadVoiceMessage(
+  blob: Blob,
+  userId: string,
+  conversationId: string
+): Promise<{ url: string | null; error?: string; filePath?: string }> {
+  try {
+    // Check if voice-messages bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets()
+    const bucketExists = buckets?.some(b => b.name === 'voice-messages')
+    
+    if (!bucketExists) {
+      console.error('voice-messages bucket does not exist')
+      return { 
+        url: null, 
+        error: 'Voice messages storage not configured. Please create voice-messages bucket in Supabase Storage.' 
+      }
+    }
+    
+    // Generate unique filename
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(7)
+    const userPrefix = userId.substring(0, 8)
+    const fileName = `${timestamp}-${userPrefix}-${random}.webm`
+    const filePath = `voice/${conversationId}/${fileName}`
+    
+    // Upload to voice-messages bucket
+    const { data, error } = await supabase.storage
+      .from('voice-messages')
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: blob.type || 'audio/webm'
+      })
+    
+    if (error) {
+      console.error('Voice upload error:', error)
+      return { 
+        url: null, 
+        error: error.message,
+        filePath 
+      }
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('voice-messages')
+      .getPublicUrl(filePath)
+    
+    console.log('Voice message uploaded successfully:', urlData.publicUrl)
+    
+    return { 
+      url: urlData.publicUrl,
+      filePath
+    }
+  } catch (error: any) {
+    console.error('Voice upload exception:', error)
+    return { 
+      url: null, 
+      error: error.message || 'Failed to upload voice message' 
+    }
+  }
+}
