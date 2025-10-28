@@ -1,35 +1,17 @@
 {
-    "name": "secure-messenger",
+    "name": "spark-template",
     "private": true,
-    "version": "1.0.0",
+    "version": "0.0.0",
     "type": "module",
     "scripts": {
         "dev": "vite",
         "kill": "fuser -k 5000/tcp",
         "build": "tsc -b --noCheck && vite build",
-        "build:production": "NODE_ENV=production npm run build",
         "lint": "eslint .",
-        "type-check": "tsc --noEmit",
-        "test": "echo 'No tests configured yet'",
-        "test:e2e": "echo 'No e2e tests configured yet'",
         "optimize": "vite optimize",
-        "preview": "vite preview",
-        "test:password-reset": "tsx test-password-reset.ts",
-        "test:registration": "tsx test-registration.ts",
-        "test:email-flows": "open test-email-flows.html",
-        "check:config": "tsx check-supabase-config.ts",
-        "audit:security": "npm audit --production && npm outdated",
-        "pre-deploy": "node scripts/pre-deploy.js",
-        "post-deploy": "node scripts/post-deploy.js",
-        "deploy:production": "bash deployment/scripts/deploy.sh",
-        "rollback": "bash deployment/scripts/rollback.sh",
-        "health-check": "bash deployment/scripts/health-check.sh",
-        "monitor": "node scripts/monitoring.js",
-        "backup": "bash deployment/scripts/backup.sh",
-        "migrate:db": "node scripts/migrate-database.js"
+        "preview": "vite preview"
     },
     "dependencies": {
-        "@esbuild/linux-x64": "^0.25.11",
         "@github/spark": "^0.39.0",
         "@heroicons/react": "^2.2.0",
         "@hookform/resolvers": "^4.1.3",
@@ -96,20 +78,15 @@
     "devDependencies": {
         "@eslint/js": "^9.21.0",
         "@tailwindcss/postcss": "^4.1.8",
-        "@types/node": "^24.7.0",
         "@types/react": "^19.0.10",
         "@types/react-dom": "^19.0.4",
         "@vitejs/plugin-react": "^4.3.4",
         "@vitejs/plugin-react-swc": "^3.10.1",
-        "dotenv": "^17.2.3",
         "eslint": "^9.28.0",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.19",
         "globals": "^16.0.0",
-        "rollup": "^4.52.5",
-        "sharp": "^0.34.4",
         "tailwindcss": "^4.1.11",
-        "tsx": "^4.20.6",
         "typescript": "~5.7.2",
         "typescript-eslint": "^8.38.0",
         "vite": "^6.3.5"
@@ -118,8 +95,5 @@
         "packages": [
             "packages/*"
         ]
-    },
-    "optionalDependencies": {
-        "@rollup/rollup-linux-x64-gnu": "^4.52.5"
     }
 }

@@ -105,6 +105,7 @@ interface Conversation {
     display_name: string | null
     avatar_url: string | null
     status: 'online' | 'offline' | 'away'
+    last_seen?: string
     public_key: string
   }
 }
@@ -221,7 +222,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       setConversations([])
       return []
     }
-  }, [currentUser.id, setConversations])
+  }, [currentUser.id])
 
   useEffect(() => {
     const loadKeys = async () => {
@@ -259,10 +260,15 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           if (conv.otherParticipant?.id === userId) {
             return {
               ...conv,
-              otherParticipant: {
-                ...conv.otherParticipant,
-                status: status
-              }
+              otherParticipant: conv.otherParticipant ? {
+                id: conv.otherParticipant.id,
+                username: conv.otherParticipant.username,
+                display_name: conv.otherParticipant.display_name,
+                avatar_url: conv.otherParticipant.avatar_url,
+                public_key: conv.otherParticipant.public_key,
+                status: status,
+                last_seen: event.detail.last_seen || conv.otherParticipant.last_seen
+              } : undefined
             }
           }
           return conv
@@ -271,14 +277,18 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       
       // Update active conversation if it's the changed user
       if (activeConversation?.otherParticipant?.id === userId) {
-        setActiveConversation(prev => prev ? {
+        setActiveConversation(prev => prev && prev.otherParticipant ? {
           ...prev,
-          otherParticipant: prev.otherParticipant ? {
-            ...prev.otherParticipant,
+          otherParticipant: {
+            id: prev.otherParticipant.id,
+            username: prev.otherParticipant.username,
+            display_name: prev.otherParticipant.display_name,
+            avatar_url: prev.otherParticipant.avatar_url,
+            public_key: prev.otherParticipant.public_key,
             status: status,
             last_seen: event.detail.last_seen || prev.otherParticipant.last_seen
-          } : undefined
-        } : null)
+          }
+        } : prev)
       }
     }
     
@@ -651,8 +661,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
     try {
       const result = await joinConversation(accessCode, currentUser.id)
       
-      // Add to local state
-      setConversations((prev) => [...(prev || []), result.conversation])
+      // Reload conversations from DB instead of manually adding to state
+      await reloadConversations()
       
       toast.success(t.successfullyJoinedConversation)
       setShowJoinConversation(false)
@@ -763,11 +773,11 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       )
 
       // Send to database with voice metadata
-      const dbMessage = await sendMessage(
-        activeConversation.id,
-        currentUser.id,
-        JSON.stringify(encryptedContent),
-        { 
+      const result = await sendMessage({
+        conversation_id: activeConversation.id,
+        sender_id: currentUser.id,
+        encrypted_content: JSON.stringify(encryptedContent),
+        encryption_metadata: { 
           algorithm: 'PQC-AES-256-GCM-RSA2048', 
           bitLength: 2048,
           type: 'voice',
@@ -776,7 +786,11 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           waveform: recording.waveform,
           mime_type: recording.blob.type
         }
-      )
+      })
+
+      if (!result.success || !result.message) {
+        throw new Error(result.error || 'Failed to send voice message')
+      }
 
       // Update message with real database ID and status
       setMessages((currentMessages) => 
@@ -784,7 +798,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           msg.id === messageId 
             ? {
                 ...msg,
-                id: dbMessage.id, // Use real database ID
+                id: result.message?.id || msg.id, // Use real database ID or fallback
                 encrypted_content: encryptedContent, 
                 isEncrypted: true,
                 status: 'sent'
@@ -874,12 +888,16 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       )
 
       // Send to database
-      const dbMessage = await sendMessage(
-        activeConversation.id,
-        currentUser.id,
-        JSON.stringify(encryptedContent),
-        { algorithm: 'PQC-AES-256-GCM-RSA2048', bitLength: 2048 }
-      )
+      const result = await sendMessage({
+        conversation_id: activeConversation.id,
+        sender_id: currentUser.id,
+        encrypted_content: JSON.stringify(encryptedContent),
+        encryption_metadata: { algorithm: 'PQC-AES-256-GCM-RSA2048', bitLength: 2048 }
+      })
+
+      if (!result.success || !result.message) {
+        throw new Error(result.error || 'Failed to send message')
+      }
 
       // Update message with real database ID and status
       setMessages((currentMessages) => 
@@ -887,7 +905,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
           msg.id === messageId 
             ? {
                 ...msg,
-                id: dbMessage.id, // Use real database ID
+                id: result.message?.id || msg.id, // Use real database ID or fallback
                 encrypted_content: encryptedContent, 
                 isEncrypted: true,
                 status: 'sent'
@@ -1045,12 +1063,12 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
 
         // Send to database (simplified - would need to update sendMessage function)
         try {
-          await sendMessage(
-            activeConversation.id,
-            currentUser.id,
-            attachment.encryptedData || attachment.url || '',
-            fileMessage.type
-          )
+          await sendMessage({
+            conversation_id: activeConversation.id,
+            sender_id: currentUser.id,
+            encrypted_content: attachment.encryptedData || attachment.url || '',
+            encryption_metadata: { type: fileMessage.type }
+          })
         } catch (dbError) {
           console.warn('Database send failed, message stored locally:', dbError)
         }
@@ -1116,16 +1134,10 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
       setGeneratingAccessCode(true)
       const newAccessCode = await regenerateAccessCode(activeConversation.id, currentUser.id)
       
-      // Update the local conversation
-      setConversations(prev => 
-        (prev || []).map(conv => 
-          conv.id === activeConversation.id 
-            ? { ...conv, access_code: newAccessCode }
-            : conv
-        )
-      )
+      // Reload conversations from database to get updated data
+      await reloadConversations()
       
-      // Update active conversation
+      // Update active conversation reference
       setActiveConversation(prev => prev ? { ...prev, access_code: newAccessCode } : null)
       
       toast.success(t.accessCodeGenerated, {

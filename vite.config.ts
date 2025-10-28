@@ -22,10 +22,4 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
-  publicDir: 'public',
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    copyPublicDir: true
-  }
 });
