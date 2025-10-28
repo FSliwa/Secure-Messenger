@@ -8,10 +8,12 @@ A modern, secure messaging application built with React, TypeScript, and Supabas
 - **Zero-Knowledge Architecture**: Server cannot read your messages
 - **Client-Side Key Generation**: Keys generated and stored locally
 - **Biometric Verification**: Touch ID/Face ID/Windows Hello for sensitive actions
-- **Real-Time Messaging**: Instant encrypted message delivery
+- **Real-Time Messaging**: Instant encrypted message delivery with real-time presence
+- **User Presence System**: Real-time status tracking (Online/Away/Offline)
 - **Web Crypto API**: Browser-native cryptographic operations
 - **Two-Factor Authentication**: TOTP-based 2FA with backup codes
 - **Device Trust Management**: Track and manage trusted devices
+- **Conversation Password Protection**: Additional encryption layer for sensitive conversations
 
 ## 🚀 Tech Stack
 
@@ -150,9 +152,28 @@ The application works in demo mode with mock credentials:
 
 1. **Sign Up**: Create an account with email verification
 2. **Set Up Security**: Enable 2FA and biometric authentication in Security Settings
-3. **Add Contacts**: Find users by email address
+3. **Add Contacts**: Find users by email address or username
 4. **Start Chatting**: Send encrypted messages in real-time
 5. **Verify Keys**: Check contact key fingerprints for security
+6. **Monitor Presence**: See real-time status (Online/Away/Offline) of your contacts
+
+### User Presence System
+
+SecureChat features an advanced real-time presence system that shows the availability status of users:
+
+- **🟢 Online**: User is active and available for immediate conversation
+- **🟡 Away**: User is inactive for more than 5 minutes (may respond with delay)
+- **⚪ Offline**: User has logged out or closed the application
+
+The system automatically:
+- Updates status based on user activity
+- Switches to "Away" after 5 minutes of inactivity
+- Sets status to "Offline" when user logs out or closes the app
+- Syncs status across all devices in real-time
+- Preserves last seen timestamp for offline users
+
+**Technical Details**: See `USER_PRESENCE_SYSTEM.md` for implementation details.
+**User Guide**: See `USER_STATUS_GUIDE.md` for end-user documentation.
 
 ### Biometric Verification
 

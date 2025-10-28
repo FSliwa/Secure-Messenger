@@ -281,6 +281,16 @@ export const signIn = async (email: string, password: string, publicKey?: string
     if (!existingProfile) {
       // Create profile for newly verified user
       await createUserProfileAfterVerification(data.user)
+    } else {
+      // Update user status to online when logging in
+      await supabase
+        .from('users')
+        .update({
+          status: 'online',
+          last_seen: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', data.user.id)
     }
   } catch (profileError) {
     console.warn('Profile check failed, continuing with login:', profileError)

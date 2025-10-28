@@ -18,6 +18,7 @@ import { supabase, signOut } from "@/lib/supabase";
 import { safeGetCurrentUser } from "@/lib/database-setup";
 import { checkDatabaseReadiness } from "@/lib/database-init";
 import { requireAuthentication, validateDashboardAccess } from "@/lib/auth-guards";
+import { userPresence } from "@/lib/user-presence";
 
 type AppState = 'database-init' | 'landing' | 'login' | 'dashboard' | 'reset-password' | 'auth-callback';
 
@@ -133,6 +134,9 @@ function AppContent() {
       setAuthState('authenticated');
       setAppState('dashboard');
       
+      // Initialize user presence tracking
+      await userPresence.initialize(user.id);
+      
     } catch (error) {
       console.error('Error checking auth state:', error);
       setCurrentUser(null);
@@ -197,16 +201,22 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, [appState, authState]);
 
-  const handleLoginSuccess = (user: User) => {
+  const handleLoginSuccess = async (user: User) => {
     setCurrentUser(user);
     setAuthState('authenticated');
     setAppState('dashboard');
+    
+    // Initialize user presence tracking
+    await userPresence.initialize(user.id);
   };
 
   const handleLogout = async () => {
     try {
       setIsLoading(true);
       setAuthState('checking');
+      
+      // Cleanup user presence tracking
+      await userPresence.cleanup();
       
       // Sign out from Supabase (includes database cleanup)
       await signOut();
@@ -229,6 +239,7 @@ function AppContent() {
     } catch (error) {
       console.error('Error during logout:', error);
       // Force logout even if there's an error
+      await userPresence.cleanup();
       setCurrentUser(null);
       setAuthState('unauthenticated');
       setAppState('login');
