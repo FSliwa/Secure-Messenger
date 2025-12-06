@@ -1,194 +1,8 @@
 /**
- * Advanced 2048-bit Post-Quantum Cryptography Implementation
- * Production Implementation Roadmap:
- * 
- * - 1:1 Conversations: Signal Double Ratchet (X3DH/PQXDH + per-message ratcheting)
- * - Groups: IETF MLS for efficient multi-device/large room scaling
- * - Identity Verification: Safety numbers/QR pairing, cross-device signing
- * - Multi-device: Local IndexedDB + WebCrypto, PBKDF2/Argon2 encrypted backups
- * - File Security: Chunked AES-GCM streaming, separate thumbnail encryption
- * - Push Security: Encrypted payloads, local-only decryption
- * - Search: Local encrypted indices, optional tokenized search
- * - Moderation: Privacy-conscious abuse prevention, client-side content scanning
- * - Telemetry: Minimal events, client-side aggregation, user-controlled sampling
- * 
- * Current Implementation: 2048-bit RSA with intentional computational delay
- * WebCrypto APIs provide native browser cryptographic primitives
+ * Secure Messenger Cryptography Module
+ * Implements Hybrid Encryption (AES-256-GCM + RSA-OAEP)
+ * and Secure Key Storage via IndexedDB.
  */
-
-/**
- * Enhanced browser compatibility check with detailed browser detection
- */
-export function checkBrowserCompatibility(): { 
-  compatible: boolean; 
-  issues: string[];
-  warnings: string[];
-  browserInfo: {
-    name: string;
-    version: string;
-    isSupported: boolean;
-  };
-  details: {
-    crypto: boolean;
-    localStorage: boolean;
-    textEncoder: boolean;
-    promises: boolean;
-    fetch: boolean;
-    es6: boolean;
-  };
-} {
-  const issues: string[] = [];
-  const warnings: string[] = [];
-  const details = {
-    crypto: false,
-    localStorage: false,
-    textEncoder: false,
-    promises: false,
-    fetch: false,
-    es6: false
-  };
-  
-  // Detect browser
-  const browserInfo = detectBrowser();
-  
-  // Check WebCrypto API
-  if (typeof crypto === 'undefined' || !crypto.subtle) {
-    issues.push('WebCrypto API not available. Please use: Chrome 37+, Firefox 34+, Safari 11+, or Edge 79+');
-  } else {
-    details.crypto = true;
-  }
-  
-  // Check localStorage
-  try {
-    if (typeof localStorage === 'undefined') {
-      issues.push('localStorage not available. Please disable private/incognito mode');
-    } else {
-      localStorage.setItem('__test__', 'test');
-      localStorage.removeItem('__test__');
-      details.localStorage = true;
-    }
-  } catch (e) {
-    issues.push('localStorage is blocked. Check browser privacy settings or disable private browsing');
-  }
-  
-  // Check TextEncoder
-  if (typeof TextEncoder === 'undefined') {
-    issues.push('TextEncoder not available. Please update your browser');
-  } else {
-    details.textEncoder = true;
-  }
-  
-  // Check Promises (warning only, not blocking)
-  if (typeof Promise === 'undefined') {
-    warnings.push('Promises not supported. Some features may not work. Update to a modern browser');
-    details.promises = false;
-  } else {
-    details.promises = true;
-  }
-  
-  // Check Fetch API
-  if (typeof fetch === 'undefined') {
-    warnings.push('Fetch API not available. Using fallback XHR');
-  } else {
-    details.fetch = true;
-  }
-  
-  // Check ES6 support (warning only, not blocking)
-  try {
-    new Function('(a = 0) => a');
-    details.es6 = true;
-  } catch (e) {
-    warnings.push('Some ES6 features may not work. Consider updating your browser for best experience.');
-    details.es6 = false;
-  }
-  
-  // Browser-specific warnings
-  if (browserInfo.name === 'Safari' && parseInt(browserInfo.version) < 14) {
-    warnings.push('Safari version is old. Recommended: Safari 14+ for best experience');
-  }
-  
-  if (browserInfo.name === 'Firefox' && parseInt(browserInfo.version) < 88) {
-    warnings.push('Firefox version is old. Recommended: Firefox 88+ for best experience');
-  }
-  
-  if (browserInfo.name === 'IE') {
-    issues.push('Internet Explorer is not supported. Please use Edge, Chrome, Firefox, or Safari');
-  }
-  
-  // Only block if critical APIs are missing (WebCrypto, localStorage, TextEncoder)
-  // Other features like ES6, Fetch, Promises are nice-to-have
-  const criticalIssues = issues.filter(issue => 
-    issue.includes('WebCrypto') || 
-    issue.includes('localStorage') || 
-    issue.includes('TextEncoder') ||
-    issue.includes('Internet Explorer')
-  );
-  
-  // Non-critical issues become warnings
-  const nonCriticalIssues = issues.filter(i => !criticalIssues.includes(i));
-  
-  return {
-    compatible: criticalIssues.length === 0, // Block only for critical APIs
-    issues: criticalIssues,
-    warnings: [...warnings, ...nonCriticalIssues],
-    browserInfo,
-    details
-  };
-}
-
-/**
- * Detect browser name and version
- */
-function detectBrowser(): { name: string; version: string; isSupported: boolean } {
-  const ua = navigator.userAgent;
-  let name = 'Unknown';
-  let version = '0';
-  let isSupported = false;
-  
-  // Chrome
-  if (ua.includes('Chrome') && !ua.includes('Edg')) {
-    name = 'Chrome';
-    const match = ua.match(/Chrome\/(\d+)/);
-    version = match ? match[1] : '0';
-    isSupported = parseInt(version) >= 90;
-  }
-  // Edge (Chromium)
-  else if (ua.includes('Edg/')) {
-    name = 'Edge';
-    const match = ua.match(/Edg\/(\d+)/);
-    version = match ? match[1] : '0';
-    isSupported = parseInt(version) >= 90;
-  }
-  // Firefox
-  else if (ua.includes('Firefox')) {
-    name = 'Firefox';
-    const match = ua.match(/Firefox\/(\d+)/);
-    version = match ? match[1] : '0';
-    isSupported = parseInt(version) >= 88;
-  }
-  // Safari
-  else if (ua.includes('Safari') && !ua.includes('Chrome')) {
-    name = 'Safari';
-    const match = ua.match(/Version\/(\d+)/);
-    version = match ? match[1] : '0';
-    isSupported = parseInt(version) >= 14;
-  }
-  // Opera
-  else if (ua.includes('OPR/')) {
-    name = 'Opera';
-    const match = ua.match(/OPR\/(\d+)/);
-    version = match ? match[1] : '0';
-    isSupported = parseInt(version) >= 76;
-  }
-  // IE
-  else if (ua.includes('MSIE') || ua.includes('Trident/')) {
-    name = 'IE';
-    version = '11';
-    isSupported = false;
-  }
-  
-  return { name, version, isSupported };
-}
 
 export interface KeyPair {
   publicKey: string;
@@ -200,481 +14,121 @@ export interface KeyPair {
 }
 
 export interface EncryptedMessage {
-  data: string;
-  keyId: string;
-  nonce: string;
+  // Hybrid Encryption Structure
+  ciphertext: string; // AES-GCM encrypted message content (Base64)
+  iv: string; // AES-GCM Initialization Vector (Base64)
+  encryptedKey: string; // AES session key encrypted with recipient's RSA Public Key (Base64)
+
+  // Metadata
+  keyId: string; // ID of the key used (for rotation support)
+  algorithm: string; // "AES-GCM-256+RSA-OAEP-2048"
+  integrity?: string; // Optional integrity hash
   timestamp: number;
-  integrity: string;
-  algorithm: string;
-  bitLength: number;
 }
 
+// Legacy interface support for smooth migration (optional)
 export interface EncryptionProgress {
-  phase: 'key-derivation' | 'quantum-resistance' | 'integrity-hash' | 'finalization';
+  phase: string;
   progress: number;
   message: string;
 }
 
-// Advanced cryptographic interfaces for future implementation
-export interface SafetyNumber {
-  localFingerprint: string;
-  remoteFingerprint: string;
-  combinedFingerprint: string;
-  qrCode: string;
-}
-
-export interface DeviceIdentity {
-  deviceId: string;
-  publicKey: string;
-  signedPreKey: string;
-  oneTimePreKeys: string[];
-  signature: string;
-  timestamp: number;
-}
-
-export interface DoubleRatchetState {
-  rootKey: string;
-  chainKeySend: string;
-  chainKeyReceive: string;
-  headerKey: string;
-  messageNumber: number;
-  previousChainLength: number;
-}
-
-export interface MLSGroupState {
-  groupId: string;
-  epoch: number;
-  memberKeys: Map<string, string>;
-  encryptionKey: string;
-  authenticationKey: string;
-}
-
-export interface FileEncryptionMetadata {
-  algorithm: 'AES-GCM-256';
-  chunkSize: number;
-  totalChunks: number;
-  thumbnailKey?: string;
-  mimetype: string;
-  originalName?: never; // Intentionally never to prevent filename leaks
-}
-
 /**
- * Generates 2048-bit post-quantum key pair with computational delay
- * This represents the complexity of actual 2048-bit post-quantum cryptography
+ * Browser Compatibility Check
  */
-export async function generatePostQuantumKeyPair(
-  onProgress?: (progress: EncryptionProgress) => void
-): Promise<KeyPair> {
-  const startTime = Date.now();
-  const keyId = generateSecureId();
-  
-  // Phase 1: Key Derivation (8 seconds for 2048-bit)
-  onProgress?.({
-    phase: 'key-derivation',
-    progress: 10,
-    message: 'Deriving 2048-bit quantum-resistant key materials...'
-  });
-  
-  await simulateComplexComputation(8000, (progress) => {
-    onProgress?.({
-      phase: 'key-derivation',
-      progress: 10 + (progress * 0.4),
-      message: 'Deriving 2048-bit quantum-resistant key materials...'
-    });
-  });
+export function checkBrowserCompatibility(): {
+  compatible: boolean;
+  issues: string[];
+  warnings: string[];
+} {
+  const issues: string[] = [];
+  const warnings: string[] = [];
 
-  // Phase 2: Quantum Resistance Application (12 seconds for enhanced security)
-  onProgress?.({
-    phase: 'quantum-resistance',
-    progress: 50,
-    message: 'Applying 2048-bit post-quantum cryptographic transformations...'
-  });
-  
-  await simulateComplexComputation(12000, (progress) => {
-    onProgress?.({
-      phase: 'quantum-resistance',
-      progress: 50 + (progress * 0.3),
-      message: 'Applying 2048-bit post-quantum cryptographic transformations...'
-    });
-  });
-
-  // Phase 3: Integrity Hash Generation (6 seconds)
-  onProgress?.({
-    phase: 'integrity-hash',
-    progress: 80,
-    message: 'Generating 2048-bit cryptographic integrity proofs...'
-  });
-  
-  await simulateComplexComputation(6000, (progress) => {
-    onProgress?.({
-      phase: 'integrity-hash',
-      progress: 80 + (progress * 0.15),
-      message: 'Generating 2048-bit cryptographic integrity proofs...'
-    });
-  });
-
-  // Phase 4: Finalization (4 seconds)
-  onProgress?.({
-    phase: 'finalization',
-    progress: 95,
-    message: 'Finalizing secure 2048-bit key pair...'
-  });
-  
-  await simulateComplexComputation(4000, (progress) => {
-    onProgress?.({
-      phase: 'finalization',
-      progress: 95 + (progress * 0.05),
-      message: 'Finalizing secure 2048-bit key pair...'
-    });
-  });
-
-  // Generate actual 2048-bit RSA keys
-  const keyMaterial = await crypto.subtle.generateKey(
-    {
-      name: 'RSA-OAEP',
-      modulusLength: 2048, // 2048-bit encryption
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: 'SHA-256',
-    },
-    true,
-    ['encrypt', 'decrypt']
-  );
-
-  const publicKey = await crypto.subtle.exportKey('spki', keyMaterial.publicKey);
-  const privateKey = await crypto.subtle.exportKey('pkcs8', keyMaterial.privateKey);
-
-  onProgress?.({
-    phase: 'finalization',
-    progress: 100,
-    message: '2048-bit post-quantum key pair generated successfully!'
-  });
-
-  return {
-    publicKey: arrayBufferToBase64(publicKey),
-    privateKey: arrayBufferToBase64(privateKey),
-    keyId,
-    algorithm: 'PQC-RSA-2048-OAEP-SHA256',
-    created: startTime,
-    bitLength: 2048
-  };
-}
-
-// Storage for encrypted/decrypted message pairs for demo purposes
-const messageStorage = new Map<string, string>();
-
-/**
- * Encrypts a message with post-quantum cryptography and intentional delay
- */
-export async function encryptMessage(
-  message: string,
-  recipientPublicKey: string,
-  senderKeyPair: KeyPair,
-  onProgress?: (progress: EncryptionProgress) => void
-): Promise<EncryptedMessage> {
-  const startTime = Date.now();
-  const nonce = generateSecureId();
-  const messageId = generateSecureId();
-
-  // Store the original message for later retrieval during decryption
-  messageStorage.set(messageId, message);
-
-  // Phase 1: Key Derivation for this message (6 seconds)
-  onProgress?.({
-    phase: 'key-derivation',
-    progress: 5,
-    message: 'Deriving ephemeral encryption keys...'
-  });
-  
-  await simulateComplexComputation(6000, (progress) => {
-    onProgress?.({
-      phase: 'key-derivation',
-      progress: 5 + (progress * 0.25),
-      message: 'Deriving ephemeral encryption keys...'
-    });
-  });
-
-  // Phase 2: Quantum-Resistant Encryption (8 seconds)
-  onProgress?.({
-    phase: 'quantum-resistance',
-    progress: 30,
-    message: 'Applying quantum-resistant encryption algorithms...'
-  });
-  
-  await simulateComplexComputation(8000, (progress) => {
-    onProgress?.({
-      phase: 'quantum-resistance',
-      progress: 30 + (progress * 0.5),
-      message: 'Applying quantum-resistant encryption algorithms...'
-    });
-  });
-
-  // Phase 3: Integrity Protection (4 seconds)
-  onProgress?.({
-    phase: 'integrity-hash',
-    progress: 80,
-    message: 'Computing cryptographic integrity signatures...'
-  });
-  
-  await simulateComplexComputation(4000, (progress) => {
-    onProgress?.({
-      phase: 'integrity-hash',
-      progress: 80 + (progress * 0.15),
-      message: 'Computing cryptographic integrity signatures...'
-    });
-  });
-
-  // Phase 4: Finalization (2 seconds)
-  onProgress?.({
-    phase: 'finalization',
-    progress: 95,
-    message: 'Securing encrypted message...'
-  });
-  
-  await simulateComplexComputation(2000, (progress) => {
-    onProgress?.({
-      phase: 'finalization',
-      progress: 95 + (progress * 0.05),
-      message: 'Securing encrypted message...'
-    });
-  });
-
-  // Perform actual RSA-OAEP encryption
-  const encodedMessage = new TextEncoder().encode(message);
-  
-  // Import recipient's public key
-  const publicKeyBuffer = base64ToArrayBuffer(recipientPublicKey);
-  const publicKey = await crypto.subtle.importKey(
-    'spki',
-    publicKeyBuffer,
-    {
-      name: 'RSA-OAEP',
-      hash: 'SHA-256'
-    },
-    false,
-    ['encrypt']
-  );
-  
-  // Encrypt the message with RSA-OAEP
-  const encryptedData = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    publicKey,
-    encodedMessage
-  );
-
-  // Convert encrypted data to base64 for storage
-  const encryptedBase64 = arrayBufferToBase64(encryptedData);
-
-  const integrity = await generateIntegrityHash(message + nonce + startTime);
-
-  onProgress?.({
-    phase: 'finalization',
-    progress: 100,
-    message: 'Message encrypted with post-quantum security!'
-  });
-
-  return {
-    data: encryptedBase64, // Return the actual encrypted data
-    keyId: senderKeyPair.keyId,
-    nonce,
-    timestamp: startTime,
-    integrity,
-    algorithm: 'PQC-AES-256-GCM-RSA2048',
-    bitLength: 2048
-  };
-}
-
-/**
- * Decrypts a message with real RSA-OAEP decryption
- * FIXED: Now properly decrypts messages from database, not just cache
- */
-export async function decryptMessage(
-  encryptedMessage: EncryptedMessage,
-  recipientKeyPair: KeyPair,
-  onProgress?: (progress: EncryptionProgress) => void
-): Promise<string> {
-  try {
-    // Phase 1: Check cache first (for messages from same session)
-    onProgress?.({
-      phase: 'key-derivation',
-      progress: 10,
-      message: 'Checking message cache...'
-    });
-
-    const cachedMessage = messageStorage.get(encryptedMessage.data);
-    if (cachedMessage) {
-      onProgress?.({
-        phase: 'finalization',
-        progress: 100,
-        message: 'Message loaded from cache!'
-      });
-      return cachedMessage;
-    }
-
-    // Phase 2: Load and import private key for real decryption
-    onProgress?.({
-      phase: 'key-derivation',
-      progress: 20,
-      message: 'Loading private key...'
-    });
-
-    const privateKeyBuffer = base64ToArrayBuffer(recipientKeyPair.privateKey);
-    const privateKey = await crypto.subtle.importKey(
-      'pkcs8',
-      privateKeyBuffer,
-      {
-        name: 'RSA-OAEP',
-        hash: 'SHA-256'
-      },
-      false,
-      ['decrypt']
-    );
-
-    onProgress?.({
-      phase: 'key-derivation',
-      progress: 40,
-      message: 'Private key loaded successfully'
-    });
-
-    // Phase 3: Decrypt the actual message data
-    onProgress?.({
-      phase: 'quantum-resistance',
-      progress: 50,
-      message: 'Decrypting message with RSA-OAEP...'
-    });
-
-    // Convert base64 encrypted data to ArrayBuffer
-    const encryptedBuffer = base64ToArrayBuffer(encryptedMessage.data);
-
-    // Perform RSA-OAEP decryption
-    const decryptedBuffer = await crypto.subtle.decrypt(
-      { name: 'RSA-OAEP' },
-      privateKey,
-      encryptedBuffer
-    );
-
-    onProgress?.({
-      phase: 'integrity-hash',
-      progress: 80,
-      message: 'Verifying message integrity...'
-    });
-
-    // Phase 4: Decode decrypted data to string
-    onProgress?.({
-      phase: 'finalization',
-      progress: 90,
-      message: 'Finalizing decryption...'
-    });
-
-    const decoder = new TextDecoder();
-    const decryptedMessage = decoder.decode(decryptedBuffer);
-
-    onProgress?.({
-      phase: 'finalization',
-      progress: 100,
-      message: 'Message decrypted successfully!'
-    });
-
-    return decryptedMessage;
-
-  } catch (error) {
-    console.error('❌ Decryption failed:', error);
-    
-    // Last resort fallback: try to decode as plain base64
-    try {
-      const decodedData = base64ToArrayBuffer(encryptedMessage.data);
-      const textDecoder = new TextDecoder();
-      const possibleText = textDecoder.decode(decodedData);
-      
-      // If it looks like readable text, return it
-      if (possibleText.length > 0 && /^[\x20-\x7E\s]*$/.test(possibleText)) {
-        console.warn('⚠️ Message was not encrypted, returning as plain text');
-        return possibleText;
-      }
-    } catch (fallbackError) {
-      // Complete failure
-    }
-
-    throw new Error(`Failed to decrypt message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  if (!window.crypto || !window.crypto.subtle) {
+    issues.push("WebCrypto API is not supported in this browser.");
   }
+
+  if (!window.indexedDB) {
+    issues.push("IndexedDB is not supported in this browser.");
+  }
+
+  return {
+    compatible: issues.length === 0,
+    issues,
+    warnings,
+  };
 }
 
 /**
- * Simulates complex cryptographic computation with progress updates
+ * IndexedDB Key Storage Wrapper
  */
-async function simulateComplexComputation(
-  durationMs: number,
-  onProgress?: (progress: number) => void
-): Promise<void> {
-  const startTime = Date.now();
-  const endTime = startTime + durationMs;
-  
-  return new Promise((resolve) => {
-    const updateProgress = () => {
-      const now = Date.now();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / durationMs, 1);
-      
-      onProgress?.(progress);
-      
-      if (now >= endTime) {
-        resolve();
-      } else {
-        // Update every 500ms for smooth progress
-        setTimeout(updateProgress, 500);
+const DB_NAME = "SecureMessengerKeys";
+const STORE_NAME = "keys";
+const DB_VERSION = 1;
+
+async function openKeyDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
     };
-    
-    updateProgress();
   });
 }
 
-/**
- * Generates a cryptographically secure ID
- */
-function generateSecureId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-}
+export async function storeKeys(keyPair: KeyPair): Promise<void> {
+  try {
+    const db = await openKeyDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put({ id: "user_keypair", ...keyPair });
 
-/**
- * Generates a secure random code with specified length
- */
-export function generateSecureCode(length: number): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let result = ''
-  const randomArray = crypto.getRandomValues(new Uint8Array(length))
-  
-  for (let i = 0; i < length; i++) {
-    result += chars[randomArray[i] % chars.length]
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error("Failed to store keys in IndexedDB:", error);
+    throw new Error("Secure storage failure");
   }
-  
-  return result
+}
+
+export async function getStoredKeys(): Promise<KeyPair | null> {
+  try {
+    const db = await openKeyDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readonly");
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get("user_keypair");
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.warn("Could not retrieve keys from IndexedDB:", error);
+    return null;
+  }
 }
 
 /**
- * Generates integrity hash for message verification
+ * Cryptographic Primitives
  */
-async function generateIntegrityHash(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(data));
-  return arrayBufferToBase64(hash);
-}
 
-/**
- * Converts ArrayBuffer to Base64
- */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
+function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
 }
 
-/**
- * Converts Base64 to ArrayBuffer
- */
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -684,284 +138,240 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-/**
- * Securely wipes sensitive data from memory
- */
-export function secureWipe(data: string | ArrayBuffer): void {
-  if (typeof data === 'string') {
-    // In a real implementation, this would overwrite memory
-    data = '';
-  }
-  // Note: JavaScript doesn't provide direct memory control,
-  // but in production this would use native modules for secure wiping
+function generateSecureId(): string {
+  const array = new Uint8Array(16);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    ""
+  );
 }
 
 /**
- * Legacy compatibility functions for existing components
+ * Key Generation (RSA-OAEP 2048)
  */
-
-// Add timeout protection wrapper
-async function generateKeyPairWithTimeout(
-  onProgress?: (progress: EncryptionProgress) => void,
-  timeoutMs: number = 60000  // 60 seconds default
+export async function generateKeyPair(
+  onProgress?: (p: EncryptionProgress) => void
 ): Promise<KeyPair> {
-  return Promise.race([
-    generatePostQuantumKeyPair(onProgress),
-    new Promise<KeyPair>((_, reject) => 
-      setTimeout(() => reject(new Error('Key generation timeout - please try again or use a different browser')), timeoutMs)
-    )
-  ]);
-}
-
-export async function generateKeyPair(onProgress?: (progress: EncryptionProgress) => void): Promise<KeyPair> {
-  try {
-    return await generateKeyPairWithTimeout(onProgress, 60000);
-  } catch (error) {
-    console.error('Key generation failed:', error);
-    throw new Error('Failed to generate encryption keys. Please try again or use a different browser.');
-  }
-}
-
-export async function storeKeys(keyPair: KeyPair): Promise<void> {
-  try {
-    if (typeof localStorage === 'undefined') {
-      console.warn('localStorage not available, keys will not be persisted');
-      return;
-    }
-    
-    // Test if localStorage is writable
-    localStorage.setItem('test', 'test');
-    localStorage.removeItem('test');
-    
-    // Store keys
-    localStorage.setItem('securechat-keypair', JSON.stringify(keyPair));
-    console.log('✅ Keys stored successfully in localStorage');
-  } catch (error) {
-    console.error('Failed to store keys in localStorage:', error);
-    console.warn('Keys generated but not persisted. They will be lost on page refresh.');
-    // Don't throw - allow registration to continue
-  }
-}
-
-export async function getStoredKeys(): Promise<KeyPair | null> {
-  const stored = localStorage.getItem('securechat-keypair');
-  return stored ? JSON.parse(stored) : null;
-}
-
-export function getKeyFingerprint(publicKey: string): string {
-  // Generate a human-readable fingerprint from the public key
-  const hash = btoa(publicKey).slice(0, 40);
-  return hash.match(/.{4}/g)?.join('-') || hash;
-}
-
-export function isCryptoSupported(): boolean {
-  return typeof crypto !== 'undefined' && 
-         typeof crypto.subtle !== 'undefined' &&
-         typeof crypto.getRandomValues !== 'undefined';
-}
-
-/**
- * Advanced Cryptographic Features - Implementation Stubs
- * These functions provide the interface for production-ready features
- */
-
-/**
- * Generate safety number for peer verification (Signal protocol)
- */
-export async function generateSafetyNumber(
-  localIdentity: KeyPair,
-  remotePublicKey: string,
-  localUserId: string,
-  remoteUserId: string
-): Promise<SafetyNumber> {
-  // In production: Combine fingerprints using Signal's safety number algorithm
-  const localFingerprint = getKeyFingerprint(localIdentity.publicKey);
-  const remoteFingerprint = getKeyFingerprint(remotePublicKey);
-  const combinedFingerprint = localFingerprint + remoteFingerprint;
-  
-  return {
-    localFingerprint,
-    remoteFingerprint,
-    combinedFingerprint,
-    qrCode: `securechat://verify/${combinedFingerprint}` // QR code data
-  };
-}
-
-/**
- * Initialize Double Ratchet state for 1:1 conversations
- */
-export async function initializeDoubleRatchet(
-  sharedKey: string,
-  sendingRatchetKey: KeyPair
-): Promise<DoubleRatchetState> {
-  // In production: Full Signal Double Ratchet implementation
-  return {
-    rootKey: sharedKey,
-    chainKeySend: await generateSecureId(),
-    chainKeyReceive: await generateSecureId(),
-    headerKey: await generateSecureId(),
-    messageNumber: 0,
-    previousChainLength: 0
-  };
-}
-
-/**
- * Initialize MLS group state for group conversations
- */
-export async function initializeMLSGroup(
-  groupId: string,
-  memberPublicKeys: string[]
-): Promise<MLSGroupState> {
-  // In production: IETF MLS implementation
-  const memberKeys = new Map<string, string>();
-  memberPublicKeys.forEach((key, index) => {
-    memberKeys.set(`member_${index}`, key);
+  onProgress?.({
+    phase: "init",
+    progress: 0,
+    message: "Initializing key generation...",
   });
-  
-  return {
-    groupId,
-    epoch: 0,
-    memberKeys,
-    encryptionKey: await generateSecureId(),
-    authenticationKey: await generateSecureId()
-  };
-}
 
-/**
- * Encrypt file with chunked AES-GCM
- */
-export async function encryptFileChunked(
-  file: File,
-  chunkSize: number = 1024 * 1024 // 1MB chunks
-): Promise<{ encryptedChunks: ArrayBuffer[], metadata: FileEncryptionMetadata }> {
-  // In production: Stream encryption with AES-GCM-256
-  const totalChunks = Math.ceil(file.size / chunkSize);
-  const encryptedChunks: ArrayBuffer[] = [];
-  
-  // Simulate chunk encryption
-  for (let i = 0; i < totalChunks; i++) {
-    const chunk = new ArrayBuffer(Math.min(chunkSize, file.size - (i * chunkSize)));
-    encryptedChunks.push(chunk);
-  }
-  
-  return {
-    encryptedChunks,
-    metadata: {
-      algorithm: 'AES-GCM-256',
-      chunkSize,
-      totalChunks,
-      mimetype: file.type,
-      // thumbnailKey generated separately for thumbnails
-      thumbnailKey: await generateSecureId()
-    }
-  };
-}
+  const startTime = Date.now();
 
-/**
- * Generate encrypted push notification payload 
- */
-export async function encryptPushNotification(
-  title: string,
-  body: string,
-  userKey: string
-): Promise<string> {
-  // In production: Encrypt notification content for Web Push
-  const payload = JSON.stringify({ title, body, timestamp: Date.now() });
-  const encoder = new TextEncoder();
-  
-  // Simplified encryption for demo
-  const key = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt']
-  );
-  
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    encoder.encode(payload)
-  );
-  
-  return arrayBufferToBase64(encrypted);
-}
-
-/**
- * Generate one-time pre-keys for device migration
- */
-export async function generateOneTimePreKeys(count: number = 100): Promise<string[]> {
-  // In production: Generate curve25519 one-time pre-keys
-  const preKeys: string[] = [];
-  for (let i = 0; i < count; i++) {
-    preKeys.push(await generateSecureId());
-  }
-  return preKeys;
-}
-
-/**
- * Derive key from password using PBKDF2/Argon2
- */
-export async function deriveKeyFromPassword(
-  password: string,
-  salt?: string
-): Promise<{ key: string, salt: string }> {
-  // In production: Use Argon2 for better security
-  const usedSalt = salt || await generateSecureId();
-  const encoder = new TextEncoder();
-  
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-  
-  const derivedKey = await crypto.subtle.deriveBits(
+  const keyPair = await window.crypto.subtle.generateKey(
     {
-      name: 'PBKDF2',
-      salt: encoder.encode(usedSalt),
-      iterations: 100000, // In production: Use higher iterations or Argon2
-      hash: 'SHA-256'
+      name: "RSA-OAEP",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
     },
-    keyMaterial,
-    256
+    true,
+    ["encrypt", "decrypt"]
   );
-  
+
+  onProgress?.({ phase: "export", progress: 50, message: "Exporting keys..." });
+
+  const publicKeyBuffer = await window.crypto.subtle.exportKey(
+    "spki",
+    keyPair.publicKey
+  );
+  const privateKeyBuffer = await window.crypto.subtle.exportKey(
+    "pkcs8",
+    keyPair.privateKey
+  );
+
+  onProgress?.({
+    phase: "done",
+    progress: 100,
+    message: "Key generation complete.",
+  });
+
   return {
-    key: arrayBufferToBase64(derivedKey),
-    salt: usedSalt
+    publicKey: arrayBufferToBase64(publicKeyBuffer),
+    privateKey: arrayBufferToBase64(privateKeyBuffer),
+    keyId: generateSecureId(),
+    algorithm: "RSA-OAEP-2048",
+    created: startTime,
+    bitLength: 2048,
   };
 }
 
 /**
- * Create encrypted backup of user keys
+ * Hybrid Encryption (AES-GCM + RSA-OAEP)
  */
-export async function createEncryptedBackup(
-  keys: KeyPair,
-  password: string
-): Promise<string> {
-  // In production: Full key backup with password encryption
-  const backupData = JSON.stringify(keys);
-  
-  // Simplified backup encryption - generate new key for demo
-  const encryptionKey = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt']
-  );
-  
-  const encoder = new TextEncoder();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    encryptionKey,
-    encoder.encode(backupData)
-  );
-  
-  return JSON.stringify({
-    encrypted: arrayBufferToBase64(encrypted),
-    iv: arrayBufferToBase64(iv.buffer),
-    note: `Backup encrypted with password: ${password.slice(0, 3)}***`
+export async function encryptMessage(
+  message: string,
+  recipientPublicKeyBase64: string,
+  senderKeyPair: KeyPair, // Kept for interface compatibility, though sender key not strictly needed for encryption in this scheme
+  onProgress?: (p: EncryptionProgress) => void
+): Promise<EncryptedMessage> {
+  onProgress?.({
+    phase: "encrypt",
+    progress: 10,
+    message: "Generating session key...",
   });
+
+  // 1. Generate AES-256 Session Key
+  const sessionKey = await window.crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt"]
+  );
+
+  // 2. Encrypt Message with Session Key
+  const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV
+  const encodedMessage = new TextEncoder().encode(message);
+
+  onProgress?.({
+    phase: "encrypt",
+    progress: 40,
+    message: "Encrypting content...",
+  });
+
+  const ciphertextBuffer = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    sessionKey,
+    encodedMessage
+  );
+
+  // 3. Encrypt Session Key with Recipient's Public Key
+  const recipientPublicKey = await window.crypto.subtle.importKey(
+    "spki",
+    base64ToArrayBuffer(recipientPublicKeyBase64),
+    { name: "RSA-OAEP", hash: "SHA-256" },
+    false,
+    ["encrypt"]
+  );
+
+  // Export session key as raw bytes to encrypt it
+  const rawSessionKey = await window.crypto.subtle.exportKey("raw", sessionKey);
+
+  onProgress?.({
+    phase: "encrypt",
+    progress: 70,
+    message: "Securing session key...",
+  });
+
+  const encryptedSessionKeyBuffer = await window.crypto.subtle.encrypt(
+    { name: "RSA-OAEP" },
+    recipientPublicKey,
+    rawSessionKey
+  );
+
+  onProgress?.({
+    phase: "done",
+    progress: 100,
+    message: "Encryption complete.",
+  });
+
+  return {
+    ciphertext: arrayBufferToBase64(ciphertextBuffer),
+    iv: arrayBufferToBase64(iv),
+    encryptedKey: arrayBufferToBase64(encryptedSessionKeyBuffer),
+    keyId: senderKeyPair.keyId,
+    algorithm: "AES-GCM-256+RSA-OAEP-2048",
+    timestamp: Date.now(),
+  };
 }
+
+/**
+ * Hybrid Decryption
+ */
+export async function decryptMessage(
+  encryptedMessage: EncryptedMessage | any, // Allow 'any' to handle potential legacy formats gracefully
+  recipientKeyPair: KeyPair,
+  onProgress?: (p: EncryptionProgress) => void
+): Promise<string> {
+  try {
+    // Legacy format check (if message is just a string or missing fields)
+    if (
+      typeof encryptedMessage === "string" ||
+      !encryptedMessage.encryptedKey
+    ) {
+      console.warn(
+        "Legacy message format detected. Attempting legacy decryption or returning raw."
+      );
+      // Fallback for old messages (assuming they were just base64 encoded or using the old scheme)
+      // Since we removed the old scheme, we can't easily decrypt them if they were truly encrypted.
+      // But if they were just the "fake" encryption from before, they might be recoverable if we knew the logic.
+      // For now, we fail safe.
+      throw new Error("Legacy message format not supported.");
+    }
+
+    onProgress?.({
+      phase: "decrypt",
+      progress: 20,
+      message: "Decrypting session key...",
+    });
+
+    // 1. Import User's Private Key
+    const privateKey = await window.crypto.subtle.importKey(
+      "pkcs8",
+      base64ToArrayBuffer(recipientKeyPair.privateKey),
+      { name: "RSA-OAEP", hash: "SHA-256" },
+      false,
+      ["decrypt"]
+    );
+
+    // 2. Decrypt Session Key
+    const rawSessionKeyBuffer = await window.crypto.subtle.decrypt(
+      { name: "RSA-OAEP" },
+      privateKey,
+      base64ToArrayBuffer(encryptedMessage.encryptedKey)
+    );
+
+    // 3. Import Session Key
+    const sessionKey = await window.crypto.subtle.importKey(
+      "raw",
+      rawSessionKeyBuffer,
+      { name: "AES-GCM" },
+      false,
+      ["decrypt"]
+    );
+
+    onProgress?.({
+      phase: "decrypt",
+      progress: 60,
+      message: "Decrypting content...",
+    });
+
+    // 4. Decrypt Message Content
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: base64ToArrayBuffer(encryptedMessage.iv) },
+      sessionKey,
+      base64ToArrayBuffer(encryptedMessage.ciphertext)
+    );
+
+    onProgress?.({
+      phase: "done",
+      progress: 100,
+      message: "Decryption complete.",
+    });
+
+    return new TextDecoder().decode(decryptedBuffer);
+  } catch (error) {
+    console.error("Decryption failed:", error);
+    throw new Error(
+      "Failed to decrypt message. It may be corrupted or encrypted with a different key."
+    );
+  }
+}
+
+// Helper for generating secure codes (e.g. for access codes)
+export function generateSecureCode(length: number): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  const randomArray = new Uint8Array(length);
+  window.crypto.getRandomValues(randomArray);
+
+  for (let i = 0; i < length; i++) {
+    result += chars[randomArray[i] % chars.length];
+  }
+
+  return result;
+}
+
+// Re-export for compatibility if needed
+export const generatePostQuantumKeyPair = generateKeyPair;

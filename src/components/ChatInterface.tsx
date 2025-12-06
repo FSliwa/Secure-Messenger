@@ -778,7 +778,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         sender_id: currentUser.id,
         encrypted_content: JSON.stringify(encryptedContent),
         encryption_metadata: { 
-          algorithm: 'PQC-AES-256-GCM-RSA2048', 
+          algorithm: 'AES-GCM-256+RSA-OAEP-2048', 
           bitLength: 2048,
           type: 'voice',
           duration: recording.duration,
@@ -807,10 +807,8 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         )
       )
       
-      // Show "100% Complete" for 1.5 seconds before closing dialog
-      setTimeout(() => {
-        setShowEncryptionDialog(false)
-      }, 1500)
+      // Close dialog immediately as encryption is fast
+      setShowEncryptionDialog(false)
       toast.success(t.voiceMessageRecorded)
       
     } catch (error) {
@@ -892,7 +890,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
         conversation_id: activeConversation.id,
         sender_id: currentUser.id,
         encrypted_content: JSON.stringify(encryptedContent),
-        encryption_metadata: { algorithm: 'PQC-AES-256-GCM-RSA2048', bitLength: 2048 }
+        encryption_metadata: { algorithm: 'AES-GCM-256+RSA-OAEP-2048', bitLength: 2048 }
       })
 
       if (!result.success || !result.message) {
@@ -1640,7 +1638,7 @@ export function ChatInterface({ currentUser }: ChatInterfaceProps) {
                                 ) : (
                                   <div className="space-y-2">
                                     <div className={`text-xs font-mono ${isOwn ? 'text-blue-100' : 'text-gray-400'} truncate`}>
-                                      {typeof message.encrypted_content === 'object' && message.encrypted_content.data?.slice(0, 30)}...
+                                      {typeof message.encrypted_content === 'object' && (message.encrypted_content as any).ciphertext?.slice(0, 30)}...
                                     </div>
                                     <button
                                       onClick={() => handleDecryptMessage(message)}
